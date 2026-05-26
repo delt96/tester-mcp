@@ -1,8 +1,7 @@
-project: kg_ebill
-language: ru
 targets:
   frontend: http://localhost:5173
 runner:
   model: haiku
-# test_users엔 비밀값을 넣지 않는다.
-# 실제 값은 env: BESTIAN_SECRET_TESTER_USERNAME / BESTIAN_SECRET_TESTER_PASSWORD
+# 테스트 계정 비밀값은 여기 넣지 않는다.
+# 파일: tester-mcp.secrets.yaml (gitignore) 의 tester.username / tester.password
+# 또는 CI env: SECRET_TESTER_USERNAME / SECRET_TESTER_PASSWORD

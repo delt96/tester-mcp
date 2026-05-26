@@ -2,3 +2,4 @@ node_modules/
 dist/
 runs/
 *.log
+tester-mcp.secrets.yaml
