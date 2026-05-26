@@ -1,11 +1,20 @@
-export function resolveSecrets(
-  value: string,
-  env: Record<string, string | undefined> = process.env
-): string {
+export interface ResolveOpts {
+  secrets?: Record<string, unknown>;
+  env?: Record<string, string | undefined>;
+}
+
+// ${secrets.a.b} → secrets file (nested) first, else env SECRET_A_B; throw if missing.
+export function resolveSecrets(value: string, opts: ResolveOpts = {}): string {
+  const env = opts.env ?? process.env;
   return value.replace(/\$\{secrets\.([\w.]+)\}/g, (_m, path: string) => {
-    const key = "BESTIAN_SECRET_" + path.replace(/\./g, "_").toUpperCase();
+    const fromFile = path
+      .split(".")
+      .reduce<any>((o, k) => (o == null ? undefined : o[k]), opts.secrets);
+    if (typeof fromFile === "string") return fromFile;
+    const key = "SECRET_" + path.replace(/\./g, "_").toUpperCase();
     const v = env[key];
-    if (v === undefined) throw new Error(`시크릿 누락: ${key} (시나리오의 \${secrets.${path}})`);
-    return v;
+    if (v === undefined)
+      throw new Error(`시크릿 누락: ${path} (tester-mcp.secrets.yaml 의 ${path} 또는 env ${key})`);
+    return String(v);
   });
 }

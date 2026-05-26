@@ -2,12 +2,27 @@ import { describe, it, expect } from "vitest";
 import { collectSecretValues, redactSecrets } from "../../src/secrets/redactSecrets.js";
 
 describe("collectSecretValues", () => {
-  it("BESTIAN_SECRET_* 값만, 길이>=4만 수집", () => {
+  it("SECRET_* env 값만, 길이>=4만 수집", () => {
     const vals = collectSecretValues({
-      BESTIAN_SECRET_TESTER_PASSWORD: "best1234",
-      BESTIAN_SECRET_TESTER_USERNAME: "admin",
-      BESTIAN_SECRET_SHORT: "x",        // 길이 1 → 과잉마스킹 방지로 제외
-      OTHER: "nope",
+      env: {
+        SECRET_TESTER_PASSWORD: "best1234",
+        SECRET_TESTER_USERNAME: "admin",
+        SECRET_SHORT: "x", // 길이 1 → 과잉마스킹 방지로 제외
+        OTHER: "nope",
+      },
+    });
+    expect(vals.sort()).toEqual(["admin", "best1234"]);
+  });
+  it("secrets 객체의 문자열 leaf 값을 재귀 수집한다", () => {
+    const vals = collectSecretValues({
+      secrets: { tester: { username: "admin", password: "best1234" }, nested: { deep: { k: "abcd" } } },
+    });
+    expect(vals.sort()).toEqual(["abcd", "admin", "best1234"]);
+  });
+  it("파일과 env를 합치고 중복은 제거한다", () => {
+    const vals = collectSecretValues({
+      secrets: { tester: { password: "best1234" } },
+      env: { SECRET_TESTER_PASSWORD: "best1234", SECRET_TESTER_USERNAME: "admin" },
     });
     expect(vals.sort()).toEqual(["admin", "best1234"]);
   });
