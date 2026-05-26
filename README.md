@@ -32,4 +32,6 @@ those facts — the command is the single source of truth.)
 ## Scenarios live in your project, not here
 
 Scenario YAML files belong to the project under test (commit them to that repo).
-This package only ships example scenarios under `examples/`.
+For a minimal example, run `tester-mcp document-guide` (it includes a sample
+scenario). The source repo also has runnable examples under `examples/`; those are
+not shipped in the npm package.
