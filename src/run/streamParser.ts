@@ -39,6 +39,7 @@ export function makeStreamAccumulator(now: () => number = () => Date.now()) {
     if (t === "assistant" || t === "user") {
       handleContent((ev.message as Record<string, unknown> | undefined)?.content);
     } else if (t === "result") {
+      // NOTE: result is the model's final text, stored RAW. It can contain secrets; redaction is the downstream layer's job (see redactSecrets). The trail/lastTool above never store raw text/inputs — only result does.
       state.envelope = {
         result: typeof ev.result === "string" ? ev.result : "",
         session_id: typeof ev.session_id === "string" ? ev.session_id : undefined,

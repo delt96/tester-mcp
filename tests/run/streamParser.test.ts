@@ -51,4 +51,12 @@ describe("makeStreamAccumulator", () => {
     acc.push(lines[4]);
     expect(acc.snapshot().envelope?.result).toContain("PASS");
   });
+  it("result에 비밀이 있어도 trail은 깨끗 (누출면이 envelope.result로 한정)", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    acc.push(JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "fill" }] } }));
+    acc.push(JSON.stringify({ type: "result", result: "password was best1234" }));
+    const s = acc.snapshot();
+    expect(JSON.stringify(s.trail)).not.toContain("best1234");   // trail은 도구 이름만
+    expect(s.envelope?.result).toContain("best1234");            // raw는 envelope에만 (하위서 redact)
+  });
 });
