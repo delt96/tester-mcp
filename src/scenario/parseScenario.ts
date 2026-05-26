@@ -8,6 +8,9 @@ export function parseScenario(yamlText: string): Scenario {
   const raw = parseYaml(yamlText) as Record<string, unknown> | null;
   if (!raw || typeof raw !== "object") throw new Error("시나리오 YAML 파싱 실패: 빈 문서");
   if (typeof raw.id !== "string") throw new Error("시나리오 필수 필드 누락: id");
+  if (!/^[A-Za-z0-9._-]+$/.test(raw.id)) {
+    throw new Error(`잘못된 시나리오 id '${raw.id}' — 영문/숫자/.-_ 만 허용 (경로 주입 방지)`);
+  }
   if (typeof raw.title !== "string") throw new Error("시나리오 필수 필드 누락: title");
   if (!Array.isArray(raw.steps) || raw.steps.length === 0)
     throw new Error("시나리오 필수 필드 누락: steps");

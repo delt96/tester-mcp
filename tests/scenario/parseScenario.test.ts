@@ -36,4 +36,8 @@ describe("parseScenario", () => {
     expect(() => parseScenario("id: a\ntitle: b\nsteps:\n  - action: assert_toast"))
       .toThrow(/assert_toast/);
   });
+  it("id에 경로 문자가 있으면 거부 (path injection 방지)", () => {
+    expect(() => parseScenario("id: ../../etc/x\ntitle: t\nsteps: []")).toThrow(/id/);
+    expect(() => parseScenario("id: a/b\ntitle: t\nsteps: []")).toThrow(/id/);
+  });
 });
