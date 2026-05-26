@@ -4,7 +4,7 @@
   "description": "Opus(planner) + Haiku(executor) + Chrome 통합 테스트 오케스트레이터",
   "type": "module",
   "bin": { "tester-mcp": "bin/tester-mcp.js" },
-  "files": ["dist", "bin"],
+  "files": ["dist", "bin", "skills"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
