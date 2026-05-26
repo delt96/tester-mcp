@@ -18,15 +18,23 @@ allowed-tools: Bash(tester-mcp *) Bash(node *) Read Write Edit Glob
 이 스킬은 **문서 우선** 워크플로를 따른다:
 
 ① **시나리오 YAML 문서를 먼저 작성·저장** — `scenarios/<area>/<id>.yaml` 에 검증할 플로우를 명시한 뒤 저장한다.
-② **CLI 호출** — `tester-mcp run <scenario> -c <config>` 로 claude-in-chrome executor를 spawn하고 대기한다.
+② **CLI 호출** — `tester-mcp run <scenarios...> -c <config>` 로 claude-in-chrome executor를 spawn하고 대기한다. 시나리오를 **여러 개**(파일 나열 또는 디렉토리)를 넘기면 병렬로 실행된다.
 ③ **결과 라벨 분기** — PASS / PARTIAL / FAIL / NOT_TESTED 로 분기한다.
+
+### 병렬 실행 — 동시성은 네가 판단한다 (상한 10)
+- 시나리오를 여러 개 넘기면 CLI가 병렬로 executor를 띄운다. `--concurrency <n>` 으로 동시 실행 수를 지정한다. **미지정 시 기본 = min(시나리오 수, 10).**
+- CLI가 `[1, 10]` 으로 **하드 클램프**하므로 10을 넘길 수 없다(실측: 10 병렬까지 탭 충돌 0건).
+- **동시성은 오케스트레이터(너)의 판단**으로 정한다:
+  - 시나리오가 가볍고 독립적이면 높게(최대 10), 무겁거나(긴 플로우·대기 많음) API rate-limit이 걱정되면 낮게(2~4).
+  - 모든 executor는 **같은 크롬·같은 탭그룹**을 공유한다(격리 안 됨). 시나리오 prompt가 "자기 탭만 조작"을 지키므로 안전하지만, 동시성을 무리하게 올리지 말 것.
+  - 예: `tester-mcp run scenarios/login/ -c config.yaml --concurrency 5`
 
 ## 워크플로 상세 (설계 §9.5 Planner 표준)
 
 1. **정적 검증 먼저**: 변경 심볼 grep + 빌드 통과 확인.
 2. **트리거 분석**: 대상 UI가 어느 화면·버튼·상태에서 렌더되는지 코드로 확인(hard 항목).
 3. **시나리오 작성**: `scenarios/<area>/<id>.yaml` 생성. 요소는 `target` 다중전략(css/placeholder/text/role/description), 로케일 `locale:` 고정, 비밀값은 `${secrets...}`. (스키마는 설계 §7.)
-4. **실행**: `tester-mcp run <scenario.yaml> -c <config>` (CLI가 executor를 spawn하고 대기).
+4. **실행**: `tester-mcp run <scenarios...> -c <config>` (CLI가 executor를 spawn하고 대기). 여러 시나리오면 `--concurrency <1~10>` 로 병렬 수를 조절(미지정=min(개수,10)).
 5. **결과 분기**:
    - PASS/PARTIAL → 실증 요약 + 스크린샷 보고.
    - FAIL → 어긋난 근거·스크린샷·handoff_notes 제시, 수정 진입.

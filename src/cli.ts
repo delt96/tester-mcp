@@ -8,7 +8,8 @@ import { resolveSecrets } from "./secrets/resolveSecrets.js";
 import { loadSecretsFile } from "./secrets/loadSecretsFile.js";
 import { collectSecretValues, redactSecrets } from "./secrets/redactSecrets.js";
 import { runInit, type InitOptions } from "./init.js";
-import { runScenario } from "./run/runScenario.js";
+import { runScenarios, clampConcurrency, MAX_CONCURRENCY } from "./run/runScenarios.js";
+import { expandScenarioPaths } from "./scenario/expandScenarioPaths.js";
 import { writeScenarioResult, writeSummary } from "./result/writeResult.js";
 import { captureEnv } from "./env/captureEnv.js";
 import { makeRunId } from "./util/runId.js";
@@ -20,38 +21,53 @@ program.name("tester-mcp").description("Opus+Haiku+Chrome 통합 테스트 (Phas
 // [확장5] validate/report/diff 는 여기에 .command() 추가.
 program
   .command("run")
-  .argument("<scenario>", "시나리오 YAML 경로")
+  .argument("<scenarios...>", "시나리오 YAML 경로(파일/디렉토리, 여러 개 가능)")
   .option("-c, --config <path>", "설정 파일", "tester-mcp.config.yaml")
   .option("--secrets <path>", "시크릿 파일", "tester-mcp.secrets.yaml")
   .option("--front-dir <path>", "frontend git 디렉토리(commit 캡처)")
   .option("--timeout <ms>", "executor 하드 타임아웃(ms, config runner.timeout_ms 오버라이드)")
-  .action(async (scenarioPath: string, opts: { config: string; secrets: string; frontDir?: string; timeout?: string }) => {
+  .option("--concurrency <n>", `병렬 executor 수(1~${MAX_CONCURRENCY}, 기본 min(시나리오 수, ${MAX_CONCURRENCY}))`)
+  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string }) => {
     try {
       const config = loadConfig(resolve(opts.config));
       const secrets = loadSecretsFile(resolve(opts.secrets));
-      const scenario = parseScenario(readFileSync(resolve(scenarioPath), "utf8"));
+      const files = expandScenarioPaths(scenarioPaths);
+      const scenarios = files.map((f) => parseScenario(readFileSync(f, "utf8")));
       const runId = makeRunId();
       const runDir = join("runs", runId);
       const env = captureEnv({ model: config.runner.model, frontendDir: opts.frontDir });
 
       const timeoutMs = opts.timeout ? Number(opts.timeout) : config.runner.timeout_ms;
-      const result = await runScenario(scenario, {
+      const concurrency = clampConcurrency(
+        opts.concurrency ? Number(opts.concurrency) : undefined,
+        scenarios.length
+      );
+      if (scenarios.length > 1)
+        console.log(`시나리오 ${scenarios.length}개 · 병렬 ${concurrency}`);
+
+      const results = await runScenarios(scenarios, {
         runId,
         targets: { frontend: config.targets.frontend },
         model: config.runner.model,
         env,
         resolveValue: (v) => resolveSecrets(v, { secrets }),
         timeoutMs,
-      });
+      }, concurrency);
 
       // Redact secret values (secrets file + env SECRET_*) before persisting/printing.
-      const safe = redactSecrets(result, collectSecretValues({ secrets, env: process.env }));
-      writeScenarioResult(runDir, safe);
-      writeSummary(runDir, runId, safe.started_at, [safe]);
-      console.log(`[${safe.status}] ${safe.scenario_id} → ${join(runDir, safe.scenario_id + ".json")}`);
-      if (safe.evidence?.length) console.log("evidence:", safe.evidence.join(" | "));
+      const secretValues = collectSecretValues({ secrets, env: process.env });
+      const safe = results.map((r) => redactSecrets(r, secretValues));
+      const startedAt = safe[0]?.started_at ?? new Date().toISOString();
+      for (const s of safe) {
+        writeScenarioResult(runDir, s);
+        console.log(`[${s.status}] ${s.scenario_id} → ${join(runDir, s.scenario_id + ".json")}`);
+        if (s.evidence?.length) console.log("  evidence:", s.evidence.join(" | "));
+      }
+      writeSummary(runDir, runId, startedAt, safe);
 
-      process.exit(result.status === "PASS" || result.status === "PARTIAL" ? 0 : 1);
+      // Exit 0 only if every scenario passed or partially passed.
+      const ok = safe.every((s) => s.status === "PASS" || s.status === "PARTIAL");
+      process.exit(ok ? 0 : 1);
     } catch (err) {
       console.error("실행 오류:", err instanceof Error ? err.message : err);
       process.exit(2);
