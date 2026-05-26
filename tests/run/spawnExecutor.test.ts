@@ -1,22 +1,52 @@
-import { describe, it, expect } from "vitest";
-import { parseEnvelope, spawnExecutor } from "../../src/run/spawnExecutor.js";
+import { describe, it, expect, vi } from "vitest";
+import { spawnExecutor, parseEnvelope, type StreamSpawner } from "../../src/run/spawnExecutor.js";
+
+// Fake spawner: emits the given lines synchronously, then closes.
+function fakeSpawner(lines: string[], opts: { close?: { code: number | null; signal: string | null }; hang?: boolean } = {}): StreamSpawner {
+  return (_cmd, _args, h) => {
+    for (const l of lines) h.onLine(l);
+    if (!opts.hang) h.onClose(opts.close?.code ?? 0, opts.close?.signal ?? null);
+    return { kill: vi.fn() };
+  };
+}
+
+const resultLine = JSON.stringify({ type: "result", result: '{"status":"PASS"}', session_id: "S" });
+const toolLine = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "navigate" }] } });
 
 describe("parseEnvelope", () => {
-  it("envelope에서 result/cost 추출", () => {
-    const e = parseEnvelope('{"result":"안녕","total_cost_usd":0.02}');
-    expect(e.result).toBe("안녕"); expect(e.total_cost_usd).toBe(0.02);
-  });
-  it("깨진 envelope이면 result=원문", () => {
-    expect(parseEnvelope("not json").result).toBe("not json");
+  it("JSON envelope 파싱, 실패 시 raw", () => {
+    expect(parseEnvelope('{"result":"R"}').result).toBe("R");
+    expect(parseEnvelope("plain").result).toBe("plain");
   });
 });
 
-describe("spawnExecutor (injected runner)", () => {
-  it("주입 runner로 인자 전달 + envelope 파싱", async () => {
-    let captured: string[] = [];
-    const e = await spawnExecutor({ prompt: "P", systemPrompt: "S", model: "haiku" },
-      async (_c, args) => { captured = args; return '{"result":"DONE","total_cost_usd":0.01}'; });
-    expect(captured).toContain("--chrome");
-    expect(e.result).toBe("DONE");
+describe("spawnExecutor (streaming)", () => {
+  it("정상 종료: envelope + state 반환, 각 줄 로그", async () => {
+    const logged: string[] = [];
+    const r = await spawnExecutor(
+      { prompt: "P", systemPrompt: "S", model: "haiku" },
+      { spawner: fakeSpawner([toolLine, resultLine]), logLine: (l) => logged.push(l) }
+    );
+    expect(r.envelope?.result).toBe('{"status":"PASS"}');
+    expect(r.state.lastTool).toBe("navigate");
+    expect(r.state.toolCount).toBe(1);
+    expect(logged.length).toBe(2);
+  });
+
+  it("스톨: 무이벤트 stallMs 초과 시 kill + killedReason='stall', trail 보존", async () => {
+    let killed: string | undefined;
+    const spawner: StreamSpawner = (_c, _a, h) => {
+      h.onLine(toolLine);                       // 하나만 오고 침묵
+      return { kill: (sig) => { killed = sig; h.onClose(null, sig); } };
+    };
+    const now = (() => { let t = 0; return () => (t += 1000); })(); // 매 호출 +1s
+    const r = await spawnExecutor(
+      { prompt: "P", systemPrompt: "S", model: "haiku" },
+      { spawner, logLine: () => {}, now, stallMs: 1500, tickMs: 1 }
+    );
+    expect(killed).toBe("SIGTERM");
+    expect(r.killedReason).toBe("stall");
+    expect(r.state.lastTool).toBe("navigate");
+    expect(r.envelope).toBeUndefined();
   });
 });
