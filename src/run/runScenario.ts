@@ -12,19 +12,38 @@ export interface RunScenarioOptions {
   resolveValue: (v: string) => string;   // secrets resolver (injected)
   runner?: Runner;
   now?: () => Date;
+  timeoutMs?: number;                     // hard executor timeout (kill → NOT_TESTED)
 }
 
 export async function runScenario(scenario: Scenario, opts: RunScenarioOptions): Promise<ScenarioResult> {
   const now = opts.now ?? (() => new Date());
   const startedAt = now();
-  const envelope = await spawnExecutor(
-    {
-      prompt: buildUserPrompt(scenario, opts.targets, opts.resolveValue),
-      systemPrompt: SYSTEM_CONTRACT,
-      model: opts.model,
-    },
-    opts.runner
-  );
+
+  let envelope;
+  try {
+    envelope = await spawnExecutor(
+      {
+        prompt: buildUserPrompt(scenario, opts.targets, opts.resolveValue),
+        systemPrompt: SYSTEM_CONTRACT,
+        model: opts.model,
+      },
+      opts.runner,
+      opts.timeoutMs
+    );
+  } catch (err) {
+    // Executor timed out or failed to spawn → NOT_TESTED (never hang the run).
+    return {
+      run_id: opts.runId,
+      scenario_id: scenario.id,
+      status: "NOT_TESTED",
+      not_tested_reason: err instanceof Error ? err.message : String(err),
+      started_at: startedAt.toISOString(),
+      duration_ms: now().getTime() - startedAt.getTime(),
+      steps: [],
+      environment: opts.env,
+    };
+  }
+
   const parsed = parseExecutorResult(envelope.result);
   return {
     run_id: opts.runId,

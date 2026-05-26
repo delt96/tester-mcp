@@ -28,4 +28,14 @@ describe("runScenario", () => {
     });
     expect(r.status).toBe("NOT_TESTED");
   });
+  it("executor 타임아웃/실패 시 NOT_TESTED + 이유", async () => {
+    const r = await runScenario(scenario, {
+      runId: "RID", targets: { frontend: "http://x" }, model: "haiku",
+      env: { node_version: "v20", os: "win32" }, resolveValue: (v) => v,
+      runner: async () => { throw new Error("executor 타임아웃(300000ms 초과) — 자식 프로세스 종료됨"); },
+      now: () => new Date("2026-05-26T00:00:00Z"),
+    });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.not_tested_reason).toMatch(/타임아웃/);
+  });
 });

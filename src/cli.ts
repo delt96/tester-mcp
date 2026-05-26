@@ -22,7 +22,8 @@ program
   .option("-c, --config <path>", "설정 파일", "tester-mcp.config.yaml")
   .option("--secrets <path>", "시크릿 파일", "tester-mcp.secrets.yaml")
   .option("--front-dir <path>", "frontend git 디렉토리(commit 캡처)")
-  .action(async (scenarioPath: string, opts: { config: string; secrets: string; frontDir?: string }) => {
+  .option("--timeout <ms>", "executor 하드 타임아웃(ms, config runner.timeout_ms 오버라이드)")
+  .action(async (scenarioPath: string, opts: { config: string; secrets: string; frontDir?: string; timeout?: string }) => {
     try {
       const config = loadConfig(resolve(opts.config));
       const secrets = loadSecretsFile(resolve(opts.secrets));
@@ -31,12 +32,14 @@ program
       const runDir = join("runs", runId);
       const env = captureEnv({ model: config.runner.model, frontendDir: opts.frontDir });
 
+      const timeoutMs = opts.timeout ? Number(opts.timeout) : config.runner.timeout_ms;
       const result = await runScenario(scenario, {
         runId,
         targets: { frontend: config.targets.frontend },
         model: config.runner.model,
         env,
         resolveValue: (v) => resolveSecrets(v, { secrets }),
+        timeoutMs,
       });
 
       // Redact secret values (secrets file + env SECRET_*) before persisting/printing.

@@ -1,0 +1,13 @@
+executor:
+  headless: false
+  timeout: 30000
+
+targets:
+  frontend: C:\workspace\testMcp\examples
+
+browser:
+  url: http://localhost:5173
+
+reporting:
+  outputFormat: json
+  screenshotDir: ./screenshots

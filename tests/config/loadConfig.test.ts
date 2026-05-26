@@ -21,4 +21,10 @@ describe("parseConfig", () => {
   it("frontend 없으면 에러", () => {
     expect(() => parseConfig("project: x")).toThrow(/frontend/);
   });
+  it("timeout_ms 미지정 시 기본 300000(5분)", () => {
+    expect(parseConfig(YAML).runner.timeout_ms).toBe(300000);
+  });
+  it("timeout_ms 설정값 사용", () => {
+    expect(parseConfig("targets:\n  frontend: http://x\nrunner:\n  timeout_ms: 60000").runner.timeout_ms).toBe(60000);
+  });
 });
