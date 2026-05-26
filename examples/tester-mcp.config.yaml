@@ -1,7 +1,0 @@
-targets:
-  frontend: http://localhost:5173
-runner:
-  model: haiku
-# 테스트 계정 비밀값은 여기 넣지 않는다.
-# 파일: tester-mcp.secrets.yaml (gitignore) 의 tester.username / tester.password
-# 또는 CI env: SECRET_TESTER_USERNAME / SECRET_TESTER_PASSWORD
