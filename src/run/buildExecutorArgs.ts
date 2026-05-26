@@ -24,5 +24,18 @@ export function buildExecutorArgs(o: ExecutorArgsOptions): string[] {
     "--strict-mcp-config",
     "--mcp-config", JSON.stringify({ mcpServers: {} }),
     "--exclude-dynamic-system-prompt-sections",
+    // ── Isolation (verified live 2026-05-26) ──
+    // Without these the executor inherits the HOST environment — project/global
+    // CLAUDE.md, the SessionStart "superpowers" hook, and all skills — and gets
+    // hijacked into the doc/skill workflow: it calls Skill, spawns subagents (Task),
+    // and runs Bash/Write/Edit/Read, never touching the browser, until the timeout.
+    // (Live diagnostic: WITHOUT these → zero chrome tool calls; WITH these → immediate
+    // mcp__claude-in-chrome__* calls.) --bare would also strip all this but breaks
+    // OAuth/keychain auth ("Not logged in"), so we strip piecemeal instead.
+    "--disable-slash-commands",                                 // no Skill invocation
+    "--setting-sources", "user",                                // skip project/local settings (hooks/config)
+    "--settings", JSON.stringify({ disableAllHooks: true }),    // no hooks (SessionStart)
+    "--disallowedTools",                                        // hard-deny the wandering tools
+    "Skill,Task,Agent,Bash,Write,Edit,Read,NotebookEdit,Glob,Grep,WebFetch,WebSearch",
   ];
 }

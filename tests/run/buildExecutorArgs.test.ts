@@ -22,4 +22,23 @@ describe("buildExecutorArgs", () => {
     // 머신별 섹션을 첫 user 메시지로 이동 → 프로세스 간 프롬프트 캐시 재사용↑
     expect(a).toContain("--exclude-dynamic-system-prompt-sections");
   });
+
+  it("격리: 호스트 CLAUDE.md/훅/스킬 하이재킹 차단 (실측 검증된 플래그)", () => {
+    const a = buildExecutorArgs({ prompt: "P", systemPrompt: "S", model: "haiku" });
+    // 스킬 비활성 (Skill 호출 차단)
+    expect(a).toContain("--disable-slash-commands");
+    // project/local 설정 미로드
+    const si = a.indexOf("--setting-sources");
+    expect(si).toBeGreaterThan(-1);
+    expect(a[si + 1]).toBe("user");
+    // 훅 비활성 (SessionStart superpowers 훅 차단)
+    const sj = a.indexOf("--settings");
+    expect(sj).toBeGreaterThan(-1);
+    expect(JSON.parse(a[sj + 1])).toEqual({ disableAllHooks: true });
+    // 방랑 도구 하드 차단 (Task/Bash/Write/Edit/Read 등)
+    const di = a.indexOf("--disallowedTools");
+    expect(di).toBeGreaterThan(-1);
+    for (const t of ["Skill", "Task", "Bash", "Write", "Edit", "Read"])
+      expect(a[di + 1]).toContain(t);
+  });
 });
