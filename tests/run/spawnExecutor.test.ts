@@ -49,4 +49,34 @@ describe("spawnExecutor (streaming)", () => {
     expect(r.state.lastTool).toBe("navigate");
     expect(r.envelope).toBeUndefined();
   });
+
+  it("hung child(SIGTERM 무시): SIGKILL 에스컬레이션 + 강제 resolve, trail 보존", async () => {
+    const sigs: string[] = [];
+    const spawner: StreamSpawner = (_c, _a, h) => {
+      h.onLine(toolLine);                       // 한 줄 오고 영원히 침묵 (close 안 함)
+      return { kill: (s) => { sigs.push(s); } }; // 시그널 무시 → close 안 일어남
+    };
+    const now = (() => { let t = 0; return () => (t += 1000); })();
+    const r = await spawnExecutor(
+      { prompt: "P", systemPrompt: "S", model: "haiku" },
+      { spawner, logLine: () => {}, now, stallMs: 1, tickMs: 1, killGraceMs: 5, forceResolveMs: 5 }
+    );
+    expect(sigs).toContain("SIGTERM");
+    expect(sigs).toContain("SIGKILL");
+    expect(r.killedReason).toBe("stall");
+    expect(r.state.lastTool).toBe("navigate");   // 강제 resolve여도 trail 남음
+    expect(r.envelope).toBeUndefined();
+  });
+
+  it("하드 타임아웃: timeoutMs 초과 → killedReason='timeout'", async () => {
+    const spawner: StreamSpawner = (_c, _a, h) => {
+      h.onLine(toolLine);
+      return { kill: () => h.onClose(null, "SIGTERM") }; // SIGTERM에 정상 종료
+    };
+    const r = await spawnExecutor(
+      { prompt: "P", systemPrompt: "S", model: "haiku" },
+      { spawner, logLine: () => {}, now: () => 0, stallMs: 999999, tickMs: 999999, timeoutMs: 5, killGraceMs: 5, forceResolveMs: 5 }
+    );
+    expect(r.killedReason).toBe("timeout");
+  });
 });
