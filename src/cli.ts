@@ -27,7 +27,8 @@ program
   .option("--front-dir <path>", "frontend git 디렉토리(commit 캡처)")
   .option("--timeout <ms>", "executor 하드 타임아웃(ms, config runner.timeout_ms 오버라이드)")
   .option("--concurrency <n>", `병렬 executor 수(1~${MAX_CONCURRENCY}, 기본 min(시나리오 수, ${MAX_CONCURRENCY}))`)
-  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string }) => {
+  .option("--verbose", "executor 이벤트를 콘솔에 실시간 출력")
+  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean }) => {
     try {
       const config = loadConfig(resolve(opts.config));
       const secrets = loadSecretsFile(resolve(opts.secrets));
@@ -45,6 +46,9 @@ program
       if (scenarios.length > 1)
         console.log(`시나리오 ${scenarios.length}개 · 병렬 ${concurrency}`);
 
+      // Compute secret values before run so they can be redacted in streaming logs.
+      const secretValues = collectSecretValues({ secrets, env: process.env });
+
       const results = await runScenarios(scenarios, {
         runId,
         targets: { frontend: config.targets.frontend },
@@ -52,10 +56,7 @@ program
         env,
         resolveValue: (v) => resolveSecrets(v, { secrets }),
         timeoutMs,
-      }, concurrency);
-
-      // Redact secret values (secrets file + env SECRET_*) before persisting/printing.
-      const secretValues = collectSecretValues({ secrets, env: process.env });
+      }, concurrency, { verbose: opts.verbose, secretValues });
       const safe = results.map((r) => redactSecrets(r, secretValues));
       const startedAt = safe[0]?.started_at ?? new Date().toISOString();
       for (const s of safe) {

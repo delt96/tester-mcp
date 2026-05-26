@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { collectSecretValues, redactSecrets } from "../../src/secrets/redactSecrets.js";
+import { collectSecretValues, redactSecrets, redactString } from "../../src/secrets/redactSecrets.js";
 
 describe("collectSecretValues", () => {
   it("SECRET_* env 값만, 길이>=4만 수집", () => {
@@ -25,6 +25,14 @@ describe("collectSecretValues", () => {
       env: { SECRET_TESTER_PASSWORD: "best1234", SECRET_TESTER_USERNAME: "admin" },
     });
     expect(vals.sort()).toEqual(["admin", "best1234"]);
+  });
+});
+
+describe("redactString", () => {
+  it("모든 비밀값을 ***로 치환", () => {
+    expect(redactString("login best1234 ok best1234", ["best1234"])).toBe("login *** ok ***");
+    expect(redactString("plain", [])).toBe("plain");
+    expect(redactString("a", ["", "a"])).toBe("***"); // 빈 문자열은 무시
   });
 });
 

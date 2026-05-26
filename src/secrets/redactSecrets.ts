@@ -28,6 +28,12 @@ export function collectSecretValues(
   return [...new Set(values.filter((v) => v.length >= 4))];
 }
 
+export function redactString(text: string, values: string[]): string {
+  let out = text;
+  for (const v of values) if (v) out = out.split(v).join("***");
+  return out;
+}
+
 export function redactSecrets<T>(obj: T, secretValues: string[]): T {
   if (secretValues.length === 0) return obj;
   let json = JSON.stringify(obj);
