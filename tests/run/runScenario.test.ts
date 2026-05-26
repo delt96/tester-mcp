@@ -27,4 +27,11 @@ describe("runScenario (streaming)", () => {
     expect(r.not_tested_reason).toMatch(/navigate/);
     expect(r.last_tool).toBe("navigate");
   });
+  it("envelope 있으나 깨진 출력 → NOT_TESTED, last_tool 유지", async () => {
+    const natural = JSON.stringify({ type: "result", result: "자연어만 — JSON 없음" });
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(tool); h.onLine(natural); h.onClose(0, null); return { kill() {} }; };
+    const r = await runScenario(scenario, { ...base, spawner, logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.last_tool).toBe("navigate");   // common 스프레드가 parse-NOT_TESTED 경로에도 적용됨
+  });
 });
