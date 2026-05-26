@@ -18,7 +18,8 @@ export function buildExecutorArgs(o: ExecutorArgsOptions): string[] {
     "--chrome",
     "--model", o.model,
     "--append-system-prompt", o.systemPrompt,
-    "--output-format", "json",
+    "--output-format", "stream-json",
+    "--verbose",                 // stream-json requires --verbose; emits per-event JSON lines
     "--dangerously-skip-permissions",
     "--no-session-persistence",
     "--strict-mcp-config",
