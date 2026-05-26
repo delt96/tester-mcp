@@ -11,6 +11,8 @@ allowed-tools: Bash(tester-mcp *) Bash(node *) Read Write Edit Glob
 
 !`tester-mcp --help`
 
+> Prerequisites and the full scenario DSL: run `tester-mcp document-guide` (single source of truth).
+
 ## 워크플로 — 문서 우선(DOCUMENT-FIRST)
 
 이 스킬은 **문서 우선** 워크플로를 따른다:
