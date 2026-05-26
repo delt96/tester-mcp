@@ -13,7 +13,7 @@ Current CLI usage (always up to date):
 
 ## Workflow (document first)
 
-1. **Write the scenario** — `scenarios/<area>/<id>.yaml`. Locate elements with the multi-strategy `target` (css/placeholder/label/text/role/description), pin the language with `locale:`, and reference secrets as `${secrets...}`. Full schema: `tester-mcp document-guide`.
+1. **Write the scenario** — `scenarios/<area>/<id>.yaml`. **Resolve a stable `css` or `role` selector from the Vue/PrimeVue source and put it in the `target`** — don't rely on the executor to find elements by natural language (it tries once, then bails NOT_TESTED). `description`/`text` are last-resort fallbacks. Pin the language with `locale:`, reference secrets as `${secrets...}`. Full schema: `tester-mcp document-guide`.
 2. **Run** — `tester-mcp run <scenarios...> -c <config>`. The CLI spawns the executor(s) and waits. Pass multiple scenarios (files or a directory) to run them in parallel; `--concurrency <1-10>` caps how many run at once (default `min(count, 10)`). All executors share one Chrome, so raise concurrency only for light, independent scenarios.
 3. **Branch on the result label**:
    - PASS / PARTIAL → report the evidence and screenshots.
