@@ -1,41 +1,30 @@
 import { describe, it, expect } from "vitest";
 import { runScenario } from "../../src/run/runScenario.js";
 import type { Scenario } from "../../src/scenario/types.js";
+import type { StreamSpawner } from "../../src/run/spawnExecutor.js";
 
-const scenario: Scenario = {
-  id: "login-success", title: "로그인 성공", locale: "ru",
-  steps: [{ action: "navigate", url: "/" }],
+const scenario: Scenario = { id: "s1", title: "t", locale: "ru", steps: [{ action: "navigate", url: "/" }] };
+const base = {
+  runId: "RID", targets: { frontend: "http://x" }, model: "haiku",
+  env: { node_version: "v20", os: "win32", runner_model: "haiku" },
+  resolveValue: (v: string) => v, now: () => new Date("2026-05-26T00:00:00Z"),
 };
+const okResult = JSON.stringify({ type: "result", result: '```json\n{"status":"PASS","evidence":["ok"]}\n```' });
+const tool = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "navigate" }] } });
 
-describe("runScenario", () => {
-  it("executor 호출 → PASS 결과 조립", async () => {
-    const r = await runScenario(scenario, {
-      runId: "RID", targets: { frontend: "http://localhost:5173" }, model: "haiku",
-      env: { node_version: "v20", os: "win32", runner_model: "haiku" },
-      resolveValue: (v) => v,
-      runner: async () => '{"result":"```json\\n{\\"status\\":\\"PASS\\",\\"evidence\\":[\\"ok\\"]}\\n```"}',
-      now: () => new Date("2026-05-26T00:00:00Z"),
-    });
+describe("runScenario (streaming)", () => {
+  it("정상: PASS + last_tool/tool_count 기록", async () => {
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(tool); h.onLine(okResult); h.onClose(0, null); return { kill() {} }; };
+    const r = await runScenario(scenario, { ...base, spawner, logLine: () => {} });
     expect(r.status).toBe("PASS");
-    expect(r.evidence).toEqual(["ok"]);
-    expect(r.environment.runner_model).toBe("haiku");
+    expect(r.last_tool).toBe("navigate");
+    expect(r.tool_count).toBe(1);
   });
-  it("깨진 출력이면 NOT_TESTED", async () => {
-    const r = await runScenario(scenario, {
-      runId: "RID", targets: { frontend: "http://x" }, model: "haiku",
-      env: { node_version: "v20", os: "win32" }, resolveValue: (v) => v,
-      runner: async () => '{"result":"자연어만"}', now: () => new Date("2026-05-26T00:00:00Z"),
-    });
+  it("무응답(envelope 없음): NOT_TESTED + 이유에 마지막 도구", async () => {
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(tool); h.onClose(null, "SIGTERM"); return { kill() {} }; };
+    const r = await runScenario(scenario, { ...base, spawner, logLine: () => {} });
     expect(r.status).toBe("NOT_TESTED");
-  });
-  it("executor 타임아웃/실패 시 NOT_TESTED + 이유", async () => {
-    const r = await runScenario(scenario, {
-      runId: "RID", targets: { frontend: "http://x" }, model: "haiku",
-      env: { node_version: "v20", os: "win32" }, resolveValue: (v) => v,
-      runner: async () => { throw new Error("executor 타임아웃(300000ms 초과) — 자식 프로세스 종료됨"); },
-      now: () => new Date("2026-05-26T00:00:00Z"),
-    });
-    expect(r.status).toBe("NOT_TESTED");
-    expect(r.not_tested_reason).toMatch(/타임아웃/);
+    expect(r.not_tested_reason).toMatch(/navigate/);
+    expect(r.last_tool).toBe("navigate");
   });
 });

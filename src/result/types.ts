@@ -9,6 +9,7 @@ export interface ScenarioResult {
   evidence?: string[]; started_at: string; duration_ms: number;
   steps: StepResult[]; environment: Environment;
   handoff_notes?: string; raw_executor_text?: string;
+  last_tool?: string; tool_count?: number; executor_log?: string;
 }
 export interface RunSummary {
   run_id: string; started_at: string; total: number;
