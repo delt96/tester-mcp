@@ -70,6 +70,14 @@ target:
   description: "the username input on the login form"
 ```
 
+**Authoring rule (selector-first).** Resolve a stable `css` or `role`+name from the
+component source (Vue/PrimeVue) and put it in the target. `description`/`text` are
+last-resort fallbacks, not the primary strategy. The executor tries the target's
+strategies **once** and does NOT grope the page — on a first-attempt miss it bails
+with NOT_TESTED and reports what it actually saw. A precise selector is what drives
+pass rate and speed. For multi-step UI (filters, dropdowns, modals), script the
+open→select sequence as explicit steps with `wait_for` between them.
+
 ## Secrets
 
 Never inline credentials. Reference them as `${secrets.a.b}`:
