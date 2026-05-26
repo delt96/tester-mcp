@@ -1,6 +1,7 @@
 import { Command } from "commander";
-import { resolve, join } from "node:path";
-import { readFileSync } from "node:fs";
+import { resolve, join, dirname } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config/loadConfig.js";
 import { parseScenario } from "./scenario/parseScenario.js";
 import { resolveSecrets } from "./secrets/resolveSecrets.js";
@@ -11,6 +12,7 @@ import { runScenario } from "./run/runScenario.js";
 import { writeScenarioResult, writeSummary } from "./result/writeResult.js";
 import { captureEnv } from "./env/captureEnv.js";
 import { makeRunId } from "./util/runId.js";
+import { loadGuide } from "./guide/loadGuide.js";
 
 const program = new Command();
 program.name("tester-mcp").description("Opus+Haiku+Chrome 통합 테스트 (Phase 1: 화면검증)");
@@ -70,6 +72,23 @@ program
       await runInit(opts);
     } catch (err) {
       console.error("init 오류:", err instanceof Error ? err.message : err);
+      process.exit(2);
+    }
+  });
+
+program
+  .command("document-guide")
+  .description("Print the authoring guide (prerequisites + scenario DSL) to stdout")
+  .action(() => {
+    try {
+      const here = dirname(fileURLToPath(import.meta.url));
+      const guide = loadGuide(here, {
+        exists: existsSync,
+        read: (p) => readFileSync(p, "utf8"),
+      });
+      process.stdout.write(guide.endsWith("\n") ? guide : guide + "\n");
+    } catch (err) {
+      console.error("document-guide error:", err instanceof Error ? err.message : err);
       process.exit(2);
     }
   });
