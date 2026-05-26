@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { loadConfig } from "./config/loadConfig.js";
 import { parseScenario } from "./scenario/parseScenario.js";
 import { resolveSecrets } from "./secrets/resolveSecrets.js";
+import { collectSecretValues, redactSecrets } from "./secrets/redactSecrets.js";
 import { runScenario } from "./run/runScenario.js";
 import { writeScenarioResult, writeSummary } from "./result/writeResult.js";
 import { captureEnv } from "./env/captureEnv.js";
@@ -34,10 +35,12 @@ program
         resolveValue: (v) => resolveSecrets(v),
       });
 
-      writeScenarioResult(runDir, result);
-      writeSummary(runDir, runId, result.started_at, [result]);
-      console.log(`[${result.status}] ${result.scenario_id} → ${join(runDir, result.scenario_id + ".json")}`);
-      if (result.evidence?.length) console.log("evidence:", result.evidence.join(" | "));
+      // Redact secret values (BESTIAN_SECRET_*) before persisting/printing.
+      const safe = redactSecrets(result, collectSecretValues());
+      writeScenarioResult(runDir, safe);
+      writeSummary(runDir, runId, safe.started_at, [safe]);
+      console.log(`[${safe.status}] ${safe.scenario_id} → ${join(runDir, safe.scenario_id + ".json")}`);
+      if (safe.evidence?.length) console.log("evidence:", safe.evidence.join(" | "));
 
       process.exit(result.status === "PASS" || result.status === "PARTIAL" ? 0 : 1);
     } catch (err) {
