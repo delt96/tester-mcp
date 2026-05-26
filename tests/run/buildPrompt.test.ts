@@ -58,4 +58,9 @@ describe("SYSTEM_CONTRACT", () => {
   it("handoff_notes를 핑퐁 연료로 요구", () => {
     expect(SYSTEM_CONTRACT).toContain("handoff_notes");
   });
+  it("per-tab 디스플린: 자기 tab_id만 조작 (병렬 안전)", () => {
+    expect(SYSTEM_CONTRACT).toContain("tab_id");
+    expect(SYSTEM_CONTRACT).toMatch(/탭 격리|전용 탭/);
+    expect(SYSTEM_CONTRACT).toMatch(/탭 혼선/);
+  });
 });
