@@ -1,0 +1,6 @@
+{
+  "name": "bestian-e2e",
+  "version": "0.0.1",
+  "description": "화면 통합 테스트 오케스트레이터 — /test로 시나리오 실행",
+  "skills": "skills"
+}
