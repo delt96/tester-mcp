@@ -33,11 +33,29 @@ describe("buildUserPrompt", () => {
     expect(p).toMatch(/JSON/);
     expect(p).toContain("PASS");
   });
+  it("target 사전해석 사용 + 더듬기 유도 문구 제거", () => {
+    const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
+    expect(p).toMatch(/사전 해석/);
+    expect(p).not.toContain("요소를 찾아라");
+  });
 });
 
 describe("SYSTEM_CONTRACT", () => {
   it("4종 라벨 + 안전규칙(시나리오 외 동작 금지)", () => {
     expect(SYSTEM_CONTRACT).toContain("NOT_TESTED");
     expect(SYSTEM_CONTRACT).toMatch(/시나리오에 없는 동작/);
+  });
+  it("셀렉터 우선 + 더듬기 금지", () => {
+    expect(SYSTEM_CONTRACT).toContain("셀렉터");
+    expect(SYSTEM_CONTRACT).toMatch(/더듬/);
+  });
+  it("전체 페이지 읽기 금지", () => {
+    expect(SYSTEM_CONTRACT).toContain("read_page");
+  });
+  it("1회 시도 후 즉시 자가종료", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/1회/);
+  });
+  it("handoff_notes를 핑퐁 연료로 요구", () => {
+    expect(SYSTEM_CONTRACT).toContain("handoff_notes");
   });
 });
