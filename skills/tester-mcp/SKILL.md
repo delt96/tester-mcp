@@ -18,7 +18,7 @@ Current CLI usage (always up to date):
 3. **Branch on the result label**:
    - PASS / PARTIAL → report the evidence and screenshots.
    - FAIL → present the contradicting evidence, screenshots, and `handoff_notes`, then move into a fix.
-   - NOT_TESTED → give the reason plus `pattern_inference` (assumed_ok/unknown); state the missing precondition, or hand off to a human after repeated failure.
+   - NOT_TESTED → give the reason plus `pattern_inference` (assumed_ok/unknown); state the missing precondition, or hand off to a human after repeated failure. Read the result's executor_log (full tool trail) to diagnose, then fix the scenario's selectors.
 
 ## Secrets
 

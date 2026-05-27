@@ -89,12 +89,26 @@ Resolution order: the file `tester-mcp.secrets.yaml` (gitignored) first, then th
 environment variable `SECRET_A_B` (uppercased, dot → underscore). Secret values
 are redacted to `***` in stored results.
 
+## Ephemeral UI (toasts, snackbars)
+
+Short-lived elements (e.g. PrimeVue toast, `life:3000`) vanish faster than tool
+round-trips. To verify them reliably:
+- Set `ephemeral: true` on the scenario.
+- Assert immediately after the trigger with ONE fast text/DOM check — do NOT chain
+  fallbacks (JS → find → read_page); the element disappears mid-chain.
+- Do NOT add a `screenshot` step for an ephemeral element — the assertion IS the
+  proof, and a screenshot of a vanished element causes retry loops.
+- (Optional) In a test build, raise the toast `life` so it stays long enough.
+
 ## Result labels
 
 - `PASS` — every assertion verified at runtime.
 - `PARTIAL` — some verified, some not (each item carries proof or reason).
 - `FAIL` — an assertion was contradicted at runtime.
 - `NOT_TESTED` — could not run (timeout, missing data, blocked prerequisite).
+
+On NOT_TESTED, read the run's `executor_log` (path is in the result JSON) to see the
+tool sequence and errors — that's how the Planner diagnoses and fixes the scenario.
 
 ## Minimal example
 
