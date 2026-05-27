@@ -34,5 +34,6 @@ export function parseScenario(yamlText: string): Scenario {
     optional: raw.optional === true,
     defaults: (raw.defaults as any) ?? undefined,
     precondition: typeof raw.precondition === "string" ? raw.precondition : undefined,
+    ephemeral: typeof raw.ephemeral === "boolean" ? raw.ephemeral : false,
   };
 }

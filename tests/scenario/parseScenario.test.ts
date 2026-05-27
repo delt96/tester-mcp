@@ -40,4 +40,9 @@ describe("parseScenario", () => {
     expect(() => parseScenario("id: ../../etc/x\ntitle: t\nsteps: []")).toThrow(/id/);
     expect(() => parseScenario("id: a/b\ntitle: t\nsteps: []")).toThrow(/id/);
   });
+  it("ephemeral 플래그 파싱 (기본 false)", () => {
+    const minStep = "steps:\n  - action: navigate\n    url: /";
+    expect(parseScenario(`id: a\ntitle: t\n${minStep}`).ephemeral).toBe(false);
+    expect(parseScenario(`id: a\ntitle: t\nephemeral: true\n${minStep}`).ephemeral).toBe(true);
+  });
 });
