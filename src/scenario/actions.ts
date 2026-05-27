@@ -6,20 +6,20 @@ export function describeTarget(t: Target): string {
   if (t.css) parts.push(`css ${t.css}`);
   if (t.placeholder) parts.push(`placeholder "${t.placeholder}"`);
   if (t.label) parts.push(`label "${t.label}"`);
-  if (t.text) parts.push(`텍스트 "${t.text}"`);
+  if (t.text) parts.push(`text "${t.text}"`);
   if (t.role) parts.push(`role ${t.role}`);
-  if (t.description) parts.push(`설명 "${t.description}"`);
-  return parts.join(" / ") || "(target 미지정)";
+  if (t.description) parts.push(`description "${t.description}"`);
+  return parts.join(" / ") || "(no target)";
 }
 
 // [확장1] Single source of truth for actions + prompt rendering.
 const RENDERERS: Record<ActionName, (s: any) => string> = {
-  navigate: (s) => `이동: ${s.url}`,
-  fill: (s) => `입력: [${describeTarget(s.target)}] ← "${s.value}"`,
-  click: (s) => `클릭: [${describeTarget(s.target)}]${s.destructive ? " (비가역)" : ""}`,
-  wait_for: (s) => `대기: [${describeTarget(s.target)}] 등장${s.timeout_ms ? ` (${s.timeout_ms}ms)` : ""}`,
-  assert_visible: (s) => `가시 검증: [${describeTarget(s.target)}]`,
-  screenshot: (s) => `스크린샷${s.name ? `: ${s.name}` : ""}`,
+  navigate: (s) => `Navigate: ${s.url}`,
+  fill: (s) => `Fill: [${describeTarget(s.target)}] ← "${s.value}"`,
+  click: (s) => `Click: [${describeTarget(s.target)}]${s.destructive ? " (destructive)" : ""}`,
+  wait_for: (s) => `Wait for: [${describeTarget(s.target)}] to appear${s.timeout_ms ? ` (${s.timeout_ms}ms)` : ""}`,
+  assert_visible: (s) => `Assert visible: [${describeTarget(s.target)}]`,
+  screenshot: (s) => `Screenshot${s.name ? `: ${s.name}` : ""}`,
 };
 
 export const KNOWN_ACTIONS = Object.keys(RENDERERS) as ActionName[];
