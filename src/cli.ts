@@ -28,14 +28,15 @@ program
   .option("--timeout <ms>", "executor 하드 타임아웃(ms, config runner.timeout_ms 오버라이드)")
   .option("--concurrency <n>", `병렬 executor 수(1~${MAX_CONCURRENCY}, 기본 min(시나리오 수, ${MAX_CONCURRENCY}))`)
   .option("--verbose", "executor 이벤트를 콘솔에 실시간 출력")
-  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean }) => {
+  .option("--out-dir <path>", "결과/로그 출력 베이스 디렉토리(기본 runs)", "runs")
+  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string }) => {
     try {
       const config = loadConfig(resolve(opts.config));
       const secrets = loadSecretsFile(resolve(opts.secrets));
       const files = expandScenarioPaths(scenarioPaths);
       const scenarios = files.map((f) => parseScenario(readFileSync(f, "utf8")));
       const runId = makeRunId();
-      const runDir = join("runs", runId);
+      const runDir = join(opts.outDir ?? "runs", runId);
       const env = captureEnv({ model: config.runner.model, frontendDir: opts.frontDir });
 
       const timeoutMs = opts.timeout ? Number(opts.timeout) : config.runner.timeout_ms;
@@ -56,7 +57,7 @@ program
         env,
         resolveValue: (v) => resolveSecrets(v, { secrets }),
         timeoutMs,
-      }, concurrency, { verbose: opts.verbose, secretValues });
+      }, concurrency, { verbose: opts.verbose, secretValues, outDir: opts.outDir ?? "runs" });
       const safe = results.map((r) => redactSecrets(r, secretValues));
       const startedAt = safe[0]?.started_at ?? new Date().toISOString();
       for (const s of safe) {

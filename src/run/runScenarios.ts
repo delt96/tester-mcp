@@ -4,6 +4,7 @@ import type { Scenario } from "../scenario/types.js";
 import type { ScenarioResult } from "../result/types.js";
 import { runScenario, type RunScenarioOptions } from "./runScenario.js";
 import { redactString } from "../secrets/redactSecrets.js";
+import { summarizeLine } from "./summarizeLine.js";
 
 // Hard ceiling on parallel executors. The orchestrating AI may *request* fewer
 // (its judgment), but the CLI never spawns more than this many `claude` processes
@@ -22,6 +23,7 @@ export function clampConcurrency(requested: number | undefined, scenarioCount: n
 export interface RunScenariosLogging {
   verbose?: boolean;
   secretValues?: string[];
+  outDir?: string;
 }
 
 // Run scenarios with a bounded worker pool. Each scenario spawns its own executor
@@ -36,7 +38,8 @@ export async function runScenarios(
   const results: ScenarioResult[] = new Array(scenarios.length);
   const workers = Math.max(1, Math.min(concurrency, scenarios.length || 1));
   let next = 0;
-  const dir = join("runs", opts.runId);
+  const base = logging?.outDir ?? "runs";
+  const dir = join(base, opts.runId);
   mkdirSync(dir, { recursive: true });
   const worker = async () => {
     for (let i = next++; i < scenarios.length; i = next++) {
@@ -45,7 +48,10 @@ export async function runScenarios(
       const logLine = (line: string) => {
         const safe = redactString(line, logging?.secretValues ?? []);
         appendFileSync(logPath, safe + "\n");
-        if (logging?.verbose) console.log(`[${id}] ${safe}`);
+        if (logging?.verbose) {
+          const sum = summarizeLine(safe);
+          if (sum) console.log(`[${id}] ${sum}`);
+        }
       };
       results[i] = await runScenario(scenarios[i], { ...opts, executorLog: logPath, logLine });
     }
