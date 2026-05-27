@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
+## [0.1.1]
+
+### Changed
+- English-ized all CLI-facing text (principle 10: AI is the consumer, CLI is the
+  interface): `--help` program/command/option descriptions, package description,
+  and the `init` setup wizard prompts/output. Logic unchanged.
+
 ## [0.1.0]
 
 ### Added

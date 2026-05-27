@@ -71,11 +71,11 @@ export async function runInit(opts: InitOptions): Promise<void> {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
       if (!opts.global && opts.project === undefined) {
-        const ans = (await rl.question("스킬 설치 범위 [project/global] (project): ")).trim();
+        const ans = (await rl.question("Skill install scope [project/global] (project): ")).trim();
         if (ans === "global") scope = "global";
       }
       if (scope === "project" && typeof opts.project !== "string") {
-        const ans = (await rl.question(`프로젝트 경로 (${projectPath}): `)).trim();
+        const ans = (await rl.question(`Project path (${projectPath}): `)).trim();
         if (ans) projectPath = ans;
       }
       if (frontend === undefined) {
@@ -83,7 +83,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
         frontend = ans || "http://localhost:5173";
       }
       if (backend === undefined) {
-        const ans = (await rl.question("backend URL (선택, 비우면 생략): ")).trim();
+        const ans = (await rl.question("backend URL (optional, leave blank to skip): ")).trim();
         backend = ans || undefined;
       }
       if (model === undefined) {
@@ -111,21 +111,21 @@ export async function runInit(opts: InitOptions): Promise<void> {
   if (bundled) {
     mkdirSync(dirname(destSkill), { recursive: true });
     writeFileSync(destSkill, readFileSync(bundled, "utf8"), "utf8");
-    console.log(`스킬 복사: ${destSkill}`);
+    console.log(`Skill copied: ${destSkill}`);
   } else {
-    console.warn("경고: 번들 스킬(skills/tester-mcp/SKILL.md)을 찾지 못했습니다. 스킬 복사를 건너뜁니다.");
+    console.warn("Warning: bundled skill (skills/tester-mcp/SKILL.md) not found; skipping skill copy.");
   }
 
   // 2) Write config.
   const configPath = join(configDir, "tester-mcp.config.yaml");
   mkdirSync(dirname(configPath), { recursive: true });
   writeFileSync(configPath, renderConfigYaml({ frontend, backend, model }), "utf8");
-  console.log(`설정 작성: ${configPath}`);
+  console.log(`Config written: ${configPath}`);
 
   // 3) Scaffold secrets example + ensure .gitignore.
   const examplePath = join(cwd, "tester-mcp.secrets.example.yaml");
   writeFileSync(examplePath, secretsExampleYaml(), "utf8");
-  console.log(`시크릿 예시 작성: ${examplePath}`);
+  console.log(`Secrets example written: ${examplePath}`);
 
   const gitignorePath = join(cwd, ".gitignore");
   const entry = "tester-mcp.secrets.yaml";
@@ -134,13 +134,13 @@ export async function runInit(opts: InitOptions): Promise<void> {
     if (gi.length && !gi.endsWith("\n")) gi += "\n";
     gi += entry + "\n";
     writeFileSync(gitignorePath, gi, "utf8");
-    console.log(`.gitignore 갱신: ${entry} 추가`);
+    console.log(`.gitignore updated: added ${entry}`);
   }
 
   // 4) Next steps.
-  console.log("\n다음 단계:");
+  console.log("\nNext steps:");
   console.log(`  1) cp tester-mcp.secrets.example.yaml tester-mcp.secrets.yaml`);
-  console.log(`     → 테스트 계정(username/password)을 채우세요. (이 파일은 gitignore됨)`);
-  console.log(`  2) 시나리오 작성 후 실행:`);
+  console.log(`     → fill in the test account (username/password). (this file is gitignored)`);
+  console.log(`  2) Write a scenario, then run:`);
   console.log(`     tester-mcp run scenarios/<area>/<id>.yaml -c ${join(configDir, "tester-mcp.config.yaml")}`);
 }

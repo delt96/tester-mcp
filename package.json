@@ -1,6 +1,6 @@
 {
   "name": "@delt/tester-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Opus (planner) + Haiku (executor) + Chrome screen E2E test orchestrator",
   "type": "module",
   "bin": { "tester-mcp": "bin/tester-mcp.js" },
