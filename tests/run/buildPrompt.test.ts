@@ -69,6 +69,7 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toContain("tab_id");
     expect(SYSTEM_CONTRACT).toMatch(/탭 격리|전용 탭/);
     expect(SYSTEM_CONTRACT).toMatch(/탭 혼선/);
+    expect(SYSTEM_CONTRACT).toContain("tabs_create_mcp");   // 기존 탭 재사용 말고 새 탭 강제
   });
   it("스크린샷 best-effort·비차단 + ephemeral 정책", () => {
     expect(SYSTEM_CONTRACT).toMatch(/best-effort|증거일 뿐/);

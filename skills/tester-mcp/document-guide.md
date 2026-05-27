@@ -29,8 +29,10 @@ executor and reports NOT_TESTED.
 ### Running multiple scenarios in parallel
 
 Pass several scenario files (or a directory) to run them concurrently — each
-scenario gets its own executor process and its own browser tab (all tabs share one
-Chrome tab group):
+scenario gets its own executor process and creates its OWN browser tab (via
+tabs_create) inside the shared Chrome tab group, so they run in parallel
+(~2-3× at 4-way; one Chrome still serializes part of the work, so expect some
+contention and varied finish times, not a clean N×):
 
 ```
 tester-mcp run scenarios/a.yaml scenarios/b.yaml --concurrency 3 -c tester-mcp.config.yaml
