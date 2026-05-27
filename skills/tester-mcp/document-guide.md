@@ -26,6 +26,24 @@ The CLI spawns the executor, waits, and writes a result to `runs/<runId>/`.
 A hard timeout (default 5 min, `runner.timeout_ms` or `--timeout`) kills a stuck
 executor and reports NOT_TESTED.
 
+### Running multiple scenarios in parallel
+
+Pass several scenario files (or a directory) to run them concurrently — each
+scenario gets its own executor process and its own browser tab (all tabs share one
+Chrome tab group):
+
+```
+tester-mcp run scenarios/a.yaml scenarios/b.yaml --concurrency 3 -c tester-mcp.config.yaml
+tester-mcp run scenarios/auth/ --concurrency 5 -c tester-mcp.config.yaml
+```
+
+- `--concurrency <1-10>`: how many run at once (default `min(count, 10)`, hard cap 10).
+- Each scenario writes its own `runs/<runId>/<id>.json` + `.log`.
+- Logins are per-tab isolated (auth in sessionStorage), so concurrent logins are safe.
+- But `localStorage` (e.g. `languageType`) is shared across tabs — keep parallel scenarios on the **same locale**, or run different locales serially.
+- Slow scenarios under contention may exceed the timeout — raise `--timeout` (e.g. 240000–300000) for parallel batches.
+- Each scenario `id` must be unique across the batch (results/logs are keyed by `id`).
+
 ## Scenario file
 
 A scenario is one YAML file. Fields:
