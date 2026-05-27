@@ -38,6 +38,13 @@ describe("buildUserPrompt", () => {
     expect(p).toMatch(/사전 해석/);
     expect(p).not.toContain("요소를 찾아라");
   });
+  it("ephemeral 시나리오면 즉시-단일-체크 지시 주입", () => {
+    const eph = { ...scenario, ephemeral: true };
+    const p = buildUserPrompt(eph, { frontend: "http://x" }, (v) => v);
+    expect(p).toMatch(/ephemeral|즉시|소멸/);
+    const p2 = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
+    expect(p2).not.toMatch(/ephemeral 검증/);
+  });
 });
 
 describe("SYSTEM_CONTRACT", () => {
@@ -62,5 +69,10 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toContain("tab_id");
     expect(SYSTEM_CONTRACT).toMatch(/탭 격리|전용 탭/);
     expect(SYSTEM_CONTRACT).toMatch(/탭 혼선/);
+  });
+  it("스크린샷 best-effort·비차단 + ephemeral 정책", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/best-effort|증거일 뿐/);
+    expect(SYSTEM_CONTRACT).toMatch(/재촬영|루프/);
+    expect(SYSTEM_CONTRACT).toMatch(/[Ee]phemeral|자동소멸/);
   });
 });

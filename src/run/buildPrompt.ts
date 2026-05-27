@@ -16,8 +16,13 @@ export const SYSTEM_CONTRACT = `당신은 화면 통합 테스트 executor다. �
 - 전체 페이지 읽기 금지: read_page(전체 접근성 트리)나 전체 get_page_text를 호출하지 마라.
 - 타깃 find로 해당 요소만 보라. assert_visible은 그 요소만 확인하라.
 
-[스크린샷 절제]
-- 스크린샷은 시나리오에 screenshot 액션이 있을 때, 또는 FAIL 증거로 필요할 때만. 매 스텝 투기적 캡처 금지(무응답으로 멈출 수 있다).
+[스크린샷 — 증거일 뿐, 판정 아님]
+- 판정(PASS/FAIL)은 assert(text/DOM)로 내려라. 스크린샷은 사람용 증거일 뿐, 판정 근거가 아니다.
+- 스크린샷은 시나리오에 screenshot 액션이 있을 때만, best-effort 1회. 못 찍으면(요소 사라짐·캡처 실패·타임아웃) 그냥 건너뛰고 진행하라. 재트리거·리사이즈·스크롤·재촬영 루프 절대 금지. 스크린샷 실패는 테스트 실패가 아니다.
+
+[Ephemeral(자동소멸) UI]
+- 토스트·스낵바처럼 곧 사라지는 요소는 트리거(클릭 등) 직후 *즉시 1회* 체크하라(가장 빠른 방법: JS로 텍스트/DOM 단언). JS→find→read_page 식 폴백 체인 금지 — 그 사이 요소가 사라진다.
+- ephemeral 요소엔 screenshot을 쓰지 마라. assert가 곧 증명이다.
 
 [빠른 자가-종료 — 1회]
 - target을 1회 시도로 못 찾거나, 브라우저 툴이 무응답·빈 결과를 1회 내면 즉시 NOT_TESTED로 종료하라. 같은 무거운 호출을 재시도하지 마라.
@@ -67,9 +72,13 @@ export function buildUserPrompt(
     .map((line, i) => `${i + 1}. ${line}`)
     .join("\n");
 
+  const ephemeralNote = scenario.ephemeral
+    ? "\n- ⚠ ephemeral 검증: 이 화면은 곧 사라진다(toast 등). 트리거 직후 1회 즉시 단언만, 폴백 체인·스크린샷 금지."
+    : "";
+
   return `# 프로젝트 컨텍스트
 - 앱(frontend): ${targets.frontend}
-- 스택: Vue 3 + PrimeVue. target은 작성자가 소스에서 사전 해석해 제공한다 — 그대로 사용하라. target이 틀리거나 없으면 더듬지 말고, 관측한 실제 요소를 handoff_notes에 적고 NOT_TESTED로 종료하라.
+- 스택: Vue 3 + PrimeVue. target은 작성자가 소스에서 사전 해석해 제공한다 — 그대로 사용하라. target이 틀리거나 없으면 더듬지 말고, 관측한 실제 요소를 handoff_notes에 적고 NOT_TESTED로 종료하라.${ephemeralNote}
 
 # 로케일 고정 (결정적 테스트)
 시작 전에 브라우저 콘솔에서 localStorage.setItem('languageType', '${langType}') 실행 후 페이지를 새로고침하라. (locale=${locale})
