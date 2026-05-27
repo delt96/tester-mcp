@@ -16,19 +16,19 @@ import { makeRunId } from "./util/runId.js";
 import { loadGuide } from "./guide/loadGuide.js";
 
 const program = new Command();
-program.name("tester-mcp").description("Opus+Haiku+Chrome 통합 테스트 (Phase 1: 화면검증)");
+program.name("tester-mcp").description("Opus + Haiku + Chrome screen E2E test orchestrator");
 
-// [확장5] validate/report/diff 는 여기에 .command() 추가.
+// [확장5] add validate/report/diff commands here.
 program
   .command("run")
-  .argument("<scenarios...>", "시나리오 YAML 경로(파일/디렉토리, 여러 개 가능)")
-  .option("-c, --config <path>", "설정 파일", "tester-mcp.config.yaml")
-  .option("--secrets <path>", "시크릿 파일", "tester-mcp.secrets.yaml")
-  .option("--front-dir <path>", "frontend git 디렉토리(commit 캡처)")
-  .option("--timeout <ms>", "executor 하드 타임아웃(ms, config runner.timeout_ms 오버라이드)")
-  .option("--concurrency <n>", `병렬 executor 수(1~${MAX_CONCURRENCY}, 기본 min(시나리오 수, ${MAX_CONCURRENCY}))`)
-  .option("--verbose", "executor 이벤트를 콘솔에 실시간 출력")
-  .option("--out-dir <path>", "결과/로그 출력 베이스 디렉토리(기본 runs)", "runs")
+  .argument("<scenarios...>", "scenario YAML path(s) (files or directories; multiple allowed)")
+  .option("-c, --config <path>", "config file", "tester-mcp.config.yaml")
+  .option("--secrets <path>", "secrets file", "tester-mcp.secrets.yaml")
+  .option("--front-dir <path>", "frontend git dir (for commit capture)")
+  .option("--timeout <ms>", "executor hard timeout (ms; overrides config runner.timeout_ms)")
+  .option("--concurrency <n>", `parallel executor count (1-${MAX_CONCURRENCY}, default min(scenario count, ${MAX_CONCURRENCY}))`)
+  .option("--verbose", "stream executor tool activity to the console")
+  .option("--out-dir <path>", "output base dir for results/logs (default runs)", "runs")
   .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string }) => {
     try {
       const config = loadConfig(resolve(opts.config));
@@ -45,7 +45,7 @@ program
         scenarios.length
       );
       if (scenarios.length > 1)
-        console.log(`시나리오 ${scenarios.length}개 · 병렬 ${concurrency}`);
+        console.log(`${scenarios.length} scenarios · concurrency ${concurrency}`);
 
       // Compute secret values before run so they can be redacted in streaming logs.
       const secretValues = collectSecretValues({ secrets, env: process.env });
@@ -71,25 +71,25 @@ program
       const ok = safe.every((s) => s.status === "PASS" || s.status === "PARTIAL");
       process.exit(ok ? 0 : 1);
     } catch (err) {
-      console.error("실행 오류:", err instanceof Error ? err.message : err);
+      console.error("run error:", err instanceof Error ? err.message : err);
       process.exit(2);
     }
   });
 
 program
   .command("init")
-  .description("스킬·설정·시크릿 예시를 설치하는 셋업 마법사")
-  .option("--global", "전역 스킬 설치(~/.claude/skills)")
-  .option("--project [path]", "프로젝트 스킬 설치(<path>/.claude/skills, 기본 cwd)")
+  .description("Setup wizard: installs the skill and scaffolds config + a secrets example")
+  .option("--global", "install the skill globally (~/.claude/skills)")
+  .option("--project [path]", "install the skill in a project (<path>/.claude/skills, default cwd)")
   .option("--frontend <url>", "frontend URL")
-  .option("--backend <url>", "backend URL(선택)")
-  .option("--model <m>", "executor 모델")
-  .option("--yes", "비대화형(기본값/플래그 사용)")
+  .option("--backend <url>", "backend URL (optional)")
+  .option("--model <m>", "executor model")
+  .option("--yes", "non-interactive (use defaults/flags)")
   .action(async (opts: InitOptions) => {
     try {
       await runInit(opts);
     } catch (err) {
-      console.error("init 오류:", err instanceof Error ? err.message : err);
+      console.error("init error:", err instanceof Error ? err.message : err);
       process.exit(2);
     }
   });
