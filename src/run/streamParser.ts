@@ -6,6 +6,7 @@ export interface StreamState {
   trail: TrailItem[];
   lastTool?: string;
   toolCount: number;
+  consecutiveTool: number;   // run-length of the same tool_use back-to-back (groping signal)
 }
 
 // Parses stream-json lines into a diagnostic snapshot. Stores ONLY event
@@ -13,7 +14,7 @@ export interface StreamState {
 // may contain secrets). `now` is injected for deterministic timing in tests.
 export function makeStreamAccumulator(now: () => number = () => Date.now()) {
   const t0 = now();
-  const state: StreamState = { trail: [], toolCount: 0 };
+  const state: StreamState = { trail: [], toolCount: 0, consecutiveTool: 0 };
 
   function handleContent(content: unknown) {
     if (!Array.isArray(content)) return;
@@ -21,6 +22,7 @@ export function makeStreamAccumulator(now: () => number = () => Date.now()) {
       if (c?.type === "tool_use") {
         const tool = typeof c.name === "string" ? c.name : undefined;
         state.trail.push({ t_ms: now() - t0, phase: "use", tool });
+        state.consecutiveTool = tool && tool === state.lastTool ? state.consecutiveTool + 1 : 1;
         state.lastTool = tool;
         state.toolCount++;
       } else if (c?.type === "tool_result") {
@@ -49,7 +51,7 @@ export function makeStreamAccumulator(now: () => number = () => Date.now()) {
   }
 
   function snapshot(): StreamState {
-    return { envelope: state.envelope, trail: [...state.trail], lastTool: state.lastTool, toolCount: state.toolCount };
+    return { envelope: state.envelope, trail: [...state.trail], lastTool: state.lastTool, toolCount: state.toolCount, consecutiveTool: state.consecutiveTool };
   }
 
   return { push, snapshot };

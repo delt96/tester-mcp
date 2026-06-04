@@ -68,6 +68,34 @@ describe("spawnExecutor (streaming)", () => {
     expect(r.envelope).toBeUndefined();
   });
 
+  it("groping: 같은 도구를 gropingLimit회 연속 호출하면 kill + killedReason='groping' (이벤트가 계속 흘러 stall엔 안 걸려도)", async () => {
+    let killed: string | undefined;
+    const findLine = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "find" }] } });
+    const spawner: StreamSpawner = (_c, _a, h) => {
+      for (let i = 0; i < 8; i++) h.onLine(findLine);   // 같은 find 8회 — 이벤트는 계속 흐름
+      return { kill: (sig) => { killed = sig; h.onClose(null, sig); } };
+    };
+    const r = await spawnExecutor(
+      { prompt: "P", systemPrompt: "S", model: "haiku" },
+      { spawner, logLine: () => {}, now: () => 0, stallMs: 999999, tickMs: 1, gropingLimit: 5 }
+    );
+    expect(killed).toBe("SIGTERM");
+    expect(r.killedReason).toBe("groping");
+    expect(r.state.lastTool).toBe("find");
+    expect(r.envelope).toBeUndefined();
+  });
+
+  it("정상 교대 호출은 groping으로 오인하지 않는다", async () => {
+    const a = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "find" }] } });
+    const b = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "click" }] } });
+    const r = await spawnExecutor(
+      { prompt: "P", systemPrompt: "S", model: "haiku" },
+      { spawner: fakeSpawner([a, b, a, b, a, b, resultLine]), logLine: () => {}, now: () => 0, tickMs: 1, gropingLimit: 3 }
+    );
+    expect(r.killedReason).toBeUndefined();
+    expect(r.envelope?.result).toBe('{"status":"PASS"}');
+  });
+
   it("하드 타임아웃: timeoutMs 초과 → killedReason='timeout'", async () => {
     const spawner: StreamSpawner = (_c, _a, h) => {
       h.onLine(toolLine);

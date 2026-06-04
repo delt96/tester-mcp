@@ -19,7 +19,7 @@ export interface StreamSpawner {
   }): SpawnHandle;
 }
 
-export interface SpawnExecutorResult { envelope?: Envelope; state: StreamState; killedReason?: "stall" | "timeout"; }
+export interface SpawnExecutorResult { envelope?: Envelope; state: StreamState; killedReason?: "stall" | "timeout" | "groping"; }
 
 export interface SpawnExecutorDeps {
   spawner?: StreamSpawner;
@@ -27,6 +27,7 @@ export interface SpawnExecutorDeps {
   now?: () => number;
   timeoutMs?: number;       // hard backstop
   stallMs?: number;         // no-event watchdog (default 60s)
+  gropingLimit?: number;    // kill if the SAME tool runs this many times back-to-back (default 25; groping on one element)
   tickMs?: number;          // watchdog poll interval (default 5s)
   killGraceMs?: number;     // SIGTERM → SIGKILL delay (default 5s)
   forceResolveMs?: number;  // SIGKILL → force-resolve delay (default 5s)
@@ -57,6 +58,7 @@ export function spawnExecutor(opts: ExecutorArgsOptions, deps: SpawnExecutorDeps
   const logLine = deps.logLine ?? (() => {});
   const now = deps.now ?? (() => Date.now());
   const stallMs = deps.stallMs ?? 60_000;
+  const gropingLimit = deps.gropingLimit ?? 25;
   const tickMs = deps.tickMs ?? 5_000;
   const killGraceMs = deps.killGraceMs ?? 5_000;
   const forceResolveMs = deps.forceResolveMs ?? 5_000;
@@ -64,7 +66,7 @@ export function spawnExecutor(opts: ExecutorArgsOptions, deps: SpawnExecutorDeps
 
   return new Promise<SpawnExecutorResult>((resolve) => {
     let lastEvent = now();
-    let killedReason: "stall" | "timeout" | undefined;
+    let killedReason: "stall" | "timeout" | "groping" | undefined;
     let done = false;
     let killing = false;
     const intervals: NodeJS.Timeout[] = [];
@@ -80,7 +82,7 @@ export function spawnExecutor(opts: ExecutorArgsOptions, deps: SpawnExecutorDeps
 
     let handle: SpawnHandle;
     // SIGTERM, then escalate to SIGKILL, then force-resolve if close never fires (hung child can't hang the run).
-    const killEscalate = (reason: "stall" | "timeout") => {
+    const killEscalate = (reason: "stall" | "timeout" | "groping") => {
       if (killing || done) return;
       killing = true; killedReason = reason;
       handle.kill("SIGTERM");
@@ -95,7 +97,10 @@ export function spawnExecutor(opts: ExecutorArgsOptions, deps: SpawnExecutorDeps
     });
 
     intervals.push(setInterval(() => {
-      if (!done && !killing && now() - lastEvent > stallMs) killEscalate("stall");
+      if (done || killing) return;
+      // Groping: events keep flowing (so stall never fires) but it's the SAME locate tool over and over on one element.
+      if (acc.snapshot().consecutiveTool >= gropingLimit) { killEscalate("groping"); return; }
+      if (now() - lastEvent > stallMs) killEscalate("stall");
     }, tickMs));
 
     if (deps.timeoutMs) {

@@ -15,6 +15,10 @@ export const SYSTEM_CONTRACT = `You are a screen integration-test executor. Exec
 - No full-page reads: do not call read_page (full accessibility tree) or a full get_page_text.
 - Use a targeted find to see only that element. assert_visible checks only that element.
 
+[Assertions]
+- assert_visible: the target element exists and is visible. Presence only — do NOT use it to check content.
+- assert_value: read the target element's value (form control \`.value\`; for non-inputs, its textContent) and compare it EXACTLY to the expected string. Equal → PASS, different → FAIL (report observed vs expected). This is the deterministic content check — prefer it over interpreting a description.
+
 [Screenshots — evidence only, not the verdict]
 - Decide PASS/FAIL by assert (text/DOM). A screenshot is human-facing evidence, not the basis for the verdict.
 - Take a screenshot only when the scenario has a screenshot action, best-effort, once. If you can't capture it (element gone, capture failed, timeout), just skip and move on. NEVER loop re-triggering/resizing/scrolling/re-capturing. A failed screenshot is not a test failure.
@@ -26,6 +30,7 @@ export const SYSTEM_CONTRACT = `You are a screen integration-test executor. Exec
 [Fast self-bail — once]
 - If you can't find the target in one attempt, or a browser tool returns no/empty response once, end immediately with NOT_TESTED. Do not retry the same heavy call.
 - One failure means the scenario (selector) is wrong — don't try to recover, hand it to the builder.
+- NEVER call the same locate tool (find) over and over on one element — that is groping. After 2-3 targeted misses, bail with NOT_TESTED. The runtime watches for this and will KILL a groping executor (the whole run is wasted), so stop yourself first.
 
 [Status labels] status is exactly one of four:
 - PASS: behaved as expected (verified)
@@ -65,7 +70,10 @@ export function buildUserPrompt(
 
   const checklist = scenario.steps
     .map((s) => {
-      const resolved = s.action === "fill" ? { ...s, value: resolveValue(s.value) } : s;
+      const resolved =
+        s.action === "fill" || s.action === "assert_value"
+          ? { ...s, value: resolveValue(s.value) }
+          : s;
       return renderStep(resolved);
     })
     .map((line, i) => `${i + 1}. ${line}`)

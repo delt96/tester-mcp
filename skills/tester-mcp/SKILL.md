@@ -22,7 +22,7 @@ Current CLI usage (always up to date):
 
 ## Secrets
 
-The test account lives in the gitignored `tester-mcp.secrets.yaml` (or env `SECRET_*` in CI); reference it as `${secrets.tester.username}`. If it is missing, tell the user to fill it in. Details: `tester-mcp document-guide`.
+Test accounts live in the gitignored `tester-mcp.secrets.yaml` (or env `SECRET_*` in CI); each top-level block is one account — reference it per scenario as `${secrets.<account>.username}` (e.g. `${secrets.tester.username}`, `${secrets.admin.username}`). If the file is missing, tell the user to fill it in. Details: `tester-mcp document-guide`.
 
 ## Discipline
 

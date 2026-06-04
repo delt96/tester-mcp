@@ -36,8 +36,13 @@ describe("skillsDirFor", () => {
 });
 
 describe("secretsExampleYaml", () => {
-  it("tester.username/password 템플릿 생성", () => {
+  it("tester만 라이브 블록 (주석 계정은 파싱에 안 잡힘)", () => {
     const parsed = parseYaml(secretsExampleYaml()) as any;
     expect(parsed).toEqual({ tester: { username: "YOUR_ID", password: "YOUR_PASSWORD" } });
+  });
+  it("다중 계정 컨벤션을 주석으로 안내", () => {
+    const raw = secretsExampleYaml();
+    expect(raw).toMatch(/\$\{secrets\.<account>\.username\}/);
+    expect(raw).toContain("# admin:");
   });
 });

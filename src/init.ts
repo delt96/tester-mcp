@@ -24,7 +24,18 @@ export function skillsDirFor(
 }
 
 export function secretsExampleYaml(): string {
-  return ["tester:", '  username: "YOUR_ID"', '  password: "YOUR_PASSWORD"', ""].join("\n");
+  return [
+    "# Each top-level block is one account. Reference it in scenarios as",
+    "# ${secrets.<account>.username} / ${secrets.<account>.password}.",
+    "# Add as many accounts as you need (admin, member, guest, ...).",
+    "tester:",
+    '  username: "YOUR_ID"',
+    '  password: "YOUR_PASSWORD"',
+    "# admin:",
+    '#   username: "ADMIN_ID"',
+    '#   password: "ADMIN_PASSWORD"',
+    "",
+  ].join("\n");
 }
 
 // ── thin glue (not unit-tested) ──────────────────────────────────────────

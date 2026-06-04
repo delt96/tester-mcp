@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runScenario } from "../../src/run/runScenario.js";
+import { runScenario, notTestedReason } from "../../src/run/runScenario.js";
 import type { Scenario } from "../../src/scenario/types.js";
 import type { StreamSpawner } from "../../src/run/spawnExecutor.js";
 
@@ -11,6 +11,19 @@ const base = {
 };
 const okResult = JSON.stringify({ type: "result", result: '```json\n{"status":"PASS","evidence":["ok"]}\n```' });
 const tool = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "navigate" }] } });
+
+describe("notTestedReason", () => {
+  it("groping → 이유에 groping 설명 + 마지막 도구", () => {
+    const r = notTestedReason("groping", "find", 25);
+    expect(r).toMatch(/groping/);
+    expect(r).toMatch(/find/);
+  });
+  it("기존 stall/timeout/undefined 매핑 유지", () => {
+    expect(notTestedReason("stall", "navigate", 1)).toMatch(/스톨/);
+    expect(notTestedReason("timeout", undefined, 0)).toMatch(/타임아웃/);
+    expect(notTestedReason(undefined, undefined, 0)).toMatch(/방출하지 않음/);
+  });
+});
 
 describe("runScenario (streaming)", () => {
   it("정상: PASS + last_tool/tool_count 기록", async () => {

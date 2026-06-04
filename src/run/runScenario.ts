@@ -17,6 +17,21 @@ export interface RunScenarioOptions {
   executorLog?: string;              // log file path (result metadata)
 }
 
+// Maps the executor's kill cause + last observed tool into a NOT_TESTED reason string.
+export function notTestedReason(
+  killedReason: "stall" | "timeout" | "groping" | undefined,
+  lastTool: string | undefined,
+  toolCount: number
+): string {
+  const why =
+    killedReason === "stall" ? "무응답(스톨)"
+    : killedReason === "timeout" ? "하드 타임아웃"
+    : killedReason === "groping" ? "같은 도구 반복(groping) — 셀렉터가 안 맞아 한 요소를 계속 더듬음(첫 시도 미스)"
+    : "executor가 결과를 방출하지 않음";
+  const lastBit = lastTool ? ` — 마지막 도구 '${lastTool}' (호출 ${toolCount}회)` : " — 도구 호출 0회";
+  return `${why}${lastBit}`;
+}
+
 export async function runScenario(scenario: Scenario, opts: RunScenarioOptions): Promise<ScenarioResult> {
   const now = opts.now ?? (() => new Date());
   const startedAt = now();
@@ -34,9 +49,10 @@ export async function runScenario(scenario: Scenario, opts: RunScenarioOptions):
   };
 
   if (!envelope) {
-    const why = killedReason === "stall" ? "무응답(스톨)" : killedReason === "timeout" ? "하드 타임아웃" : "executor가 결과를 방출하지 않음";
-    const lastBit = state.lastTool ? ` — 마지막 도구 '${state.lastTool}' (호출 ${state.toolCount}회)` : " — 도구 호출 0회";
-    return { ...common, status: "NOT_TESTED", not_tested_reason: `${why}${lastBit}`, steps: [] };
+    return {
+      ...common, status: "NOT_TESTED",
+      not_tested_reason: notTestedReason(killedReason, state.lastTool, state.toolCount), steps: [],
+    };
   }
 
   const parsed = parseExecutorResult(envelope.result);

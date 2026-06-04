@@ -38,6 +38,14 @@ describe("buildUserPrompt", () => {
     expect(p).toMatch(/pre-resolved/);
     expect(p).toMatch(/don't grope/);
   });
+  it("assert_value의 기대값도 secret 해석된다 (fill과 동일)", () => {
+    const sc: Scenario = {
+      id: "x", title: "x", locale: "ru",
+      steps: [{ action: "assert_value", target: { css: "#userId" }, value: "${secrets.tester.username}" }],
+    };
+    const p = buildUserPrompt(sc, { frontend: "http://x" }, (v) => v.replace("${secrets.tester.username}", "U"));
+    expect(p).toContain('Assert value: [css #userId] == "U"');
+  });
   it("ephemeral 시나리오면 즉시-단일-체크 지시 주입", () => {
     const eph = { ...scenario, ephemeral: true };
     const p = buildUserPrompt(eph, { frontend: "http://x" }, (v) => v);
@@ -62,8 +70,15 @@ describe("SYSTEM_CONTRACT", () => {
   it("1회 시도 후 즉시 자가종료", () => {
     expect(SYSTEM_CONTRACT).toMatch(/once|one attempt/i);
   });
+  it("같은 find 반복(groping) 금지 + 런타임 kill 경고", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/groping/i);
+  });
   it("handoff_notes를 핑퐁 연료로 요구", () => {
     expect(SYSTEM_CONTRACT).toContain("handoff_notes");
+  });
+  it("assert_value 평가법 명시 (요소 값 읽어 정확 비교)", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/assert_value/);
+    expect(SYSTEM_CONTRACT).toMatch(/\.value/);
   });
   it("per-tab 디스플린: 자기 tab_id만 조작 (병렬 안전)", () => {
     expect(SYSTEM_CONTRACT).toContain("tab_id");

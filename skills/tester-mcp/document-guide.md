@@ -67,8 +67,17 @@ A scenario is one YAML file. Fields:
 - `fill` — `{ action: fill, target: <target>, value: "..." }`.
 - `click` — `{ action: click, target: <target> }`.
 - `wait_for` — `{ action: wait_for, target: <target> }`.
-- `assert_visible` — `{ action: assert_visible, target: <target> }`.
+- `assert_visible` — `{ action: assert_visible, target: <target> }`. Presence/visibility ONLY — it
+  does not check content. An input is always "visible", so this can't tell you a value was restored.
+- `assert_value` — `{ action: assert_value, target: <target>, value: "expected" }`. The deterministic
+  content check: the executor reads the element's value (form control `.value`; otherwise its
+  textContent) and compares it EXACTLY to `value` → PASS if equal, FAIL if different. Use this to verify
+  a restored/computed field instead of leaning on `assert_visible` + a `description` (which forces the
+  AI to interpret and is non-deterministic). `value` supports `${secrets.*}` like `fill`.
 - `screenshot` — `{ action: screenshot, name: "after-login" }`.
+
+Native `<select>`: there is no separate select action — use `fill` with the option's `value` or its
+visible label as the value; the executor sets the option and dispatches `change`.
 
 ## Target (how to locate an element)
 
@@ -98,6 +107,18 @@ with NOT_TESTED and reports what it actually saw. A precise selector is what dri
 pass rate and speed. For multi-step UI (filters, dropdowns, modals), script the
 open→select sequence as explicit steps with `wait_for` between them.
 
+**Do NOT target or assert by translated (i18n) text.** A label whose translation
+isn't synced to the DB yet renders as a **raw key** (e.g. `10998`) in *every* locale,
+so a `text`/`label` strategy finds nothing and the executor gropes until it is killed.
+Pinning `locale:` does not save you — the key itself is unsynced. Target by `css`/`role`
+instead, and assert on `css` + `assert_value` rather than on a translated string. (Text
+matching is acceptable only for static, never-translated literals.)
+
+**Groping is enforced, not just discouraged.** If the executor calls the same locate
+tool (`find`) over and over on one element, the runtime kills it and reports NOT_TESTED
+with reason "groping" — so a bad selector fails fast (it does not burn the full timeout).
+This is why a precise, source-derived selector matters: vague targets get groped and killed.
+
 ## Secrets
 
 Never inline credentials. Reference them as `${secrets.a.b}`:
@@ -105,6 +126,17 @@ Never inline credentials. Reference them as `${secrets.a.b}`:
 - { action: fill, target: { placeholder: "Username" }, value: "${secrets.tester.username}" }
 - { action: fill, target: { placeholder: "Password" }, value: "${secrets.tester.password}" }
 ```
+
+Multiple accounts: each top-level block in `tester-mcp.secrets.yaml` is one account,
+and each scenario picks which one to use by its path — no per-account config needed.
+```yaml
+# tester-mcp.secrets.yaml
+tester: { username: "u1", password: "p1" }
+admin:  { username: "a1", password: "p2" }
+```
+A login-as-admin scenario fills `${secrets.admin.username}`; a member-view scenario
+fills `${secrets.tester.username}`. Add as many blocks as you need.
+
 Resolution order: the file `tester-mcp.secrets.yaml` (gitignored) first, then the
 environment variable `SECRET_A_B` (uppercased, dot → underscore). Secret values
 are redacted to `***` in stored results.

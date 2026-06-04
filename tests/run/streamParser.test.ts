@@ -37,6 +37,17 @@ describe("makeStreamAccumulator", () => {
     ]);
     expect(s.trail.map((t) => t.phase)).toEqual(["use", "result", "use"]);
   });
+  it("연속 동일 도구 호출을 consecutiveTool로 센다 (groping 감지용)", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    const use = (name: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name }] } });
+    const res = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", is_error: false }] } });
+    acc.push(use("find")); acc.push(res);
+    acc.push(use("find")); acc.push(res);
+    acc.push(use("find"));
+    expect(acc.snapshot().consecutiveTool).toBe(3);   // tool_result가 사이에 와도 연속 카운트
+    acc.push(use("click"));                            // 다른 도구 → 리셋
+    expect(acc.snapshot().consecutiveTool).toBe(1);
+  });
   it("비밀 페이로드 미보존 (input/text 안 들어감)", () => {
     const acc = makeStreamAccumulator(() => 0);
     for (const l of lines) acc.push(l);

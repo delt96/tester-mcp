@@ -1,19 +1,35 @@
 {
   "name": "@delt/tester-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Opus (planner) + Haiku (executor) + Chrome screen E2E test orchestrator",
   "type": "module",
-  "bin": { "tester-mcp": "bin/tester-mcp.js" },
-  "files": ["dist", "bin", "skills"],
-  "publishConfig": { "access": "public" },
+  "bin": {
+    "tester-mcp": "bin/tester-mcp.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "skills"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
     "test": "vitest run"
   },
-  "engines": { "node": ">=20" },
-  "dependencies": { "commander": "^12.1.0", "yaml": "^2.5.0" },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "yaml": "^2.5.0"
+  },
   "devDependencies": {
-    "typescript": "^5.5.0", "tsx": "^4.16.0", "vitest": "^2.0.0", "@types/node": "^20.14.0"
+    "typescript": "^5.5.0",
+    "tsx": "^4.16.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^20.14.0"
   }
 }

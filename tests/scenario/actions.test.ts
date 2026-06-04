@@ -12,9 +12,9 @@ describe("describeTarget", () => {
 });
 
 describe("actions registry", () => {
-  it("화면 액션 6종을 안다", () => {
+  it("화면 액션 7종을 안다", () => {
     expect([...KNOWN_ACTIONS].sort()).toEqual(
-      ["assert_visible", "click", "fill", "navigate", "screenshot", "wait_for"]
+      ["assert_value", "assert_visible", "click", "fill", "navigate", "screenshot", "wait_for"]
     );
   });
   it("미등록 액션은 모른다", () => {
@@ -27,5 +27,7 @@ describe("actions registry", () => {
       .toBe('Fill: [css #userId] ← "u1"');
     expect(renderStep({ action: "assert_visible", target: { css: "#v_header" } }))
       .toBe("Assert visible: [css #v_header]");
+    expect(renderStep({ action: "assert_value", target: { css: "#title" }, value: "Draft 1" }))
+      .toBe('Assert value: [css #title] == "Draft 1"');
   });
 });

@@ -17,6 +17,7 @@ export type Step =
   | { action: "click"; target: Target; destructive?: boolean }
   | { action: "wait_for"; target: Target; timeout_ms?: number }
   | { action: "assert_visible"; target: Target }
+  | { action: "assert_value"; target: Target; value: string }
   | { action: "screenshot"; name?: string; save?: boolean };
 
 export type ActionName = Step["action"];

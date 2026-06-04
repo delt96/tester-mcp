@@ -19,6 +19,7 @@ const RENDERERS: Record<ActionName, (s: any) => string> = {
   click: (s) => `Click: [${describeTarget(s.target)}]${s.destructive ? " (destructive)" : ""}`,
   wait_for: (s) => `Wait for: [${describeTarget(s.target)}] to appear${s.timeout_ms ? ` (${s.timeout_ms}ms)` : ""}`,
   assert_visible: (s) => `Assert visible: [${describeTarget(s.target)}]`,
+  assert_value: (s) => `Assert value: [${describeTarget(s.target)}] == "${s.value}"`,
   screenshot: (s) => `Screenshot${s.name ? `: ${s.name}` : ""}`,
 };
 
