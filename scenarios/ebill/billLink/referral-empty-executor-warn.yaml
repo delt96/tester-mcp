@@ -5,9 +5,9 @@ login_as: gduser
 ephemeral: true
 precondition: "billId=EB_8eb5a0fd-...(사용자 지정), taskId=13173 — COMMITTEE_REFERRAL task 활성 + 원문서(atrzMngNo) 존재. 이 시나리오는 상태를 바꾸지 않음(프론트 가드에서 API 호출 전 차단). 반드시 referral-request-success보다 먼저 실행"
 steps:
-  - { action: navigate, url: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8eb5a0fd-372e-471f-b876-c74c9e450177&taskId=13173" }
-  - { action: wait_for, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼(@click=insertLetter, t10827). 폼 하단 버튼 영역, 같은 클래스의 저장 버튼과 텍스트로 구분" } }
-  - { action: click, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼 — 클릭 시 검토내용 저장 후 이행요청 모달(RequestModal) 오픈" } }
-  - { action: wait_for, target: { css: ".dialog_main_area textarea.form_control.full", description: "이행요청 모달의 내용 textarea (모달 오픈 확인, 타이틀 t10475=Запрос на исполнение)" } }
+  - { action: navigate, url: "${vars.billmng_cmt_doc_a}" }
+  - { action: wait_for, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼(@click=insertLetter, t10827). 폼 하단 버튼 영역, 같은 클래스의 저장 버튼과 텍스트로 구분" } }
+  - { action: click, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼 — 클릭 시 검토내용 저장 후 이행요청 모달(RequestModal) 오픈" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "이행요청 모달의 내용 textarea (모달 오픈 확인, 타이틀 t10475=Запрос на исполнение)" } }
   - { action: click, target: { css: "button.btn_md.btn_primary", text: "Регистрация", description: "모달 하단 등록 버튼(@click=addRequest, t10103) — 이행자 미선택 상태" } }
   - { action: assert_visible, target: { css: ".p-toast-message-warn", description: "이행자 미선택 warn toast (신규 키 11031 — locales 미동기화면 raw 키 '11031' 표시, 동기화면 'Выберите хотя бы одного исполнителя'). css 클래스로만 판정, ephemeral이므로 클릭 직후 단일 체크" } }

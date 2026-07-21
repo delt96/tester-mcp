@@ -12,15 +12,15 @@ steps:
 
   # 1) 외부문서 접수
   - { action: navigate, url: "/main/letter/external/receive" }
-  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "외부 수신함 첫 행" } }
-  - { action: click, target: { css: ".p-datatable-tbody > tr", text: "О статусе депутата", description: "제목에 'О статусе депутата'가 포함된 샘플 문서(ID 306, 첨부 2개) 행 클릭 → 상세" } }
-  - { action: wait_for, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 버튼(11048)" } }
-  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 클릭 → ConfirmPopup" } }
-  - { action: wait_for, target: { css: ".p-confirmpopup", description: "접수 confirm(11058)" } }
-  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "confirm 수락(Yes) — 접수 성공 시 등록 대기 리스트로 자동 이동" } }
+  - { action: wait_for, target: { ref: datatable_row, description: "외부 수신함 첫 행" } }
+  - { action: click, target: { ref: datatable_row, text: "О статусе депутата", description: "제목에 'О статусе депутата'가 포함된 샘플 문서(ID 306, 첨부 2개) 행 클릭 → 상세" } }
+  - { action: wait_for, target: { ref: btn_outline_md, text: "의안 등록 접수", description: "[의안 등록 접수] 버튼(11048)" } }
+  - { action: click, target: { ref: btn_outline_md, text: "의안 등록 접수", description: "[의안 등록 접수] 클릭 → ConfirmPopup" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "접수 confirm(11058)" } }
+  - { action: click, target: { ref: confirm_accept, description: "confirm 수락(Yes) — 접수 성공 시 등록 대기 리스트로 자동 이동" } }
 
   # 2) 대기 리스트(자동 이동됨)에서 더블클릭 진입
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable — 접수 후 자동 이동 확인" } }
+  - { action: wait_for, target: { ref: datatable, description: "등록 대기 DataTable — 접수 후 자동 이동 확인" } }
   - { action: click, target: { css: ".p-datatable-tbody > tr:has(button.v_btn.btn_outline_primary.btn_sm)", description: "마지막 셀에 '접수 취소' 버튼이 있는 등록대기 행을 **마우스 더블클릭(double_click)**. 단일 클릭은 선택만 됨. 더블클릭하면 의안 등록 폼으로 이동" } }
   - { action: wait_for, target: { css: ".ext_doc_card", description: "등록 폼의 등록요청문서 지정 카드 — 외부문서 모드 진입 성공 신호" } }
   - { action: screenshot, name: "03a-form-extdoc-mode" }
@@ -52,6 +52,6 @@ steps:
   - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록하기", description: "[등록하기](10493) — 의안 등록 + 외부문서 전달(완료) 일괄 처리 후 등록 대기 리스트로 자동 이동" } }
 
   # 7) 대기 리스트(자동 이동)에서 처리완료 확인
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable — 자동 이동 확인" } }
+  - { action: wait_for, target: { ref: datatable, description: "등록 대기 DataTable — 자동 이동 확인" } }
   - { action: assert_visible, target: { css: ".p-datatable-tbody", text: "처리완료", description: "처리상태 '처리완료'(11046) 행 존재 — DONE 전환 증거" } }
   - { action: screenshot, name: "03d-done-in-list" }

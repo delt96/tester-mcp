@@ -1,0 +1,5 @@
+id: open-ext-receive-first
+steps:
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { ref: datatable_row, description: "외부 수신함 문서 목록 첫 행" } }
+  - { action: click, target: { ref: datatable_row, description: "첫 번째 수신 문서 행 (단일 클릭 → 상세 진입, @row-click=fn_detail)" } }

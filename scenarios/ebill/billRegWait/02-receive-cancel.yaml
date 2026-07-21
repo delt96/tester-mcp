@@ -5,17 +5,15 @@ login_as: gduser
 precondition: "외부 수신함에 수신 문서 1건 이상 존재 (없으면 NOT_TESTED). 접수 confirm=11058, 접수 버튼=11048(의안 등록 접수)"
 on_failure: stop
 steps:
-  - { action: navigate, url: "/main/letter/external/receive" }
-  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "외부 수신함 문서 목록 첫 행" } }
-  - { action: click, target: { css: ".p-datatable-tbody > tr", description: "첫 번째 수신 문서 행 (단일 클릭 → 상세 진입, @row-click=fn_detail)" } }
-  - { action: wait_for, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 버튼(11048) — externalId 모드 상세 하단" } }
-  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 버튼 클릭 → ConfirmPopup 표시" } }
-  - { action: wait_for, target: { css: ".p-confirmpopup", description: "접수 confirm 팝업(11058)" } }
-  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "ConfirmPopup 수락(예) 버튼 — 접수 성공 시 등록 대기 리스트로 자동 이동" } }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable — 접수 후 자동 이동 확인" } }
+  - { use: open-ext-receive-first }
+  - { action: wait_for, target: { ref: btn_outline_md, text: "의안 등록 접수", description: "[의안 등록 접수] 버튼(11048) — externalId 모드 상세 하단" } }
+  - { action: click, target: { ref: btn_outline_md, text: "의안 등록 접수", description: "[의안 등록 접수] 버튼 클릭 → ConfirmPopup 표시" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "접수 confirm 팝업(11058)" } }
+  - { action: click, target: { ref: confirm_accept, description: "ConfirmPopup 수락(예) 버튼 — 접수 성공 시 등록 대기 리스트로 자동 이동" } }
+  - { action: wait_for, target: { ref: datatable, description: "등록 대기 DataTable — 접수 후 자동 이동 확인" } }
   - { action: assert_visible, target: { css: "button.v_btn.btn_outline_primary.btn_sm", text: "접수 취소", description: "등록대기 행의 [접수 취소] 버튼(11050) — 접수된 행이 리스트에 존재한다는 증거" } }
   - { action: screenshot, name: "02b-wait-row-in-list" }
   - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_sm", text: "접수 취소", description: "[접수 취소] 클릭 → ConfirmPopup(11059)" } }
-  - { action: wait_for, target: { css: ".p-confirmpopup", description: "취소 confirm 팝업" } }
-  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "ConfirmPopup 수락 → DELETE /bill/regWait/{waitId} 후 목록 재조회" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "취소 confirm 팝업" } }
+  - { action: click, target: { ref: confirm_accept, description: "ConfirmPopup 수락 → DELETE /bill/regWait/{waitId} 후 목록 재조회" } }
   - { action: screenshot, name: "02c-after-cancel" }

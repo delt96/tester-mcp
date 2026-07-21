@@ -9,7 +9,7 @@ precondition: >
   btnExecutionInbox = curBillStep=='LEGAL_ACTION'). 강제진행("진행이안되는경우…" t10912, 강제결재 t10913)은
   둘 다 제거되어 노출되지 않아야 함(btnForceStepProgress=false, btnForceApproveProgress 계산 주석).
 steps:
-  - { action: navigate, url: "/main/billMng/legalActMng/billMng/Dtl?id=EB_126d83ed-4b5a-4c41-8a07-cddc5abcbe4d&taskId=13184" }
+  - { action: navigate, url: "${vars.legalact_doc_url}" }
   - { action: wait_for, target: { css: ".content_section .btn_group_fixed button.btn_outline_primary", text: "Список", description: "상세 하단 버튼바의 '목록' 버튼(t10084) — 페이지 마운트 확인" } }
   - { action: wait_for, target: { css: ".content_section .btn_group_fixed button.v_btn.btn_primary.btn_md", text: "Токтомду даярдоо", description: "'톡돔 작성' 버튼(t10833, @click=popupInsertLetter, btnInsertLetter). fnAuthSetup 비동기 완료 후 등장. LGACT 단계면 문서-역할 없이 노출되어야 함(un-gate 핵심)" } }
   - { action: assert_visible, target: { css: ".content_section .btn_group_fixed button.btn_outline_primary", text: "Исполнить", description: "'이행하기' 버튼(t10602, @click=popupExecutionInbox, btnExecutionInbox=단계기준). un-gate 보강 증거" } }

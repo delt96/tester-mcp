@@ -5,14 +5,14 @@ login_as: gduser
 ephemeral: true
 precondition: "billId=EB_8eb5a0fd-...(사용자 지정), taskId=13173 — COMMITTEE_REFERRAL task 활성 + 원문서 존재. 성공 시 의안 프로세스가 즉시 전이되고 task 완료됨(반복 실행 불가 — 두 번째 실행은 회부 버튼이 사라져 NOT_TESTED 예상). referral-empty-executor-warn 이후 실행"
 steps:
-  - { action: navigate, url: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8eb5a0fd-372e-471f-b876-c74c9e450177&taskId=13173" }
-  - { action: wait_for, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼(@click=insertLetter, t10827)" } }
-  - { action: click, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼 — 검토내용 저장 후 이행요청 모달 오픈" } }
-  - { action: wait_for, target: { css: ".dialog_main_area textarea.form_control.full", description: "이행요청 모달 내용 textarea (모달 오픈 확인)" } }
+  - { action: navigate, url: "${vars.billmng_cmt_doc_a}" }
+  - { action: wait_for, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼(@click=insertLetter, t10827)" } }
+  - { action: click, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼 — 검토내용 저장 후 이행요청 모달 오픈" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "이행요청 모달 내용 textarea (모달 오픈 확인)" } }
   - { action: click, target: { css: ".responder_row .auto_complete_area button.p-autocomplete-dropdown", description: "이행자 AutoComplete(PrimeVue4)의 드롭다운 토글 버튼 — 전체 사용자 목록 오픈" } }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay li.p-autocomplete-option", description: "사용자 제안 목록 옵션 (오버레이 로드 대기)" } }
   - { action: click, target: { css: ".p-autocomplete-overlay li.p-autocomplete-option:first-child", description: "첫 번째 사용자 선택 → @change_user로 r.userId 세팅" } }
-  - { action: fill, target: { css: ".dialog_main_area textarea.form_control.full", description: "이행요청 내용" }, value: "위원회 회부 이행요청 - Task11 통합검증 C" }
+  - { action: fill, target: { ref: dialog_textarea, description: "이행요청 내용" }, value: "위원회 회부 이행요청 - Task11 통합검증 C" }
   - { action: click, target: { css: "button.btn_md.btn_primary", text: "Регистрация", description: "모달 등록 버튼(@click=addRequest) — POST /eas/workRequest/response(billType=REFER_TO_COMMITTEE) 전송" } }
-  - { action: assert_visible, target: { css: ".p-toast-message-success", description: "저장 성공 toast (t10454=Сохранено). css 클래스로 판정, ephemeral — 클릭 직후 단일 체크. 이 toast는 API 200 후에만 표시됨(saveQuietly로 자동 토스트 억제, 수동 토스트 단일)" } }
+  - { action: assert_visible, target: { ref: toast_success, description: "저장 성공 toast (t10454=Сохранено). css 클래스로 판정, ephemeral — 클릭 직후 단일 체크. 이 toast는 API 200 후에만 표시됨(saveQuietly로 자동 토스트 억제, 수동 토스트 단일)" } }
   - { action: screenshot, name: "after-referral-request" }

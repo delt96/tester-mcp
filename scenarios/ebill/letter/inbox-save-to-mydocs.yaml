@@ -6,8 +6,8 @@ ephemeral: true
 precondition: gduser 수신함(/main/letter/inbox)에 본문(결재본 PDF)이 있는 수신 문서 1건 이상. lng 11042/11043은 json 미동기화면 raw key로 표시됨(기능 검증 무관, css로 assert)
 steps:
   - { action: navigate, url: "/main/letter/inbox" }
-  - { action: wait_for, target: { css: ".lists .list", description: "수신함 좌측 리스트 항목" } }
-  - { action: click, target: { css: ".lists .list", description: "첫 문서 클릭(상세 로드)" } }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 좌측 리스트 항목" } }
+  - { action: click, target: { ref: list_item, description: "첫 문서 클릭(상세 로드)" } }
   - { action: wait_for, target: { css: ".document_area .official_document_file", description: "상세 우측 본문(결재본) 파일 행" } }
   - { action: screenshot, name: "01-detail-loaded" }
   - { action: click, target: { css: ".official_document_file i.pi-download", description: "기존 다운로드 버튼 클릭(회귀 확인 — 동작 무변경)" } }
@@ -16,12 +16,12 @@ steps:
   - { action: wait_for, target: { css: ".p-dialog .p-tree", description: "폴더 선택 모달의 내 문서함 폴더 트리" } }
   - { action: screenshot, name: "03-folder-modal" }
   - { action: click, target: { css: ".p-dialog .popup_footer .btn_primary", description: "모달 저장 버튼(루트 폴더가 기본 선택 상태)" } }
-  - { action: assert_visible, target: { css: ".p-toast-message-success", description: "저장 성공 토스트(11043) — 3초 소멸 전 즉시 확인" } }
+  - { action: assert_visible, target: { ref: toast_success, description: "저장 성공 토스트(11043) — 3초 소멸 전 즉시 확인" } }
   - { action: screenshot, name: "04-first-save-toast" }
   - { action: click, target: { css: ".official_document_file i.pi-folder-plus", description: "같은 파일 재저장 — 모달 재오픈(v-if 재마운트) + 중복 허용 확인" } }
   - { action: wait_for, target: { css: ".p-dialog .p-tree", description: "모달 재오픈 확인" } }
   - { action: click, target: { css: ".p-dialog .popup_footer .btn_primary", description: "재저장" } }
-  - { action: assert_visible, target: { css: ".p-toast-message-success", description: "재저장 성공 토스트(중복 저장 허용 확인)" } }
+  - { action: assert_visible, target: { ref: toast_success, description: "재저장 성공 토스트(중복 저장 허용 확인)" } }
   - { action: screenshot, name: "05-second-save-toast" }
   - { action: navigate, url: "/main/document/my" }
   - { action: wait_for, target: { css: ".p-datatable tbody tr", description: "나의문서 파일 목록 행(저장된 파일 반영)" } }

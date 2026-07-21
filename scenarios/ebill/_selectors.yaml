@@ -1,0 +1,21 @@
+# scenarios/ebill/_selectors.yaml — verified selector cache. Check here before grepping the app source.
+confirm_popup:
+  css: ".p-confirmpopup"
+confirm_accept:
+  css: '.p-confirmpopup [data-pc-section="acceptbutton"]'
+toast_success:
+  css: ".p-toast-message-success"
+datatable:
+  css: ".v_table.table_list .p-datatable"
+datatable_row:
+  css: ".p-datatable-tbody > tr"
+list_item:
+  css: ".lists .list"
+list_item_first:
+  css: ".lists .list:first-child"
+btn_outline_md:
+  css: "button.v_btn.btn_outline_primary.btn_md"
+btn_primary_md:
+  css: "button.v_btn.btn_primary.btn_md"
+dialog_textarea:
+  css: ".dialog_main_area textarea.form_control.full"

@@ -11,8 +11,8 @@ steps:
   - { action: wait_for, target: { css: ".letter_list_wrapper .search_input", description: "목록 검색창" } }
   - { action: fill, target: { css: ".letter_list_wrapper .search_input" }, value: "문서 테스트3" }
   - { action: click, target: { css: ".letter_list_wrapper .search_form button:first-of-type", description: "검색" } }
-  - { action: wait_for, target: { css: ".lists .list", description: "검색 결과" } }
-  - { action: click, target: { css: ".lists .list:first-child", description: "문서 선택" } }
+  - { action: wait_for, target: { ref: list_item, description: "검색 결과" } }
+  - { action: click, target: { ref: list_item_first, description: "문서 선택" } }
   - { action: wait_for, target: { css: ".right_top_area .commands .command", description: "이행요청 카드" } }
   - { action: screenshot, name: "badge-area-before-assert" }
   - { action: assert_visible, target: { css: ".circle-badge", description: "'C' 배지 (span.circle-badge)" } }

@@ -6,9 +6,9 @@ ephemeral: true
 precondition: admin 수신함(/main/letter/inbox)에 수신 문서가 1건 이상 존재해야 함
 steps:
   - { action: navigate, url: "/main/letter/inbox" }
-  - { action: wait_for, target: { css: ".lists .list", description: "수신함 좌측 리스트 항목" } }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 좌측 리스트 항목" } }
   - { action: screenshot, name: "01-inbox-loaded" }
-  - { action: click, target: { css: ".lists .list", description: "리스트 첫 문서 클릭(상세 로드 + 읽음처리)" } }
+  - { action: click, target: { ref: list_item, description: "리스트 첫 문서 클릭(상세 로드 + 읽음처리)" } }
   - { action: wait_for, target: { css: ".document_title .hide_toggle_btn", text: "Скрыть", description: "제목 옆 숨기기 링크(t10993=Скрыть)" } }
   - { action: assert_visible, target: { css: ".document_title .hide_toggle_btn", description: "숨기기 아이콘 버튼 노출 확인" } }
   - { action: screenshot, name: "02-detail-hide-button" }
@@ -21,9 +21,9 @@ steps:
   - { action: click, target: { css: "#showHidden", description: "숨긴 문서 보기 체크" } }
   - { action: screenshot, name: "04-filter-checked" }
   - { action: click, target: { css: ".search_footer .btn_primary", role: "button", description: "필터 검색 버튼(t10053)" } }
-  - { action: wait_for, target: { css: ".lists .list", description: "숨긴 문서 목록 표시" } }
+  - { action: wait_for, target: { ref: list_item, description: "숨긴 문서 목록 표시" } }
   - { action: screenshot, name: "05-hidden-list" }
-  - { action: click, target: { css: ".lists .list", description: "숨긴 문서 클릭" } }
+  - { action: click, target: { ref: list_item, description: "숨긴 문서 클릭" } }
   - { action: wait_for, target: { css: ".document_title .hide_toggle_btn", text: "Восстановить", description: "숨김 해제 링크(t10994=Восстановить)" } }
   - { action: assert_visible, target: { css: ".document_title .hide_toggle_btn", description: "숨김 해제 아이콘 버튼 노출 확인" } }
   - { action: screenshot, name: "06-hidden-detail-restore" }

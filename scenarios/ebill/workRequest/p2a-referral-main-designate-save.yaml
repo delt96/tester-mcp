@@ -8,14 +8,14 @@ precondition: >
   이행자 프리필됨). 파괴적 — 등록 시 의안 회부 전이 + task 완료(1회성, 재실행 불가). 프리필된 첫 이행자를
   별(★)로 주이행자 지정 후 등록. 성공 시 저장 toast(t10454). 이후 DB로 main_rspns_id 검증 예정.
 steps:
-  - { action: navigate, url: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8067fc85-2385-473d-9efa-b7991bfafc22&taskId=13300" }
-  - { action: wait_for, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼(insertLetter, t10827)" } }
-  - { action: click, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼 → 이행요청 모달 오픈" } }
-  - { action: wait_for, target: { css: ".dialog_main_area textarea.form_control.full", description: "이행요청 모달 오픈(내용 textarea)" } }
+  - { action: navigate, url: "${vars.billmng_cmt_doc_b}" }
+  - { action: wait_for, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼(insertLetter, t10827)" } }
+  - { action: click, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼 → 이행요청 모달 오픈" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "이행요청 모달 오픈(내용 textarea)" } }
   - { action: wait_for, target: { css: ".dialog_main_area .responder_row .main-star-btn", description: "이행자 프리필 + 별 토글 로드 대기" } }
   - { action: click, target: { css: ".dialog_main_area .responder_row:first-child .main-star-btn", description: "첫 이행자 행 별 토글 → 주이행자 지정" } }
   - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:first-child .main-star-btn[aria-pressed='true']", description: "첫 행 주이행자 지정 확인(aria-pressed=true)" } }
-  - { action: fill, target: { css: ".dialog_main_area textarea.form_control.full", description: "이행요청 내용" }, value: "위원회 회부 - 주이행자 지정 기능테스트" }
+  - { action: fill, target: { ref: dialog_textarea, description: "이행요청 내용" }, value: "위원회 회부 - 주이행자 지정 기능테스트" }
   - { action: click, target: { css: "button.btn_md.btn_primary", text: "Регистрация", description: "모달 등록 버튼(addRequest) → POST /eas/workRequest/response(workerId 포함)" } }
-  - { action: assert_visible, target: { css: ".p-toast-message-success", description: "저장 성공 toast(t10454). ephemeral — 등록 직후 단일 체크" } }
+  - { action: assert_visible, target: { ref: toast_success, description: "저장 성공 toast(t10454). ephemeral — 등록 직후 단일 체크" } }
   - { action: screenshot, name: "after-referral-designate-save" }

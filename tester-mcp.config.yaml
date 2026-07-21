@@ -1,0 +1,12 @@
+targets:
+  frontend: http://localhost:5173
+runner:
+  model: haiku
+  timeout_ms: 900000
+  chrome_flags:
+    - --chrome
+    - --dangerously-skip-permissions
+vars:
+  billmng_cmt_doc_a: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8eb5a0fd-372e-471f-b876-c74c9e450177&taskId=13173"
+  billmng_cmt_doc_b: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8067fc85-2385-473d-9efa-b7991bfafc22&taskId=13300"
+  legalact_doc_url: "/main/billMng/legalActMng/billMng/Dtl?id=EB_126d83ed-4b5a-4c41-8a07-cddc5abcbe4d&taskId=13184"

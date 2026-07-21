@@ -11,8 +11,8 @@ steps:
   - { action: wait_for, target: { css: ".letter_list_wrapper .search_input", description: "이행대기함 목록 검색 입력" } }
   - { action: fill, target: { css: ".letter_list_wrapper .search_input", description: "문서 검색(doc_subtle like)" }, value: "문서 테스트3" }
   - { action: click, target: { css: ".letter_list_wrapper .search_form button:first-of-type", description: "검색 버튼(integratedSearch)" } }
-  - { action: wait_for, target: { css: ".lists .list", description: "검색 결과 문서 행 로드" } }
-  - { action: click, target: { css: ".lists .list:first-child", description: "첫 문서 행 선택(fn_select) → 우측 이행요청 로드" } }
+  - { action: wait_for, target: { ref: list_item, description: "검색 결과 문서 행 로드" } }
+  - { action: click, target: { ref: list_item_first, description: "첫 문서 행 선택(fn_select) → 우측 이행요청 로드" } }
   - { action: wait_for, target: { css: ".right_top_area .command", description: "이행요청 카드(CommandComponent) 로드" } }
   - { action: assert_visible, target: { css: ".right_top_area .reply_area button", description: "'답변 문서 작성'(lng 11069) 버튼 — 주이행자·rcv_id>0·DMT01 요청에만 노출(canReply)" } }
   - { action: screenshot, name: "reply-doc-button-shown" }

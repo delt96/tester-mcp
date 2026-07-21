@@ -6,13 +6,13 @@ ephemeral: true
 precondition: gduser 결재대기함(/main/letter/approvalInbox)에 문서 1건 이상 (본문 또는 첨부 파일 포함). 데이터 없으면 NOT_TESTED — 공용 DocumentComponent라 수신함 결과로 패턴 추론 가능
 steps:
   - { action: navigate, url: "/main/letter/approvalInbox" }
-  - { action: wait_for, target: { css: ".lists .list", description: "결재대기함 좌측 리스트 항목" } }
-  - { action: click, target: { css: ".lists .list", description: "첫 문서 클릭(상세 로드)" } }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 좌측 리스트 항목" } }
+  - { action: click, target: { ref: list_item, description: "첫 문서 클릭(상세 로드)" } }
   - { action: wait_for, target: { css: ".document_area", description: "상세 우측 문서 영역" } }
   - { action: screenshot, name: "01-detail-loaded" }
   - { action: click, target: { css: ".document_area i.pi-folder-plus", description: "'내 문서함에 저장' 버튼(본문 또는 첨부 행의 폴더+ 아이콘, 첫 번째)" } }
   - { action: wait_for, target: { css: ".p-dialog .p-tree", description: "폴더 선택 모달의 폴더 트리" } }
   - { action: screenshot, name: "02-folder-modal" }
   - { action: click, target: { css: ".p-dialog .popup_footer .btn_primary", description: "모달 저장 버튼(루트 기본 선택)" } }
-  - { action: assert_visible, target: { css: ".p-toast-message-success", description: "저장 성공 토스트 — 3초 소멸 전 즉시 확인" } }
+  - { action: assert_visible, target: { ref: toast_success, description: "저장 성공 토스트 — 3초 소멸 전 즉시 확인" } }
   - { action: screenshot, name: "03-save-toast" }
