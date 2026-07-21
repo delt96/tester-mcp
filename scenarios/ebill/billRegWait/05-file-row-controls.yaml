@@ -1,0 +1,53 @@
+id: regwait-05-file-row-controls
+title: 가져오기 후 파일 행 컨트롤 — 드래그 핸들(⋮)·공개 자물쇠 표시 확인 (드래그 동작 자체는 DSL 미지원 → 수동)
+locale: kr
+precondition: >
+  샘플 문서 307(regno 01-14/2026-118, 제목 'Проект Закона ... О республиканском бюджете на 2027 год', 첨부 2개)이
+  외부 수신함에 존재하고 등록대기 큐에 WAIT 행 없음. 업로드/문서함 버튼 숨김은 DSL에 부정 assert가 없어
+  스크린샷(05b)으로 육안 확인 — 파일 있는 행에 ⬆/📁가 없어야 정상.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/" }
+  - { action: fill, target: { css: "#userId", description: "아이디 입력" }, value: "${secrets.gduser.username}" }
+  - { action: fill, target: { css: "#pswd", description: "비밀번호 입력" }, value: "${secrets.gduser.password}" }
+  - { action: click, target: { css: ".btn_login", role: "button", description: "로그인 버튼" } }
+  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }
+
+  # 1) 샘플 문서 접수 → 등록 대기 리스트 자동 이동
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "외부 수신함 첫 행" } }
+  - { action: click, target: { css: ".p-datatable-tbody > tr", text: "О республиканском", description: "제목에 'О республиканском'이 포함된 샘플 문서(ID 307, 첨부 2개) 행 클릭 → 상세" } }
+  - { action: wait_for, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 버튼(11048)" } }
+  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 클릭 → ConfirmPopup" } }
+  - { action: wait_for, target: { css: ".p-confirmpopup", description: "접수 confirm(11058)" } }
+  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "confirm 수락 — 등록 대기 리스트로 자동 이동" } }
+
+  # 2) 더블클릭으로 등록 폼 진입
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable" } }
+  - { action: click, target: { css: ".p-datatable-tbody > tr:has(button.v_btn.btn_outline_primary.btn_sm)", description: "등록대기 행을 **마우스 더블클릭(double_click)** — 등록 폼으로 이동" } }
+  - { action: wait_for, target: { css: ".ext_doc_card", description: "등록요청문서 지정 카드 — 외부문서 모드 진입 확인" } }
+
+  # 3) 원문(키르기즈어) 가져오기로 파일 1개 추가
+  - { action: click, target: { css: "tr:has(.file_attatch) td:nth-of-type(1) .form_row:first-child button.v_btn.btn_sm.btn_outline_primary", text: "가져오기", description: "문서(키르기즈어) 원문(110) 셀의 [가져오기](11051) 버튼" } }
+  - { action: wait_for, target: { css: ".p-dialog .basic_table", description: "등록요청문서 파일 선택 모달(11052)" } }
+  - { action: click, target: { css: ".p-dialog .basic_table button.v_btn.btn_sm", text: "추가", description: "첫 파일의 [추가](10195) 버튼" } }
+  - { action: click, target: { css: ".p-dialog [data-pc-name=\"pcclosebutton\"]", description: "가져오기 모달 X 닫기" } }
+  - { action: screenshot, name: "05a-file-imported" }
+
+  # 4) 신규 컨트롤 검증: 드래그 핸들(⋮) + 공개 자물쇠 — 파일이 있는 행에만 렌더됨
+  - { action: assert_visible, target: { css: ".file_attatch .drag_handle", description: "파일 행 좌측 드래그 핸들(pi-bars) — sortable+파일 있음 조건" } }
+  - { action: assert_visible, target: { css: ".file_attatch .btn_lock", description: "공개여부 자물쇠 토글(pi-lock-open) — 가져온 파일 행" } }
+  - { action: screenshot, name: "05b-handle-and-lock-visible" }
+
+  # 5) 자물쇠 클릭 → 비공개 전환(아이콘 pi-lock) 확인
+  - { action: click, target: { css: ".file_attatch .btn_lock label", description: "자물쇠 클릭 — 공개→비공개 토글" } }
+  - { action: assert_visible, target: { css: ".file_attatch .btn_lock .pi-lock", description: "잠긴 자물쇠(pi-lock) 아이콘 — 비공개 상태 전환 증거" } }
+  - { action: screenshot, name: "05c-lock-toggled-private" }
+
+  # 6) 목록 복귀 후 접수 취소 (상태 원복)
+  - { action: click, target: { css: "a.v_btn.btn_outline_primary.btn_md", text: "목록", description: "[목록](10084) 링크 버튼 — regWait 컨텍스트라 등록 대기 리스트로 이동" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable 복귀" } }
+  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_sm", text: "접수 취소", description: "[접수 취소](11050) 클릭" } }
+  - { action: wait_for, target: { css: ".p-confirmpopup", description: "취소 confirm(11059)" } }
+  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "confirm 수락 — 행 제거, 상태 원복" } }
+  - { action: screenshot, name: "05d-canceled" }

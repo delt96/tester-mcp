@@ -1,0 +1,18 @@
+id: dmt05-inbox-answer-modal
+title: 수신함 DMT05 문서 - 답변 버튼 클릭 시 이행자 지정 모달(DMT01 흐름) 열림 (제출 없음, 비파괴)
+locale: kr
+login_as: tester
+ephemeral: true
+precondition: gduser1 수신함에 DMT05(기타) 문서 "테스트 등록"이 미접수 상태로 존재
+steps:
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { css: ".lists .list", description: "수신함 좌측 리스트" } }
+  - { action: click, target: { css: ".lists .list", text: "테스트 등록", description: "DMT05(기타) 문서 선택(상세 로드)" } }
+  - { action: wait_for, target: { css: ".right_top_area .btn_group", description: "우측 접수 버튼 영역" } }
+  - { action: assert_visible, target: { text: "답변", role: "button", description: "DMT05 답변 버튼(t10496). 옆에 종료하기(t10497)도 존재" } }
+  - { action: screenshot, name: "01-dmt05-buttons" }
+  - { action: click, target: { text: "답변", role: "button", description: "답변 버튼 클릭 → receptionModalOpen" } }
+  - { action: wait_for, target: { css: ".p-dialog", description: "이행요청 RequestModal(PrimeVue Dialog) 열림" } }
+  - { action: assert_visible, target: { css: ".p-dialog", text: "이행요청", description: "이행자 지정 모달 헤더(t10475) = DMT01 reception 흐름 정상" } }
+  - { action: assert_visible, target: { css: ".p-dialog .mainWorker", description: "reception 타입 모달의 주 이행자(t10651) 섹션" } }
+  - { action: screenshot, name: "02-answer-modal-open" }

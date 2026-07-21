@@ -1,0 +1,46 @@
+id: regwait-04-draft-single-row
+title: 임시저장 시 등록대기 행이 임시저장으로 전환(단일 행) → 삭제 시 등록대기 복귀 → 접수 취소
+locale: kr
+precondition: "등록대기 큐 비어있음(사전 정리됨), 수신 문서 1건 이상, 백엔드 최신 빌드(단일 행 로직)"
+on_failure: stop
+steps:
+  - { action: navigate, url: "/" }
+  - { action: fill, target: { css: "#userId", description: "아이디 입력" }, value: "${secrets.gduser.username}" }
+  - { action: fill, target: { css: "#pswd", description: "비밀번호 입력" }, value: "${secrets.gduser.password}" }
+  - { action: click, target: { css: ".btn_login", role: "button", description: "로그인 버튼" } }
+  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }
+
+  # 1) 접수 → 자동으로 등록 대기 리스트 이동
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "외부 수신함 첫 행" } }
+  - { action: click, target: { css: ".p-datatable-tbody > tr", description: "첫 번째 수신 문서 행 클릭 → 상세" } }
+  - { action: wait_for, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 버튼" } }
+  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "의안 등록 접수", description: "[의안 등록 접수] 클릭" } }
+  - { action: wait_for, target: { css: ".p-confirmpopup", description: "접수 confirm" } }
+  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "confirm 수락 — 등록 대기 리스트로 자동 이동" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable" } }
+
+  # 2) 더블클릭 진입 → 임시저장
+  - { action: click, target: { css: ".p-datatable-tbody > tr:has(button.v_btn.btn_outline_primary.btn_sm)", description: "등록대기 행을 **마우스 더블클릭(double_click)** — 등록 폼으로 이동" } }
+  - { action: wait_for, target: { css: ".ext_doc_card", description: "등록요청문서 지정 카드 — 폼 진입 확인" } }
+  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "임시저장", description: "[임시저장](10998) 버튼 — 저장 후 등록 대기 리스트로 자동 이동" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable 복귀" } }
+
+  # 3) 단일 행 검증: 행이 1개이고 상태가 임시저장(삭제 버튼)이어야 함
+  - { action: assert_value, target: { css: ".total_num .text_primary", description: "Total 카운트 — 임시저장 후에도 행은 1개(등록대기 행이 전환된 것)" }, value: "1" }
+  - { action: assert_visible, target: { css: "button.v_btn.btn_outline_primary.btn_sm", text: "삭제", description: "임시저장 행의 [삭제](10173) 버튼" } }
+  - { action: screenshot, name: "04a-draft-single-row" }
+
+  # 4) 임시저장 삭제 → 등록대기 복귀 (행 유지)
+  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_sm", text: "삭제", description: "[삭제] 클릭 → confirm(11060)" } }
+  - { action: wait_for, target: { css: ".p-confirmpopup", description: "삭제 confirm" } }
+  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "confirm 수락 — draft 해제, 행은 등록대기로 복귀" } }
+  - { action: wait_for, target: { css: "button.v_btn.btn_outline_primary.btn_sm", text: "접수 취소", description: "[접수 취소] 버튼 재등장 — 등록대기 복귀 확인" } }
+  - { action: assert_value, target: { css: ".total_num .text_primary", description: "Total — 여전히 1행" }, value: "1" }
+  - { action: screenshot, name: "04b-reverted-to-wait" }
+
+  # 5) 접수 취소로 마무리 (데이터 정리)
+  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_sm", text: "접수 취소", description: "[접수 취소] 클릭" } }
+  - { action: wait_for, target: { css: ".p-confirmpopup", description: "취소 confirm" } }
+  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"acceptbutton\"]", description: "confirm 수락 — 행 제거" } }
+  - { action: screenshot, name: "04c-canceled" }

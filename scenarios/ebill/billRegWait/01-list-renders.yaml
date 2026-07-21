@@ -1,0 +1,11 @@
+id: regwait-01-list-renders
+title: 의안 등록 대기 리스트 — 라우트 진입, 필터/힌트/수동등록 버튼/테이블 렌더
+locale: ru
+login_as: gduser
+precondition: "DDL(kgst.ebs_bill_reg_wait) 실행됨, 백엔드 8081 최신 빌드, 다국어 11044~11062 등록·json 동기화됨"
+steps:
+  - { action: navigate, url: "/main/billMng/gdMng/billRegWait" }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "등록 대기 DataTable (GET /bill/regWait 로드 완료 신호)" } }
+  - { action: assert_visible, target: { css: "a.v_btn.btn_secondary.btn_sm", text: "Ручная регистрация", description: "[의안 수동 등록] 버튼(11047)" } }
+  - { action: assert_visible, target: { css: ".board_search.type2 .search_inner", description: "필터 영역(발신번호/발신처/수신일자/처리상태)" } }
+  - { action: screenshot, name: "01-regwait-list" }

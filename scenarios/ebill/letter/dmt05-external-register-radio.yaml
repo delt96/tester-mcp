@@ -1,0 +1,13 @@
+id: dmt05-external-register-radio
+title: 외부수신함 종이등록에 기타(DMT05) 라디오 노출 + 선택 시 기한일 영역 표시
+locale: ru
+login_as: tester
+ephemeral: true
+steps:
+  - { action: navigate, url: "/main/letter/external/insert" }
+  - { action: wait_for, target: { css: "#radio4", description: "기타(DMT05) 라디오 (오프라인 종이등록 전용, v-if=!externalId)" } }
+  - { action: assert_visible, target: { css: "label[for='radio4']", text: "прочие", description: "기타 라디오 라벨 ru=прочие (t10638). 기존 DMT02=Для сведения, DMT01=Требуется ответ" } }
+  - { action: screenshot, name: "01-radio-etc-visible" }
+  - { action: click, target: { css: "#radio4", description: "기타 라디오 선택" } }
+  - { action: assert_visible, target: { css: ".deadline_check_area", description: "기타 선택 시 기한일 영역 표시 (type && type!==DMT02)" } }
+  - { action: screenshot, name: "02-deadline-shown" }

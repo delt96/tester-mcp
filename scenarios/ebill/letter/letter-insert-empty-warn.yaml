@@ -1,0 +1,14 @@
+id: letter-insert-empty-warn
+title: 공문 작성에서 빈 폼으로 등록 시 검증 warn toast
+locale: ru
+ephemeral: true
+steps:
+  - { action: navigate, url: "/" }
+  - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.tester.username}" }
+  - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.tester.password}" }
+  - { action: click, target: { css: ".btn_login", text: "Sign In", role: "button" } }
+  - { action: wait_for, target: { css: ".search_form input", placeholder: "Search", description: "로그인 후 헤더 검색창" } }
+  - { action: navigate, url: "/main/letter/insert" }
+  - { action: wait_for, target: { css: ".btn_primary", description: "공문 작성 하단 등록 버튼(@click=register, t10493)" } }
+  - { action: click, target: { css: ".btn_primary", role: "button", description: "등록 버튼" } }
+  - { action: assert_visible, target: { text: "Пожалуйста, выберите форму", description: "warn toast: 빈 폼 등록 시 서식 선택 요구(우하단 노랑). 3초 후 자동소멸하므로 클릭 직후 즉시 DOM 텍스트 검증. screenshot은 생략(ephemeral toast라 캡처 레이스 → 무한 재시도 유발)" } }

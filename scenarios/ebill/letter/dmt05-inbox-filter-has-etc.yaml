@@ -1,0 +1,13 @@
+id: dmt05-inbox-filter-has-etc
+title: 수신함 검색필터 문서유형에 기타(DMT05) 옵션 노출 (com_code_detail 1022 반영 확인)
+locale: ru
+login_as: tester
+ephemeral: true
+steps:
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { css: ".search_form button:last-of-type", description: "헤더 검색창 우측 필터 토글(깔때기) 버튼" } }
+  - { action: click, target: { css: ".search_form button:last-of-type", description: "검색 필터 패널 열기" } }
+  - { action: wait_for, target: { css: ".search_area .filter_area", description: "검색 필터 패널" } }
+  - { action: assert_visible, target: { css: "#DMT05", description: "문서유형 필터에 기타(DMT05) 라디오 존재 = com_code_detail 1022에 DMT05 반영됨" } }
+  - { action: assert_visible, target: { css: "label[for='DMT05']", description: "기타(DMT05) 필터 라벨 (ru 표시명, com_code_detail code_nm)" } }
+  - { action: screenshot, name: "01-filter-has-dmt05" }

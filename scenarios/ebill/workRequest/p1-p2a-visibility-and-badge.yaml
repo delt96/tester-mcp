@@ -1,0 +1,18 @@
+id: p1-p2a-visibility-and-badge
+title: Phase 1 문서기준 노출(다중 이행요청) + Phase 2a 주이행자 'C' 배지
+locale: ru
+login_as: gduser
+precondition: >
+  doc 17c8bc21='문서 테스트3'는 이행요청 2건(문서기준 노출), work_req 1444는 gduser1(EPH9)이 주이행자
+  (main_rspns_id=1827). 비파괴 — 조회만. Phase1: 한 문서에 카드 2개 이상 렌더. Phase2a: 주이행자 행에 C 배지.
+steps:
+  - { action: navigate, url: "/main/letter/executionInbox" }
+  - { action: wait_for, target: { css: ".letter_list_wrapper .search_input", description: "이행대기함 목록 검색창" } }
+  - { action: fill, target: { css: ".letter_list_wrapper .search_input", description: "문서 검색(doc_subtle)" }, value: "문서 테스트3" }
+  - { action: click, target: { css: ".letter_list_wrapper .search_form button:first-of-type", description: "검색 버튼" } }
+  - { action: wait_for, target: { css: ".lists .list", description: "검색 결과 문서 행" } }
+  - { action: click, target: { css: ".lists .list:first-child", description: "문서 선택 → 우측 이행요청(CommandComponent) 로드" } }
+  - { action: wait_for, target: { css: ".right_top_area .commands .command", description: "이행요청 카드 로드" } }
+  - { action: assert_visible, target: { css: ".right_top_area .commands .command:nth-of-type(2)", description: "Phase1: 같은 문서에 이행요청 카드 2개 이상 렌더(문서기준 노출)" } }
+  - { action: assert_visible, target: { css: ".right_top_area .commands .circle-badge", description: "Phase2a: 주이행자(gduser1) 행의 'C' 배지(d.mainRspnsId===user.rspnsId)" } }
+  - { action: screenshot, name: "visibility-and-badge" }

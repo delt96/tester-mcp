@@ -1,0 +1,15 @@
+id: mtng-result-no-agenda-warn
+title: 본회의 결과 화면에서 안건 미선택 상태로 검증요청 시 warn toast
+locale: ru
+ephemeral: true
+precondition: "안건 목록 데이터는 불필요 — agendaList 초기값 []이므로 미선택 상태로 버튼만 누르면 트리거"
+steps:
+  - { action: navigate, url: "/" }
+  - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.tester.username}" }
+  - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.tester.password}" }
+  - { action: click, target: { css: ".btn_login", text: "Sign In", role: "button" } }
+  - { action: wait_for, target: { css: ".search_form input", placeholder: "Search", description: "로그인 후 헤더 검색창" } }
+  - { action: navigate, url: "/main/mtng/mainMtngResult" }
+  - { action: wait_for, target: { css: "a.v_btn.btn_secondary.btn_sm", text: "Запрос на проверку на пленарном заседании", description: "본회의검증요청 버튼(@click=fnSubmitMtngAgenda, t10557). board_info 우측에 무조건 렌더됨" } }
+  - { action: click, target: { css: "a.v_btn.btn_secondary.btn_sm", text: "Запрос на проверку на пленарном заседании", description: "본회의검증요청 버튼" } }
+  - { action: assert_visible, target: { text: "Выберите законопроект", description: "warn toast: 안건(법안) 미선택 시 선택 요구(t10556, 우하단 노랑). agendaList가 빈 배열이라 즉시 발생. ephemeral — 클릭 직후 즉시 단일 DOM 텍스트 체크, screenshot 생략" } }
