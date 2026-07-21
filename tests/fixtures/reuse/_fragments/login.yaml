@@ -1,0 +1,6 @@
+id: login
+params:
+  account: tester
+steps:
+  - { action: navigate, url: "/" }
+  - { action: fill, target: { css: "#u" }, value: "${secrets.{{account}}.username}" }

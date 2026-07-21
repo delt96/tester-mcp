@@ -1,0 +1,4 @@
+id: dummy
+title: fixture anchor
+steps:
+  - { action: navigate, url: "/" }

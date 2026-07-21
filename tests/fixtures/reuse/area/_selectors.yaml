@@ -1,0 +1,3 @@
+toast_success:
+  css: ".area-toast"
+  description: area override
