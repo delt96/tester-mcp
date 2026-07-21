@@ -13,9 +13,20 @@ Current CLI usage (always up to date):
 
 ## Workflow (document first)
 
-1. **Write the scenario** — `scenarios/<area>/<id>.yaml`. **Resolve a stable `css` or `role` selector from the Vue/PrimeVue source and put it in the `target`** — don't rely on the executor to find elements by natural language (it tries once, then bails NOT_TESTED). `description`/`text` are last-resort fallbacks. Pin the language with `locale:`, reference secrets as `${secrets...}`. Full schema: `tester-mcp document-guide`.
-2. **Run** — `tester-mcp run <scenarios...> -c <config>`. The CLI spawns the executor(s) and waits. Pass multiple scenarios (files or a directory) to run them in parallel; `--concurrency <1-10>` caps how many run at once (default `min(count, 10)`). Each executor creates its OWN browser tab (via tabs_create), so they run truly in parallel (~2-3× at 4-way). They still share one Chrome, so heavy scenarios contend somewhat — keep concurrency modest for heavy flows.
-3. **Branch on the result label**:
+1. **Check reuse assets first** — read `scenarios/<project>/_selectors.yaml` and `_fragments/`
+   BEFORE grepping the app source; reuse an alias/fragment whenever it fits. Resolve NEW
+   selectors from the Vue/PrimeVue source, and register any selector likely to recur (≥2
+   scenarios) in `_selectors.yaml`. Sequences repeated across ≥3 scenarios become fragments.
+2. **Write the scenario** — `scenarios/<project>/<area>/<id>.yaml`. Start with `login_as:` when
+   the flow needs a login. **Resolve a stable `css` or `role` selector from the Vue/PrimeVue
+   source and put it in the `target`** — don't rely on the executor to find elements by natural
+   language (it tries once, then bails NOT_TESTED). `description`/`text` are last-resort
+   fallbacks. Pin the language with `locale:`, reference secrets as `${secrets...}`. Full
+   schema: `tester-mcp document-guide`.
+3. **Validate, then run** — `tester-mcp validate <paths> -c <config>` (fix unknown
+   fragment/ref/var and stray `{{...}}` errors — this costs no executor run), then
+   `tester-mcp run <scenarios...> -c <config>` (add `--tag <a,b>` for suites). The CLI spawns the executor(s) and waits. Pass multiple scenarios (files or a directory) to run them in parallel; `--concurrency <1-10>` caps how many run at once (default `min(count, 10)`). Each executor creates its OWN browser tab (via tabs_create), so they run truly in parallel (~2-3× at 4-way). They still share one Chrome, so heavy scenarios contend somewhat — keep concurrency modest for heavy flows.
+4. **Branch on the result label**:
    - PASS / PARTIAL → report the evidence and screenshots.
    - FAIL → present the contradicting evidence, screenshots, and `handoff_notes`, then move into a fix.
    - NOT_TESTED → give the reason plus `pattern_inference` (assumed_ok/unknown); state the missing precondition, or hand off to a human after repeated failure. Read the result's executor_log (full tool trail) to diagnose, then fix the scenario's selectors.

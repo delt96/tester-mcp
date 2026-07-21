@@ -55,7 +55,10 @@ A scenario is one YAML file. Fields:
 - `steps` (list, required) — ordered actions (see below).
 - `locale` (string, optional) — pins UI language: `kg` (Kyrgyz), `ru` (Russian),
   `kr` (Korean). The executor switches the app to this language first.
-- `login_as` (string, optional) — named login to perform before the steps.
+- `login_as` (string, optional) — sugar for `- { use: login, with: { account: <value> } }`
+  prepended to `steps`; requires a `login` fragment with an `account` param in `_fragments/`.
+- `tags` (list of strings, optional) — suite labels; `run --tag a,b` keeps scenarios
+  carrying at least one (OR).
 - `on_failure` (string, optional) — `stop` (default) or `continue`.
 - `optional` (bool, optional) — if true, a FAIL is downgraded to a soft signal.
 - `defaults` (map, optional) — default values reused across steps.
@@ -78,6 +81,41 @@ A scenario is one YAML file. Fields:
 
 Native `<select>`: there is no separate select action — use `fill` with the option's `value` or its
 visible label as the value; the executor sets the option and dispatches `change`.
+
+## Reuse — fragments, selector aliases, vars
+
+Scenarios live per project; `_`-prefixed entries are shared assets, not scenarios:
+
+    scenarios/<project>/
+      _fragments/<name>.yaml     # shared step sequences
+      _selectors.yaml            # named target aliases (selector cache)
+      <area>/<id>.yaml
+
+Lookup is nearest-ancestor: from the scenario file upward, the first `_fragments/` dir and the
+first `_selectors.yaml` win.
+
+Fragment file — `id`, optional `params` (name → default; empty value = required), `steps`
+(same actions as scenarios; `use` inside a fragment is an error — no nesting):
+
+    id: login
+    params: { account: tester }
+    steps:
+      - { action: fill, target: { css: "#userId" }, value: "${secrets.{{account}}.username}" }
+
+Scenario side:
+
+    login_as: gduser                    # login fragment, account=gduser
+    tags: [smoke, letter]
+    steps:
+      - use: open-ext-doc               # short form (param defaults)
+      - { use: open-ext-doc, with: { row: "2" } }
+      - { action: click, target: { ref: confirm_accept, text: "Да" } }   # alias + local override (local wins)
+      - { action: navigate, url: "${vars.cmt_doc_url}" }                 # config `vars:` (environment data)
+
+Substitution timing: `{{param}}` at parse time (fragments only — anywhere else is an error),
+`${vars.*}` at parse time from the config `vars:` map (url/value fields), `${secrets.*}` at run
+time. Every expansion error fails BEFORE an executor is spawned. Check cheaply with
+`tester-mcp validate <paths> -c <config>` (`--expand` prints the final steps).
 
 ## Target (how to locate an element)
 
