@@ -28,9 +28,36 @@ describe("expandScenarioPaths", () => {
     expect(expandScenarioPaths([f, f])).toEqual([f]);
   });
   it("없는 경로면 에러", () => {
-    expect(() => expandScenarioPaths([join(dir, "nope.yaml")])).toThrow(/없음/);
+    expect(() => expandScenarioPaths([join(dir, "nope.yaml")])).toThrow(/scenario path not found/);
   });
   it("시나리오 없는 디렉토리면 에러", () => {
-    expect(() => expandScenarioPaths([join(dir, "empty")])).toThrow(/없음/);
+    expect(() => expandScenarioPaths([join(dir, "empty")])).toThrow(/no scenarios/);
+  });
+});
+
+describe("recursive collection", () => {
+  it("collects *.yaml from nested subdirectories, sorted depth-first by name", () => {
+    const root = mkdtempSync(join(tmpdir(), "esp-"));
+    mkdirSync(join(root, "b"));
+    mkdirSync(join(root, "a", "deep"), { recursive: true });
+    writeFileSync(join(root, "b", "2.yaml"), "x");
+    writeFileSync(join(root, "a", "deep", "1.yaml"), "x");
+    expect(expandScenarioPaths([root])).toEqual([
+      join(root, "a", "deep", "1.yaml"),
+      join(root, "b", "2.yaml"),
+    ]);
+  });
+  it("skips underscore-prefixed files and directories", () => {
+    const root = mkdtempSync(join(tmpdir(), "esp-"));
+    mkdirSync(join(root, "_fragments"));
+    writeFileSync(join(root, "_fragments", "login.yaml"), "x");
+    writeFileSync(join(root, "_selectors.yaml"), "x");
+    writeFileSync(join(root, "ok.yaml"), "x");
+    expect(expandScenarioPaths([root])).toEqual([join(root, "ok.yaml")]);
+  });
+  it("errors when a directory yields only underscore assets", () => {
+    const root = mkdtempSync(join(tmpdir(), "esp-"));
+    writeFileSync(join(root, "_selectors.yaml"), "x");
+    expect(() => expandScenarioPaths([root])).toThrow(/no scenarios/);
   });
 });
