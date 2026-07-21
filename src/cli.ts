@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { resolve, join, dirname } from "node:path";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { stringify as stringifyYaml } from "yaml";
 import { loadConfig } from "./config/loadConfig.js";
 import { loadScenario } from "./scenario/loadScenario.js";
 import { parseTagFilter, matchesTagFilter } from "./scenario/tags.js";
@@ -11,6 +12,7 @@ import { collectSecretValues, redactSecrets } from "./secrets/redactSecrets.js";
 import { runInit, type InitOptions } from "./init.js";
 import { runScenarios, clampConcurrency, MAX_CONCURRENCY } from "./run/runScenarios.js";
 import { expandScenarioPaths } from "./scenario/expandScenarioPaths.js";
+import { validateScenarioFiles } from "./validate.js";
 import { writeScenarioResult, writeSummary } from "./result/writeResult.js";
 import { captureEnv } from "./env/captureEnv.js";
 import { makeRunId } from "./util/runId.js";
@@ -19,7 +21,7 @@ import { loadGuide } from "./guide/loadGuide.js";
 const program = new Command();
 program.name("tester-mcp").description("Opus + Haiku + Chrome screen E2E test orchestrator");
 
-// [확장5] add validate/report/diff commands here.
+// [확장5] add report/diff commands here.
 program
   .command("run")
   .argument("<scenarios...>", "scenario YAML path(s) (files or directories; multiple allowed)")
@@ -80,6 +82,38 @@ program
       process.exit(ok ? 0 : 1);
     } catch (err) {
       console.error("run error:", err instanceof Error ? err.message : err);
+      process.exit(2);
+    }
+  });
+
+program
+  .command("validate")
+  .description("Parse + expand scenarios (fragments/refs/vars) without spawning an executor")
+  .argument("<scenarios...>", "scenario YAML path(s) (files or directories)")
+  .option("-c, --config <path>", "config file (for 'vars'; if the file is absent, vars are empty)", "tester-mcp.config.yaml")
+  .option("--expand", "print each valid scenario's fully expanded steps as YAML")
+  .action((scenarioPaths: string[], opts: { config: string; expand?: boolean }) => {
+    try {
+      let vars: Record<string, string> = {};
+      const cfgPath = resolve(opts.config);
+      if (existsSync(cfgPath)) vars = loadConfig(cfgPath).vars;
+      else console.error(`note: config not found (${opts.config}) — vars treated as empty`);
+      const files = expandScenarioPaths(scenarioPaths);
+      const reports = validateScenarioFiles(files, vars);
+      for (const r of reports) {
+        if (r.ok) {
+          console.log(`OK     ${r.file} (steps: ${r.steps})`);
+          if (opts.expand && r.scenario)
+            console.log(stringifyYaml({ id: r.scenario.id, steps: r.scenario.steps }));
+        } else {
+          console.log(`ERROR  ${r.file} — ${r.error}`);
+        }
+      }
+      const bad = reports.filter((r) => !r.ok).length;
+      console.log(`${reports.length - bad}/${reports.length} valid`);
+      process.exit(bad === 0 ? 0 : 1);
+    } catch (err) {
+      console.error("validate error:", err instanceof Error ? err.message : err);
       process.exit(2);
     }
   });
