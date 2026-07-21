@@ -45,6 +45,19 @@ describe("fragment expansion", () => {
     expect(() => expandRawScenario({ id: "s", title: "t", steps: [{ use: "login" }] }, { assets: a, vars: {}, source: "t.yaml" }))
       .toThrow(/requires param 'account'/);
   });
+  it("errors on non-string with-param value", () => {
+    expect(() => expandRawScenario({ id: "s", title: "t", steps: [{ use: "login", with: { account: 123 } }] }, ctx()))
+      .toThrow(/param 'account' must be a string/);
+  });
+  it("errors on unknown {{param}} inside fragment steps", () => {
+    const a = assets();
+    a.fragments.get("login")!.steps = [
+      { action: "navigate", url: "/" },
+      { action: "fill", target: { css: "#u" }, value: "${secrets.{{undeclared}}.username}" },
+    ];
+    expect(() => expandRawScenario({ id: "s", title: "t", steps: [{ use: "login" }] }, { assets: a, vars: {}, source: "t.yaml" }))
+      .toThrow(/t\.yaml: steps\[0\]: fragment 'login': unknown param/);
+  });
 });
 
 describe("selector refs", () => {

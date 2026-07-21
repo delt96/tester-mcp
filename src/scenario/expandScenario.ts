@@ -39,7 +39,7 @@ function expandUse(step: any, i: number, ctx: ExpandContext): unknown[] {
     deepMapStrings(s, (str) =>
       str.replace(PARAM_RE, (_m, p: string) => {
         if (!(p in values))
-          throw new Error(`fragment '${frag.id}': unknown param '{{${p}}}' — declare it under 'params'`);
+          throw new Error(`${ctx.source}: steps[${i}]: fragment '${frag.id}': unknown param '{{${p}}}' — declare it under 'params'`);
         return values[p];
       })
     )
