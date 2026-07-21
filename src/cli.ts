@@ -3,7 +3,8 @@ import { resolve, join, dirname } from "node:path";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config/loadConfig.js";
-import { parseScenario } from "./scenario/parseScenario.js";
+import { loadScenario } from "./scenario/loadScenario.js";
+import { parseTagFilter, matchesTagFilter } from "./scenario/tags.js";
 import { resolveSecrets } from "./secrets/resolveSecrets.js";
 import { loadSecretsFile } from "./secrets/loadSecretsFile.js";
 import { collectSecretValues, redactSecrets } from "./secrets/redactSecrets.js";
@@ -29,12 +30,19 @@ program
   .option("--concurrency <n>", `parallel executor count (1-${MAX_CONCURRENCY}, default min(scenario count, ${MAX_CONCURRENCY}))`)
   .option("--verbose", "stream executor tool activity to the console")
   .option("--out-dir <path>", "output base dir for results/logs (default runs)", "runs")
-  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string }) => {
+  .option("--tag <tags>", "run only scenarios carrying at least one of these comma-separated tags")
+  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string; tag?: string }) => {
     try {
       const config = loadConfig(resolve(opts.config));
       const secrets = loadSecretsFile(resolve(opts.secrets));
       const files = expandScenarioPaths(scenarioPaths);
-      const scenarios = files.map((f) => parseScenario(readFileSync(f, "utf8")));
+      const all = files.map((f) => loadScenario(f, config.vars));
+      const tagFilter = parseTagFilter(opts.tag);
+      const scenarios = all.filter((s) => matchesTagFilter(s.tags, tagFilter));
+      if (scenarios.length === 0) {
+        console.error(`no scenarios match --tag '${opts.tag}'`);
+        process.exit(2);
+      }
       const runId = makeRunId();
       const runDir = join(opts.outDir ?? "runs", runId);
       const env = captureEnv({ model: config.runner.model, frontendDir: opts.frontDir });
