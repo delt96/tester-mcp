@@ -3,6 +3,39 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
+## [0.3.0]
+
+### Added
+- Per-project scenario storage: `scenarios/<project>/<area>/<id>.yaml`; directory
+  expansion is now recursive and skips `_`-prefixed reuse assets.
+- Parse-time reuse DSL (executor untouched — everything expands before the run):
+  - `_fragments/<name>.yaml` step fragments with `use:`/`with:` and `{{param}}`
+    substitution; `login_as:` as sugar for the `login` fragment.
+  - `_selectors.yaml` selector aliases via `target: { ref: <name> }` with
+    local-override merge; nearest-ancestor discovery for both asset types.
+  - Config `vars:` map substituted into step `url`/`value` (`${vars.*}`) for
+    environment-coupled data.
+  - `tags:` on scenarios + `run --tag <a,b>` OR-filter.
+- `validate` command: parse + expand scenarios without spawning an executor;
+  `--expand` prints the fully expanded steps. Exit 0/1/2.
+
+### Changed
+- Authoring docs: document-guide gained a Reuse section; SKILL.md workflow now
+  starts from the selector cache and validates before running; README aligned
+  with per-project storage.
+- MIT license added (license field + LICENSE file).
+
+## [0.2.0]
+
+### Added
+- `assert_value` action: deterministic content check (form control `.value` or
+  textContent, exact match).
+- Groping watchdog: the runtime kills an executor stuck re-locating the same
+  element; the contract tells executors to self-bail first.
+
+### Changed
+- Hardened authoring guide (selector-first targets, ephemeral UI rules).
+
 ## [0.1.1]
 
 ### Changed

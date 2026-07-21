@@ -1,6 +1,6 @@
 {
   "name": "@delt/tester-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Opus (planner) + Haiku (executor) + Chrome screen E2E test orchestrator",
   "type": "module",
   "bin": {
@@ -9,7 +9,8 @@
   "files": [
     "dist",
     "bin",
-    "skills"
+    "skills",
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public"
@@ -17,7 +18,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
   },
   "engines": {
     "node": ">=20"
@@ -31,5 +33,11 @@
     "tsx": "^4.16.0",
     "vitest": "^2.0.0",
     "@types/node": "^20.14.0"
+  },
+  "license": "MIT",
+  "author": "delt <lwe3584@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bestiansoft-git/tester-mcp.git"
   }
 }
