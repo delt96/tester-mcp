@@ -1,14 +1,10 @@
 id: referral-empty-executor-warn
 title: GD 검토화면 회부 이행요청 모달 — 이행자 미선택 등록 시 warn toast (신규 프론트 가드)
 locale: ru
+login_as: gduser
 ephemeral: true
 precondition: "billId=EB_8eb5a0fd-...(사용자 지정), taskId=13173 — COMMITTEE_REFERRAL task 활성 + 원문서(atrzMngNo) 존재. 이 시나리오는 상태를 바꾸지 않음(프론트 가드에서 API 호출 전 차단). 반드시 referral-request-success보다 먼저 실행"
 steps:
-  - { action: navigate, url: "/" }
-  - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.gduser.username}" }
-  - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.gduser.password}" }
-  - { action: click, target: { css: ".btn_login", text: "Sign In", role: "button" } }
-  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }
   - { action: navigate, url: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8eb5a0fd-372e-471f-b876-c74c9e450177&taskId=13173" }
   - { action: wait_for, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼(@click=insertLetter, t10827). 폼 하단 버튼 영역, 같은 클래스의 저장 버튼과 텍스트로 구분" } }
   - { action: click, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼 — 클릭 시 검토내용 저장 후 이행요청 모달(RequestModal) 오픈" } }

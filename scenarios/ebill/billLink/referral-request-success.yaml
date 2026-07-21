@@ -1,14 +1,10 @@
 id: referral-request-success
 title: GD 검토화면 위원회 회부 — 이행요청 등록 성공 시 success toast (파일럿 신규 흐름)
 locale: ru
+login_as: gduser
 ephemeral: true
 precondition: "billId=EB_8eb5a0fd-...(사용자 지정), taskId=13173 — COMMITTEE_REFERRAL task 활성 + 원문서 존재. 성공 시 의안 프로세스가 즉시 전이되고 task 완료됨(반복 실행 불가 — 두 번째 실행은 회부 버튼이 사라져 NOT_TESTED 예상). referral-empty-executor-warn 이후 실행"
 steps:
-  - { action: navigate, url: "/" }
-  - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.gduser.username}" }
-  - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.gduser.password}" }
-  - { action: click, target: { css: ".btn_login", text: "Sign In", role: "button" } }
-  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }
   - { action: navigate, url: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8eb5a0fd-372e-471f-b876-c74c9e450177&taskId=13173" }
   - { action: wait_for, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼(@click=insertLetter, t10827)" } }
   - { action: click, target: { css: "button.v_btn.btn_primary.btn_md", text: "Направить на подпись", description: "회부 버튼 — 검토내용 저장 후 이행요청 모달 오픈" } }

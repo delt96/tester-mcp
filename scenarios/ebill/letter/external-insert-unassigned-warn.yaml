@@ -1,17 +1,13 @@
 id: external-insert-unassigned-warn
 title: 외부문서 작성 - 유효 수신자 1명 + 빈 수신자 행이 섞이면 미지정 경고(11001)로 등록 차단
 locale: ru
+login_as: tester
 ephemeral: true
 precondition: >
   mv_signer_autocomplete에 최소 1명 이상 존재해야 함(드롭다운 첫 항목 선택).
   신규 다국어 키 11001은 아직 DB→json 미동기화 상태라 토스트에 raw 키 "11001"이 그대로 표시됨
   (동기화 후에는 번역문이 표시되어 본 텍스트 단언은 실패하게 됨 — 그 경우 시나리오의 assert 텍스트를 갱신).
 steps:
-  - { action: navigate, url: "/" }
-  - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.tester.username}" }
-  - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.tester.password}" }
-  - { action: click, target: { css: ".btn_login", text: "Sign In", role: "button" } }
-  - { action: wait_for, target: { css: ".search_form input", placeholder: "Search", description: "로그인 후 헤더 검색창" } }
   - { action: navigate, url: "/main/letter/external/insert" }
   - { action: wait_for, target: { css: ".btn_outline_primary", description: "외부문서 작성 하단 등록 버튼(@click=fn_register)" } }
   # 1) 타입 선택 (DMT02=정보용, 기한 불필요) — resolver의 type 검증 통과용

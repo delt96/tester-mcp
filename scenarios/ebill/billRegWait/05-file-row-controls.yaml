@@ -1,17 +1,13 @@
 id: regwait-05-file-row-controls
 title: 가져오기 후 파일 행 컨트롤 — 드래그 핸들(⋮)·공개 자물쇠 표시 확인 (드래그 동작 자체는 DSL 미지원 → 수동)
 locale: kr
+login_as: gduser
 precondition: >
   샘플 문서 307(regno 01-14/2026-118, 제목 'Проект Закона ... О республиканском бюджете на 2027 год', 첨부 2개)이
   외부 수신함에 존재하고 등록대기 큐에 WAIT 행 없음. 업로드/문서함 버튼 숨김은 DSL에 부정 assert가 없어
   스크린샷(05b)으로 육안 확인 — 파일 있는 행에 ⬆/📁가 없어야 정상.
 on_failure: stop
 steps:
-  - { action: navigate, url: "/" }
-  - { action: fill, target: { css: "#userId", description: "아이디 입력" }, value: "${secrets.gduser.username}" }
-  - { action: fill, target: { css: "#pswd", description: "비밀번호 입력" }, value: "${secrets.gduser.password}" }
-  - { action: click, target: { css: ".btn_login", role: "button", description: "로그인 버튼" } }
-  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }
 
   # 1) 샘플 문서 접수 → 등록 대기 리스트 자동 이동
   - { action: navigate, url: "/main/letter/external/receive" }

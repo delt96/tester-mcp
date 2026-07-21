@@ -1,16 +1,12 @@
 id: p2a-badge-visual
 title: Phase 2a 'C' 배지 시각 확인 (문서 테스트3, work_req 1444 주이행자 gduser1)
 locale: ru
+login_as: gduser
 on_failure: continue
 precondition: >
   doc 17c8bc21 work_req 1444 mainRspnsId=1827=gduser1. 배지 span.circle-badge 렌더 여부를
   스크린샷으로 시각 확인 + assert. on_failure continue라 assert 실패해도 스크린샷 캡처됨.
 steps:
-  - { action: navigate, url: "/" }
-  - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.gduser.username}" }
-  - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.gduser.password}" }
-  - { action: click, target: { css: ".btn_login", role: "button", description: "로그인" } }
-  - { action: wait_for, target: { css: ".search_form input", description: "헤더 검색창" } }
   - { action: navigate, url: "/main/letter/executionInbox" }
   - { action: wait_for, target: { css: ".letter_list_wrapper .search_input", description: "목록 검색창" } }
   - { action: fill, target: { css: ".letter_list_wrapper .search_input" }, value: "문서 테스트3" }

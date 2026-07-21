@@ -1,14 +1,10 @@
 id: regwait-04-draft-single-row
 title: 임시저장 시 등록대기 행이 임시저장으로 전환(단일 행) → 삭제 시 등록대기 복귀 → 접수 취소
 locale: kr
+login_as: gduser
 precondition: "등록대기 큐 비어있음(사전 정리됨), 수신 문서 1건 이상, 백엔드 최신 빌드(단일 행 로직)"
 on_failure: stop
 steps:
-  - { action: navigate, url: "/" }
-  - { action: fill, target: { css: "#userId", description: "아이디 입력" }, value: "${secrets.gduser.username}" }
-  - { action: fill, target: { css: "#pswd", description: "비밀번호 입력" }, value: "${secrets.gduser.password}" }
-  - { action: click, target: { css: ".btn_login", role: "button", description: "로그인 버튼" } }
-  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }
 
   # 1) 접수 → 자동으로 등록 대기 리스트 이동
   - { action: navigate, url: "/main/letter/external/receive" }
