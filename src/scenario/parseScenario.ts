@@ -5,7 +5,11 @@ import { isKnownAction } from "./actions.js";
 const LOCALES: Locale[] = ["kg", "ru", "kr"];
 
 export function parseScenario(yamlText: string): Scenario {
-  const raw = parseYaml(yamlText) as Record<string, unknown> | null;
+  return parseScenarioObject(parseYaml(yamlText));
+}
+
+export function parseScenarioObject(rawIn: unknown): Scenario {
+  const raw = rawIn as Record<string, unknown> | null;
   if (!raw || typeof raw !== "object") throw new Error("시나리오 YAML 파싱 실패: 빈 문서");
   if (typeof raw.id !== "string") throw new Error("시나리오 필수 필드 누락: id");
   if (!/^[A-Za-z0-9._-]+$/.test(raw.id)) {
@@ -24,6 +28,13 @@ export function parseScenario(yamlText: string): Scenario {
 
   const locale = LOCALES.includes(raw.locale as Locale) ? (raw.locale as Locale) : undefined;
 
+  let tags: string[] | undefined;
+  if (raw.tags !== undefined) {
+    if (!Array.isArray(raw.tags) || raw.tags.some((t) => typeof t !== "string"))
+      throw new Error("scenario field 'tags' must be a list of strings");
+    tags = raw.tags as string[];
+  }
+
   return {
     id: raw.id,
     title: raw.title,
@@ -35,5 +46,6 @@ export function parseScenario(yamlText: string): Scenario {
     defaults: (raw.defaults as any) ?? undefined,
     precondition: typeof raw.precondition === "string" ? raw.precondition : undefined,
     ephemeral: typeof raw.ephemeral === "boolean" ? raw.ephemeral : false,
+    tags,
   };
 }

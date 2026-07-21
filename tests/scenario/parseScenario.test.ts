@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseScenario } from "../../src/scenario/parseScenario.js";
+import { parseScenario, parseScenarioObject } from "../../src/scenario/parseScenario.js";
 
 const YAML = `
 id: login-success
@@ -44,5 +44,21 @@ describe("parseScenario", () => {
     const minStep = "steps:\n  - action: navigate\n    url: /";
     expect(parseScenario(`id: a\ntitle: t\n${minStep}`).ephemeral).toBe(false);
     expect(parseScenario(`id: a\ntitle: t\nephemeral: true\n${minStep}`).ephemeral).toBe(true);
+  });
+});
+
+describe("parseScenarioObject + tags", () => {
+  const base = { id: "t1", title: "t", steps: [{ action: "navigate", url: "/" }] };
+  it("accepts an already-parsed object", () => {
+    expect(parseScenarioObject(base).id).toBe("t1");
+  });
+  it("parses tags as a string list", () => {
+    expect(parseScenarioObject({ ...base, tags: ["smoke", "letter"] }).tags).toEqual(["smoke", "letter"]);
+  });
+  it("leaves tags undefined when absent", () => {
+    expect(parseScenarioObject(base).tags).toBeUndefined();
+  });
+  it("rejects non-string tag entries", () => {
+    expect(() => parseScenarioObject({ ...base, tags: [1] })).toThrow(/tags/);
   });
 });

@@ -33,4 +33,5 @@ export interface Scenario {
   defaults?: { timeout_ms?: number };
   precondition?: string;
   ephemeral?: boolean;   // verified UI is short-lived (toast/snackbar) → immediate single check, no screenshot
+  tags?: string[];
 }
