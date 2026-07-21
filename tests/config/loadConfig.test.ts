@@ -28,3 +28,18 @@ describe("parseConfig", () => {
     expect(parseConfig("targets:\n  frontend: http://x\nrunner:\n  timeout_ms: 60000").runner.timeout_ms).toBe(60000);
   });
 });
+
+describe("vars", () => {
+  it("parses vars as a string map", () => {
+    const c = parseConfig(`targets: { frontend: "http://x" }\nvars: { doc_url: "/main/a?id=1" }`);
+    expect(c.vars).toEqual({ doc_url: "/main/a?id=1" });
+  });
+  it("defaults to empty map when absent", () => {
+    const c = parseConfig(`targets: { frontend: "http://x" }`);
+    expect(c.vars).toEqual({});
+  });
+  it("rejects non-string var values", () => {
+    expect(() => parseConfig(`targets: { frontend: "http://x" }\nvars: { n: 3 }`))
+      .toThrow(/var 'n' must be a string/);
+  });
+});
