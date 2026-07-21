@@ -14,7 +14,8 @@ describe("ebill migrated scenarios", () => {
       legalact_doc_url: "/stub-c",
     };
     const files = expandScenarioPaths([EBILL]);
-    expect(files.length).toBe(27);
+    // Floor = scenario count at migration time; new scenarios are expected to grow this.
+    expect(files.length).toBeGreaterThanOrEqual(27);
     for (const f of files) expect(() => loadScenario(f, vars)).not.toThrow();
   });
   it("login fragment expands at the head of a login_as scenario", () => {

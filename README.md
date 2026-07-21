@@ -14,7 +14,8 @@ tester-mcp init          # installs the skill, scaffolds config + secrets exampl
 ## Use
 
 ```
-tester-mcp run scenarios/<area>/<id>.yaml -c tester-mcp.config.yaml
+tester-mcp run scenarios/<project>/<area>/<id>.yaml -c tester-mcp.config.yaml
+tester-mcp validate scenarios/<project>       # parse+expand check, no executor spawned
 ```
 
 ## Authoring & prerequisites
@@ -29,8 +30,9 @@ tester-mcp document-guide
 Run that before writing scenarios. (This README intentionally does not duplicate
 those facts — the command is the single source of truth.)
 
-## Scenarios live in your project, not here
+## Scenarios live here, per project
 
-Scenario YAML files belong to the project under test — commit them to that repo.
-For a minimal example, run `tester-mcp document-guide`; it includes a sample
-scenario.
+Scenario YAML files are stored per project inside this repo, under
+`scenarios/<project>/<area>/<id>.yaml`, along with per-project reuse assets
+(`_fragments/`, `_selectors.yaml`) — commit them here. For a minimal example,
+run `tester-mcp document-guide`; it includes a sample scenario.

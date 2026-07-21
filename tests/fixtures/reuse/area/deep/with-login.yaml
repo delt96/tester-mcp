@@ -1,0 +1,6 @@
+id: with-login
+title: fixture
+login_as: gduser
+tags: [smoke]
+steps:
+  - { action: navigate, url: "/x" }
