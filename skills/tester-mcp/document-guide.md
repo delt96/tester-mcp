@@ -19,7 +19,7 @@ truth for prerequisites and the scenario DSL. Read it before writing scenarios.
 ## Running
 
 ```
-tester-mcp run scenarios/<area>/<id>.yaml -c tester-mcp.config.yaml
+tester-mcp run scenarios/<project>/<area>/<id>.yaml -c tester-mcp.config.yaml
 ```
 
 The CLI spawns the executor, waits, and writes a result to `runs/<runId>/`.
@@ -35,8 +35,8 @@ tabs_create) inside the shared Chrome tab group, so they run in parallel
 contention and varied finish times, not a clean N×):
 
 ```
-tester-mcp run scenarios/a.yaml scenarios/b.yaml --concurrency 3 -c tester-mcp.config.yaml
-tester-mcp run scenarios/auth/ --concurrency 5 -c tester-mcp.config.yaml
+tester-mcp run scenarios/<project>/a.yaml scenarios/<project>/b.yaml --concurrency 3 -c tester-mcp.config.yaml
+tester-mcp run scenarios/<project>/auth/ --concurrency 5 -c tester-mcp.config.yaml
 ```
 
 - `--concurrency <1-10>`: how many run at once (default `min(count, 10)`, hard cap 10).
