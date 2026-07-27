@@ -19,3 +19,28 @@ btn_primary_md:
   css: "button.v_btn.btn_primary.btn_md"
 dialog_textarea:
   css: ".dialog_main_area textarea.form_control.full"
+# 심사 리스트 전체/이행받은 토글 (BillListViewToggle.vue) — 4개 심사화면 공통
+bill_view_toggle:
+  css: ".bill-list-view-toggle"
+bill_view_all_active:
+  css: ".bill-list-view-toggle button:first-child.active"
+bill_view_assigned_btn:
+  css: ".bill-list-view-toggle button:nth-child(2)"
+bill_view_assigned_active:
+  css: ".bill-list-view-toggle button:nth-child(2).active"
+# 사용자 자동완성 (AutoCompleteUserInput.vue) — 수신자/결재자/서명자/요청/주관자 5개 화면 공통.
+# 오버레이는 appendTo="body"라 body 직속에 렌더되며 overlayClass="user-autocomplete-overlay".
+recipient_ac_input:
+  css: ".recipient_area .p-autocomplete-input"
+recipient_ac_dropdown:
+  css: ".recipient_area .p-autocomplete-dropdown"
+user_ac_overlay:
+  css: ".user-autocomplete-overlay"
+user_ac_option:
+  css: ".user-autocomplete-overlay .p-autocomplete-option"
+user_ac_absence_badge:
+  css: ".user-autocomplete-overlay .absence_badge"
+user_ac_option_absent:
+  css: ".user-autocomplete-overlay .list-item.is-absent"
+user_ac_option_normal:
+  css: ".user-autocomplete-overlay .list-item:not(.is-absent)"
