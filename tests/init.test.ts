@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
-import { renderConfigYaml, skillsDirFor, secretsExampleYaml } from "../src/init.js";
+import { renderConfigYaml, skillsDirFor, secretsExampleYaml, skillAssetNames } from "../src/init.js";
 import { parse as parseYaml } from "yaml";
 
 describe("renderConfigYaml", () => {
@@ -32,6 +32,19 @@ describe("skillsDirFor", () => {
   });
   it("project → <projectPath>/.claude/skills", () => {
     expect(skillsDirFor("project", "/proj", "/home/u")).toBe(join("/proj", ".claude", "skills"));
+  });
+});
+
+describe("skillAssetNames", () => {
+  it("installs every .md beside SKILL.md, not SKILL.md alone", () => {
+    const got = skillAssetNames(["SKILL.md", "workflow.md", "document-guide.md"]);
+    expect(got).toEqual(["SKILL.md", "document-guide.md", "workflow.md"]);
+  });
+  it("skips non-markdown entries", () => {
+    expect(skillAssetNames(["SKILL.md", "notes.txt", "assets", ".DS_Store"])).toEqual(["SKILL.md"]);
+  });
+  it("is case-insensitive on the extension", () => {
+    expect(skillAssetNames(["README.MD"])).toEqual(["README.MD"]);
   });
 });
 

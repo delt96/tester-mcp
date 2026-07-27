@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
@@ -21,6 +21,13 @@ export function skillsDirFor(
   return scope === "global"
     ? join(home, ".claude", "skills")
     : join(projectPath, ".claude", "skills");
+}
+
+// The skill is a directory, not a single file: SKILL.md points at workflow.md and
+// document-guide.md, so every .md beside it has to be installed too. Copying only
+// SKILL.md leaves those references dangling at the install site.
+export function skillAssetNames(entries: string[]): string[] {
+  return entries.filter((n) => /\.md$/i.test(n)).sort();
 }
 
 export function secretsExampleYaml(): string {
@@ -114,24 +121,30 @@ export async function runInit(opts: InitOptions): Promise<void> {
   const cwd = process.cwd();
   const configDir = scope === "project" ? projectPath : cwd;
 
-  // 1) Copy bundled skill.
+  // 1) Copy the bundled skill directory (SKILL.md + workflow.md + document-guide.md).
   const here = dirname(fileURLToPath(import.meta.url));
   const bundled = findBundledSkill(here);
   const skillsDir = skillsDirFor(scope, projectPath, home);
-  const destSkill = join(skillsDir, "tester-mcp", "SKILL.md");
   if (bundled) {
-    mkdirSync(dirname(destSkill), { recursive: true });
-    writeFileSync(destSkill, readFileSync(bundled, "utf8"), "utf8");
-    console.log(`Skill copied: ${destSkill}`);
+    const srcDir = dirname(bundled);
+    const destDir = join(skillsDir, "tester-mcp");
+    mkdirSync(destDir, { recursive: true });
+    for (const name of skillAssetNames(readdirSync(srcDir)))
+      writeFileSync(join(destDir, name), readFileSync(join(srcDir, name), "utf8"), "utf8");
+    console.log(`Skill copied: ${destDir} (${skillAssetNames(readdirSync(srcDir)).join(", ")})`);
   } else {
     console.warn("Warning: bundled skill (skills/tester-mcp/SKILL.md) not found; skipping skill copy.");
   }
 
-  // 2) Write config.
+  // 2) Write config — never clobber an existing one; it holds hand-written `vars`.
   const configPath = join(configDir, "tester-mcp.config.yaml");
-  mkdirSync(dirname(configPath), { recursive: true });
-  writeFileSync(configPath, renderConfigYaml({ frontend, backend, model }), "utf8");
-  console.log(`Config written: ${configPath}`);
+  if (existsSync(configPath)) {
+    console.log(`Config kept (already exists, not overwritten): ${configPath}`);
+  } else {
+    mkdirSync(dirname(configPath), { recursive: true });
+    writeFileSync(configPath, renderConfigYaml({ frontend, backend, model }), "utf8");
+    console.log(`Config written: ${configPath}`);
+  }
 
   // 3) Scaffold secrets example + ensure .gitignore.
   const examplePath = join(cwd, "tester-mcp.secrets.example.yaml");
