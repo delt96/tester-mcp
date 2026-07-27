@@ -1,0 +1,22 @@
+id: recipient-past-absence-selectable
+title: 수신자 자동완성 — 과거 부재 이력만 있는 사용자는 차단되지 않는다
+locale: ru
+login_as: tester
+ephemeral: true
+# 검증 의도: "employee_absence에 행이 있으면 전부 비활성화되는 것 아닌가"라는 의심을 반증한다.
+# Ажибеков(EPH 5)는 부재 이력이 5건(2021~2025)이지만 전부 종료되었거나 soft-delete되어
+# 현재 부재가 아니다. 따라서 배지가 없어야 하고 정상 선택되어야 한다.
+steps:
+  - { action: navigate, url: "/main/letter/insert" }
+  - { action: wait_for, target: { ref: recipient_ac_input, description: "수신자 자동완성 입력창" } }
+  - { action: click, target: { ref: recipient_ac_dropdown, description: "수신자 자동완성 드롭다운 버튼" } }
+  - { action: wait_for, target: { ref: user_ac_option, description: "사용자 옵션 목록" } }
+
+  # 1) 과거 이력만 있는 사람이 '부재 아님(.is-absent 없음)' 쪽에 렌더되는가
+  - { action: assert_visible, target: { css: ".user-autocomplete-overlay .list-item:not(.is-absent)", text: "Ажибеков", description: "Ажибеков는 부재 이력 5건이 모두 종료/삭제 상태라 회색 처리되면 안 된다" } }
+  - { action: screenshot, name: "past-absence-not-greyed" }
+
+  # 2) 실제로 선택되는가 (pointer-events가 막지 않는지)
+  - { action: click, target: { css: ".user-autocomplete-overlay .list-item:not(.is-absent)", text: "Ажибеков", description: "Ажибеков 옵션 클릭" } }
+  - { action: assert_value, target: { ref: recipient_ac_input, description: "optionLabel=fullName이라 '이름+직위+부서'가 구분자 없이 이어진 문자열이 들어간다" }, value: "Ажибеков Азат МанасбековичЭкономистОтдел Экономики и Анализа" }
+  - { action: screenshot, name: "past-absence-selected" }

@@ -1,0 +1,23 @@
+id: recipient-trip-selectable
+title: 수신자 자동완성 — 출장(TRIP)은 배지만 표시하고 선택은 허용한다
+locale: ru
+login_as: tester
+ephemeral: true
+# 업무 규칙: 출장 중에도 문서 처리가 가능하므로 TRIP은 차단하지 않는다.
+# 휴가(VACATION)/병가(DISABILITY)만 차단하며, 알 수 없는 type은 보수적으로 차단을 유지한다.
+# 검증 대상: 사무총장 Асанов (EPH 38, TRIP 2026-07-27~2026-07-28).
+steps:
+  - { action: navigate, url: "/main/letter/insert" }
+  - { action: wait_for, target: { ref: recipient_ac_input, description: "수신자 자동완성 입력창" } }
+  - { action: click, target: { ref: recipient_ac_dropdown, description: "수신자 자동완성 드롭다운 버튼" } }
+  - { action: wait_for, target: { ref: user_ac_option, description: "사용자 옵션 목록" } }
+
+  # 1) 출장자는 배지를 달고 있으면서도 '차단 아님(.is-absent 없음)' 쪽에 있어야 한다
+  - { action: assert_visible, target: { css: ".user-autocomplete-overlay .list-item:not(.is-absent) .absence_badge", description: "차단되지 않은 옵션에 붙은 부재 배지 = 출장자. 휴가/병가였다면 .is-absent 안에만 존재했을 것" } }
+  - { action: screenshot, name: "trip-badge-not-blocked" }
+
+  # 2) 실제로 선택되는가
+  - { action: click, target: { css: ".user-autocomplete-overlay .list-item:not(.is-absent)", text: "Асанов", description: "사무총장(출장 중) 옵션 클릭" } }
+  # full_name 자체에 역할 표기 '(사무총장)'이 들어 있는 테스트 데이터라 그대로 포함해야 한다.
+  - { action: assert_value, target: { ref: recipient_ac_input, description: "optionLabel=fullName이라 '이름+직위+부서'가 구분자 없이 이어진다" }, value: "Асанов Аскар Уланович (사무총장)Руководитель АппаратаОбщий отдел" }
+  - { action: screenshot, name: "trip-selected" }
