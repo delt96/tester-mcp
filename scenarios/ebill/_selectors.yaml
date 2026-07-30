@@ -96,6 +96,10 @@ sidebar_menu_depth1:
   css: "#v_sidebar .depth1 a"
 sidebar_menu_depth2:
   css: "#v_sidebar .depth2 li a"
+# 2단 메뉴 항목을 menu_id로 특정 (li의 data-menu-key). 알림 카운트 배지 검증에 사용.
+# 150 = 회의 승인 대기함, 85 = 결재대기함 등 com_menu.menu_id와 동일
+sidebar_menu_item_150:
+  css: "#v_sidebar .depth2 li[data-menu-key='150']"
 # 회의 상세 하단 고정 버튼 그룹 (cmt/faction/mainMtngDetail 공통)
 # 목록은 <button>, 수정/회의취소/결과등록은 <a> — 태그로 구분되므로 편집버튼 노출 판정에 쓸 수 있다
 mtng_detail_btn_list:
