@@ -1,0 +1,32 @@
+id: mtng-apvl-detail-title-fallback
+title: 회의 상세 — 메뉴 권한 없는 계정에서도 화면 제목이 표시됨 (TitleComp fallbackTitle)
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  gduser(GD, eph.id=9)는 위원회회의관리(menu 28)/본회의(82)/정당회의(83) 매핑이 없다.
+  TitleComp는 route.path를 사용자 메뉴 트리와 매칭해 제목을 얻으므로, 매칭 실패 시 제목이 빈 칸이 된다.
+  fallbackTitle로 화면별 고정 제목(10523 위원회회의 / 10046 본회의 / 10446 정당회의)을 넘겨 해결했다.
+  mtngId=725는 이미 06번 시나리오로 statCd '1'(SCHEDULED)이 된 회의 — 제목 검증에는 상태가 무관하다.
+  비파괴 — 조회만 한다. mode 유무 양쪽 모두 제목이 나와야 한다(핵심: mode 없이 들어와도 표시).
+steps:
+  # 위원회 상세 — mode 없이 (사용자가 빈 제목을 목격한 바로 그 경로)
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=725" }
+  - { action: wait_for, target: { ref: mtng_detail_btn_list } }
+  - action: assert_visible
+    target: { ref: content_title, text: "Заседание комитета", description: "위원회회의(10523) 제목 — mode 없어도 표시" }
+  - { action: screenshot, name: "07-cmt-title-no-mode" }
+
+  # 위원회 상세 — mode=apvl
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=725&mode=apvl" }
+  - { action: wait_for, target: { ref: mtng_detail_btn_list } }
+  - action: assert_visible
+    target: { ref: content_title, text: "Заседание комитета", description: "승인 모드에서도 동일 제목(승인 대기함이 아니라 화면 제목)" }
+  - { action: screenshot, name: "07-cmt-title-apvl-mode" }
+
+  # 대기함 화면 — 메뉴에 등록돼 있어 메뉴 트리에서 제목을 찾는 경로
+  - { action: navigate, url: "/main/mtng/apvlInbox" }
+  - { action: wait_for, target: { ref: datatable } }
+  - action: assert_visible
+    target: { ref: content_title, text: "Заседания, ожидающие согласования", description: "대기함 제목 — com_menu 등록명에서 매칭" }
+  - { action: screenshot, name: "07-inbox-title" }

@@ -1,0 +1,67 @@
+id: mtng-apvl-inbox-approve-flow
+title: 승인 대기함 — 요청 생성 → 대기함 노출(내 차례) → mode=apvl 상세 편집버튼 미노출 → 승인 → 대기함 복귀
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  mtngId=725는 statCd '3'(DRAFT) 위원회 회의(2026-02-06 기한의 오래된 초안 — 상태 변경 부담 최소).
+  gduser(GD, eph.id=9)는 위원회회의관리 메뉴가 없는 계정이라 정상 경로로는 이 상세에 갈 수 없다.
+  1~7단계는 테스트 데이터 생성(gduser 자신을 단일 서명자로 지정 후 요청)이며, 이는
+  02-cmt-approve-flow.yaml과 동일한 패턴이다.
+  ⚠ 파괴적: 최종 승인 시 changeMtngStatusAsScheduled로 회의 statCd '1'(SCHEDULED) 전환 +
+  위원회 구성원 알림이 실제 발송된다. 종료 상태(회의 '1', req APPROVED)는 복원하지 않는다.
+  ⚠ locales json 미동기화로 라벨은 키 번호로 표시된다 → 텍스트가 아니라 클래스/구조로 검증한다.
+  ⚠ 편집버튼 미노출은 assert_not_visible이 DSL에 없어 스크린샷으로 판정한다
+  (목록 버튼은 <button>, 수정/회의취소/결과등록은 <a> 태그로 구분됨).
+steps:
+  # --- 데이터 준비: gduser를 서명자로 지정하고 승인 요청 ---
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=725" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "DRAFT라 editable → 결재선 섹션 노출" } }
+  - { action: click, target: { ref: mtapv_assign_btn } }
+  - { action: wait_for, target: { ref: mapvl_modal_tabs } }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
+  - { action: wait_for, target: { ref: mapvl_user_row } }
+  - { action: click, target: { ref: mapvl_user_row_first } }
+  - { action: click, target: { ref: mapvl_save_btn } }
+  - { action: wait_for, target: { ref: mtapv_chip } }
+  - { action: click, target: { ref: mtapv_request_btn, description: "승인 요청 → req IN_PROGRESS, gduser가 SENT" } }
+  - { action: wait_for, target: { ref: mtapv_approve_btn, description: "요청 직후 본인이 현재 결재자" } }
+  - { action: screenshot, name: "06-request-created" }
+
+  # --- 본 검증 1: 대기함에 내 차례로 노출되는가 ---
+  - { action: navigate, url: "/main/mtng/apvlInbox" }
+  - { action: wait_for, target: { ref: datatable_row, description: "대기함에 최소 1건" } }
+  - action: assert_visible
+    target: { ref: mtapv_badge_progress, description: "내 차례(SENT) 배지 — myStatCd==='SENT'일 때만 mtapv-badge_progress" }
+  - { action: screenshot, name: "06-inbox-my-turn" }
+
+  # --- 본 검증 2: mode=apvl 상세에서 편집 버튼이 사라지는가 ---
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=725&mode=apvl" }
+  - { action: wait_for, target: { ref: mtapv_section } }
+  - { action: assert_visible, target: { ref: mtng_detail_btn_list, description: "목록 버튼은 남아야 함" } }
+  - action: screenshot
+    name: "06-detail-apvl-mode-buttons"
+  - { action: assert_visible, target: { ref: mtapv_approve_btn, description: "승인 버튼은 mode와 무관하게 노출(서버 isCurrentApprover 기반)" } }
+
+  # --- 대조군: mode 없이 진입하면 편집 버튼이 보이는가 (회귀 확인) ---
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=725" }
+  - { action: wait_for, target: { ref: mtng_detail_btn_list } }
+  - action: assert_visible
+    target: { ref: mtng_detail_btn_edit, description: "mode 없으면 기존대로 수정/회의취소 노출 — 회귀 없음 확인" }
+  - { action: screenshot, name: "06-detail-normal-mode-buttons" }
+
+  # --- 본 검증 3: 승인 실행 ---
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=725&mode=apvl" }
+  - { action: wait_for, target: { ref: mtapv_approve_btn } }
+  - { action: click, target: { ref: mtapv_approve_btn, description: "[승인] → useConfirm 팝업" } }
+  - { action: wait_for, target: { ref: confirm_popup } }
+  - action: click
+    target: { ref: confirm_accept, description: "승인 확정 → POST /bill/mtng/apvl/approve → 단일 서명자라 최종 승인" }
+  - { action: wait_for, target: { ref: mtapv_badge_approved, description: "전체 상태 배지 = 승인 완료" } }
+  - { action: screenshot, name: "06-approved" }
+
+  # --- 본 검증 4: 목록 버튼이 대기함으로 복귀하는가 ---
+  - { action: click, target: { ref: mtng_detail_btn_list, description: "목록 → isApvlMode라 mtng.apvlInbox로" } }
+  - { action: wait_for, target: { ref: datatable, description: "회의 목록이 아니라 대기함으로 복귀" } }
+  - { action: assert_visible, target: { ref: board_total_num } }
+  - { action: screenshot, name: "06-back-to-inbox" }

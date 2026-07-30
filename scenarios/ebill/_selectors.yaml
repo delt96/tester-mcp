@@ -44,3 +44,67 @@ user_ac_option_absent:
   css: ".user-autocomplete-overlay .list-item.is-absent"
 user_ac_option_normal:
   css: ".user-autocomplete-overlay .list-item:not(.is-absent)"
+# 회의 승인 결재선 (MtngApprovalLineSection.vue / SignerSelectModal.vue) — mtngApvl 스위트 공용
+mtapv_section:
+  css: ".mtapv-section"
+mtapv_assign_btn:
+  css: ".mtapv-header_right button.v_btn.btn_outline_primary.btn_sm"
+mtapv_request_btn:
+  css: ".mtapv-header_right button.v_btn.btn_primary.btn_sm"
+mtapv_cancel_btn:
+  css: ".mtapv-header_right button.v_btn.btn_outline_secondary.btn_sm"
+mtapv_badge:
+  css: ".mtapv-badge"
+mtapv_badge_approved:
+  css: ".mtapv-badge.mtapv-badge_approved"
+mtapv_badge_rejected:
+  css: ".mtapv-badge.mtapv-badge_rejected"
+mtapv_chip:
+  css: ".mtapv-chip"
+mtapv_chip_turn:
+  css: ".mtapv-chip.mtapv-chip_turn"
+mtapv_empty:
+  css: ".mtapv-empty"
+mtapv_approve_btn:
+  css: ".mtapv-approver_actions button.v_btn.btn_primary.btn_md"
+mtapv_reject_btn:
+  css: ".mtapv-approver_actions button.v_btn.btn_outline_error.btn_md"
+mtapv_rjct_line:
+  css: ".mtapv-rjct_line"
+mapvl_modal_tabs:
+  css: ".mapvl-tabs"
+mapvl_search_input:
+  css: ".mapvl-user_search input"
+mapvl_user_row:
+  css: ".mapvl-user_row"
+mapvl_user_row_first:
+  css: ".mapvl-user_row:first-child"
+mapvl_chip_num:
+  css: ".mapvl-chip .mapvl-chip_num"
+mapvl_save_btn:
+  css: ".popup_footer button.v_btn.btn_outline_primary.btn_md"
+reject_modal_textarea:
+  css: ".p-dialog textarea.form_control.full"
+reject_modal_submit:
+  css: ".p-dialog .btn_group button.btn_md.btn_primary"
+mtapv_badge_progress:
+  css: ".mtapv-badge.mtapv-badge_progress"
+# 좌측 사이드바 (LeftSidebarComp.vue) — Accordion 1단은 .depth1, 2단은 .depth2. 전 화면 공통 레이아웃
+sidebar:
+  css: "#v_sidebar"
+sidebar_menu_depth1:
+  css: "#v_sidebar .depth1 a"
+sidebar_menu_depth2:
+  css: "#v_sidebar .depth2 li a"
+# 회의 상세 하단 고정 버튼 그룹 (cmt/faction/mainMtngDetail 공통)
+# 목록은 <button>, 수정/회의취소/결과등록은 <a> — 태그로 구분되므로 편집버튼 노출 판정에 쓸 수 있다
+mtng_detail_btn_list:
+  css: ".btn_group_fixed .btns button.v_btn.btn_outline_primary.btn_md"
+mtng_detail_btn_edit:
+  css: ".btn_group_fixed .btns a.v_btn.btn_primary.btn_md"
+# 목록 화면 총건수 (board_info) — 회의/의안 목록 공통
+board_total_num:
+  css: ".board_info .total_num .text_primary"
+# 화면 제목 (TitleComp.vue의 h2) — 전 화면 공통. 텍스트는 각 시나리오에서 local override
+content_title:
+  css: ".content_tit"
