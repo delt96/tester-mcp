@@ -71,18 +71,44 @@ mtapv_reject_btn:
   css: ".mtapv-approver_actions button.v_btn.btn_outline_error.btn_md"
 mtapv_rjct_line:
   css: ".mtapv-rjct_line"
-mapvl_modal_tabs:
-  css: ".mapvl-tabs"
+# 2026-07-30: 부서/위원회/정당 탭 제거 → mv_signer_autocomplete 검색 단일화.
+# mapvl_modal_tabs(.mapvl-tabs)는 DOM에서 사라졌으므로 삭제. 모달 오픈 앵커는 검색 입력을 쓴다.
 mapvl_search_input:
   css: ".mapvl-user_search input"
 mapvl_user_row:
   css: ".mapvl-user_row"
 mapvl_user_row_first:
   css: ".mapvl-user_row:first-child"
+mapvl_user_avatar_img:
+  css: "img.mapvl-user_avatar--img"
 mapvl_chip_num:
   css: ".mapvl-chip .mapvl-chip_num"
+mapvl_chip_nm:
+  css: ".mapvl-chip .mapvl-chip_nm"
+# 목록 하단 안내 — 0건이면 t('10954'), 결과가 상한(30)에 걸리면 t('10461')
+mapvl_list_notice:
+  css: ".mapvl-user_list .mapvl-empty"
 mapvl_save_btn:
   css: ".popup_footer button.v_btn.btn_outline_primary.btn_md"
+mapvl_cancel_btn:
+  css: ".popup_footer button.v_btn.btn_primary.btn_md"
+# 정부이송 서명자 모달 (signerAssignModal.vue) — 같은 구조, gtw- 접두사. 고정 목록(SS03)이 추가로 있다
+gtw_search_input:
+  css: ".gtw-user_search input"
+gtw_user_row:
+  css: ".gtw-user_row"
+gtw_user_row_first:
+  css: ".gtw-user_row:first-child"
+gtw_user_avatar_img:
+  css: "img.gtw-user_avatar--img"
+gtw_chip_num:
+  css: ".gtw-chip .gtw-chip_num"
+gtw_list_notice:
+  css: ".gtw-user_list .gtw-empty"
+gtw_signer_fixed_table:
+  css: ".gtw-signer_fixed"
+gtw_cancel_btn:
+  css: ".popup_footer button.v_btn.btn_primary.btn_md"
 reject_modal_textarea:
   css: ".p-dialog textarea.form_control.full"
 reject_modal_submit:

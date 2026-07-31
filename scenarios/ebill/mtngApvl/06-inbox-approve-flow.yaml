@@ -18,7 +18,7 @@ steps:
   - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=725" }
   - { action: wait_for, target: { ref: mtapv_section, description: "DRAFT라 editable → 결재선 섹션 노출" } }
   - { action: click, target: { ref: mtapv_assign_btn } }
-  - { action: wait_for, target: { ref: mapvl_modal_tabs } }
+  - { action: wait_for, target: { ref: mapvl_search_input } }
   - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
   - { action: wait_for, target: { ref: mapvl_user_row } }
   - { action: click, target: { ref: mapvl_user_row_first } }

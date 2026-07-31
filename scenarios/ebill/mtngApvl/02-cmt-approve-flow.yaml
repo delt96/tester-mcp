@@ -1,0 +1,31 @@
+id: mtng-apvl-cmt-approve-flow
+title: 위원회 결재선 — self 서명자 최종 승인 → 회의 SCHEDULED 전환
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  mtngId=778는 statCd '3'(DRAFT) 위원회 회의(2026-03 기한의 오래된 초안 — 상태 영구 변경 부담 최소).
+  최종 승인 시 changeMtngStatusAsScheduled(statCd '1') + 위원회 구성원 알림 발송이 실제로 일어남(개발 DB 허용).
+  종료 상태: 회의 statCd '1'(SCHEDULED), req APPROVED — 복원하지 않음.
+steps:
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=778" }
+  - { action: wait_for, target: { ref: mtapv_section } }
+  - { action: click, target: { ref: mtapv_assign_btn } }
+  - { action: wait_for, target: { ref: mapvl_search_input } }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
+  - { action: wait_for, target: { ref: mapvl_user_row } }
+  - { action: click, target: { ref: mapvl_user_row_first } }
+  - { action: click, target: { ref: mapvl_save_btn } }
+  - { action: wait_for, target: { ref: mtapv_chip } }
+  - { action: click, target: { ref: mtapv_request_btn } }
+  - { action: wait_for, target: { ref: mtapv_approve_btn, description: "요청 직후 본인이 현재 결재자" } }
+  - { action: screenshot, name: "02-before-approve" }
+  - { action: click, target: { ref: mtapv_approve_btn, description: "[승인] → useConfirm 팝업" } }
+  - { action: wait_for, target: { ref: confirm_popup } }
+  - { action: click, target: { ref: confirm_accept, description: "승인 확정 → POST /bill/mtng/apvl/approve (pinCode null)" } }
+  - { action: wait_for, target: { ref: mtapv_badge_approved, description: "전체 상태 배지 = 승인 완료" } }
+  - { action: screenshot, name: "02-approved" }
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=778" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "재진입 — statCd '1' 반영 후에도 섹션은 결과 표시" } }
+  - { action: assert_visible, target: { ref: mtapv_badge_approved, description: "재조회에서도 APPROVED req 유지" } }
+  - { action: screenshot, name: "02-reloaded-scheduled" }

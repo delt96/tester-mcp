@@ -15,7 +15,7 @@ steps:
   - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=848" }
   - { action: wait_for, target: { ref: mtapv_section } }
   - { action: click, target: { ref: mtapv_assign_btn } }
-  - { action: wait_for, target: { ref: mapvl_modal_tabs } }
+  - { action: wait_for, target: { ref: mapvl_search_input } }
   - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
   - { action: wait_for, target: { ref: mapvl_user_row, description: "검색 결과 행 (디바운스 350ms 후 로드)" } }
   - { action: click, target: { ref: mapvl_user_row_first, description: "gduser1 L 본인 선택" } }

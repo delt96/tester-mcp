@@ -1,0 +1,35 @@
+id: mtng-apvl-plenary-request-cancel
+title: 본회의 부의 결재선 — 수정화면 요청 → 상세화면 승인자 뷰 → 취소
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  mtngId=834는 본회의(mtng_type_cd '2', statCd '1', atrz_mng_no 없음, 결재 이력 없음).
+  최종 승인은 실제 법안 단계 전이(submitMtngAgenda)를 일으키므로 이 시나리오에서는 요청·승인자뷰·취소까지만 검증.
+  요청자 화면 = mainMtngUpdate(수정), 승인자 화면 = mainMtngDetail(상세) — 두 화면 모두 섹션 노출 확인.
+  종료 상태: 취소(req CANCELED 이력만 남음, 본회의는 statCd 무변경).
+steps:
+  - { action: navigate, url: "/main/mtng/mainMtng1/update?mtngId=834" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "본회의 수정화면 결재선 섹션(plenary variant)" } }
+  - { action: screenshot, name: "04-plenary-update-draft" }
+  - { action: click, target: { ref: mtapv_assign_btn } }
+  - { action: wait_for, target: { ref: mapvl_search_input } }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
+  - { action: wait_for, target: { ref: mapvl_user_row } }
+  - { action: click, target: { ref: mapvl_user_row_first } }
+  - { action: click, target: { ref: mapvl_save_btn } }
+  - { action: wait_for, target: { ref: mtapv_chip } }
+  - { action: click, target: { ref: mtapv_request_btn } }
+  - { action: wait_for, target: { ref: mtapv_badge, description: "요청 후 상태 배지" } }
+  - { action: screenshot, name: "04-plenary-requested" }
+  - { action: navigate, url: "/main/mtng/mainMtng1/detail?mtngId=834" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "상세화면(editable=false)에서도 섹션 렌더" } }
+  - { action: assert_visible, target: { ref: mtapv_approve_btn, description: "본인이 현재 결재자 → 상세화면에서 [승인] 노출" } }
+  - { action: screenshot, name: "04-plenary-detail-approver-view" }
+  - { action: navigate, url: "/main/mtng/mainMtng1/update?mtngId=834" }
+  - { action: wait_for, target: { ref: mtapv_cancel_btn } }
+  - { action: click, target: { ref: mtapv_cancel_btn } }
+  - { action: wait_for, target: { ref: confirm_popup } }
+  - { action: click, target: { ref: confirm_accept } }
+  - { action: wait_for, target: { ref: mtapv_empty, description: "취소 후 초안 복귀" } }
+  - { action: screenshot, name: "04-plenary-canceled" }

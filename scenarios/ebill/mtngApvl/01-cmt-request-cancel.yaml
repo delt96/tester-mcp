@@ -1,0 +1,37 @@
+id: mtng-apvl-cmt-request-cancel
+title: 위원회 결재선 — 서명자 지정 → 승인 요청 → 취소(초안 복귀)
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  mtngId=835는 statCd '3'(DRAFT) 위원회 회의, 결재 요청 이력 없음(ebs_mtng_apvl_req 0건 확인).
+  로그인 계정 gduser(gduser1 L, positionHistoryId 9)를 서명자 본인으로 지정해 단일 계정으로 전 과정 검증.
+  종료 상태: 취소로 초안 복귀(회의 statCd '3', req는 CANCELED 이력 1건 남음 — 의도된 보존).
+  다국어 키 11122~11145는 json 미동기화 상태라 버튼에 raw ID가 보일 수 있음 → 텍스트가 아닌 구조 셀렉터로 검증.
+steps:
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=835" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "결재선 섹션 렌더 (초안)" } }
+  - { action: assert_visible, target: { ref: mtapv_empty, description: "서명자 없음 빈 상태 안내" } }
+  - { action: assert_visible, target: { ref: mtapv_assign_btn, description: "[서명자 지정/변경] 버튼" } }
+  - { action: screenshot, name: "01-draft-empty" }
+  - { action: click, target: { ref: mtapv_assign_btn } }
+  - { action: wait_for, target: { ref: mapvl_search_input, description: "서명자 지정 모달 오픈 앵커 (탭 제거 후 검색 입력)" } }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
+  - { action: wait_for, target: { ref: mapvl_user_row, description: "검색 결과 행 (디바운스 350ms 후 로드)" } }
+  - { action: click, target: { ref: mapvl_user_row_first, description: "gduser1 L 본인 선택" } }
+  - { action: assert_visible, target: { ref: mapvl_chip_num, text: "1", description: "선택 칩 순번 1" } }
+  - { action: screenshot, name: "01-modal-self-selected" }
+  - { action: click, target: { ref: mapvl_save_btn, description: "모달 저장 → PUT /bill/mtng/apvl/signers" } }
+  - { action: wait_for, target: { ref: mtapv_chip, description: "섹션에 서명자 칩 반영 (모달 saved → 재조회)" } }
+  - { action: screenshot, name: "01-draft-one-signer" }
+  - { action: click, target: { ref: mtapv_request_btn, description: "[승인 요청] — 확인 단계 없이 즉시 전환" } }
+  - { action: wait_for, target: { ref: mtapv_badge, description: "요청 후 헤더 상태 배지" } }
+  - { action: assert_visible, target: { ref: mtapv_chip_turn, description: "1번 서명자 SENT 하이라이트" } }
+  - { action: assert_visible, target: { ref: mtapv_approve_btn, description: "본인이 현재 결재자 → [승인] 버튼 노출" } }
+  - { action: screenshot, name: "01-requested" }
+  - { action: click, target: { ref: mtapv_cancel_btn, description: "[승인 요청 취소]" } }
+  - { action: wait_for, target: { ref: confirm_popup } }
+  - { action: click, target: { ref: confirm_accept } }
+  - { action: wait_for, target: { ref: mtapv_empty, description: "취소 후 초안 복귀 (req CANCELED, statCd '3')" } }
+  - { action: assert_visible, target: { ref: mtapv_assign_btn, description: "재지정 가능 상태" } }
+  - { action: screenshot, name: "01-canceled-back-to-draft" }

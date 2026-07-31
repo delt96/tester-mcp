@@ -1,0 +1,28 @@
+id: gvrn-trsf-signer-assign-ui
+title: 정부이송 서명자 지정 모달 — 탭 제거 후 MV 검색 + 선택 칩 + 프로필 사진
+locale: ru
+login_as: lgactuser
+precondition: >
+  bill EB_8dfc96ac는 WS01(법률등록완료) — 서명자 미지정이라 [서명자 지정] 버튼 활성,
+  선택 칩 영역은 빈 상태로 시작한다.
+  (이전 대상 EB_11787f74는 서명이 진행되어 WS01을 벗어나 버튼이 사라졌다 — 2026-07-31 대상 교체.)
+  2026-07-30 변경: 부서/위원회/정당 3개 탭 제거 → /hrmis/autocomplete(mv_signer_autocomplete) 단일 검색.
+  이전 버전은 정당(Фракция) 탭에서 아바타를 검증했으나, 탭이 사라졌으므로 같은 인물
+  'Хон-test Гиль дон (국회의원1)'(대문자 Х 시작, 프로필 사진 보유)을 소문자 'хон' 검색으로 찾아
+  아바타(img.gtw-user_avatar--img)를 검증한다 — 대소문자 무관 검색과 profileImgPath 조인을 한 번에 덮는다.
+  읽기 전용: 저장 없이 취소로 닫는다. DB 무변경.
+steps:
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng/Dtl?id=EB_8dfc96ac-d832-4aa1-b029-efab32ae9e55" }
+  - { action: wait_for, target: { css: ".gtw-stepper", description: "S4 상세 렌더 (스텝퍼)" } }
+  - { action: click, target: { css: "button.v_btn", text: "Назначить подписантов", description: "[서명자 지정/변경] 버튼 → 모달 오픈 (WS01이라 노출)" } }
+  - { action: wait_for, target: { ref: gtw_search_input, description: "모달 검색 입력 (탭바는 제거됨)" } }
+  - { action: wait_for, target: { ref: gtw_user_row, description: "검색어 없이 초기 목록 로드 (limit 30)" } }
+  - { action: screenshot, name: "modal-no-tabs-initial-list" }
+  - { action: fill, target: { ref: gtw_search_input }, value: "хон" }
+  - { action: wait_for, target: { ref: gtw_user_avatar_img, description: "소문자 검색 → 사진 보유자 아바타 (hrmis/profile/img blob, profileImgPath 조인 증거)" } }
+  - { action: assert_value, target: { css: ".gtw-user_row:first-child .text_bold", description: "소문자 'хон'으로 대문자 'Хон-test' 매칭 — 구 구현이면 0건" }, value: "Хон-test Гиль дон (국회의원1)" }
+  - { action: screenshot, name: "modal-lowercase-search-avatar" }
+  - { action: click, target: { ref: gtw_user_row_first, description: "첫 사용자 체크 → 선택 칩 추가" } }
+  - { action: assert_visible, target: { ref: gtw_chip_num, text: "1", description: "선택 칩 순번 1 생성" } }
+  - { action: screenshot, name: "modal-selected-chip" }
+  - { action: click, target: { ref: gtw_cancel_btn, description: "저장 없이 취소로 닫기 (DB 무변경)" } }

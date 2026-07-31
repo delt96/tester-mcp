@@ -1,0 +1,33 @@
+id: mtng-apvl-signer-modal-mv-search
+title: 회의 서명자 지정 모달 — 탭 제거 후 MV 검색(대소문자 무관 · 부서명 검색 · 아바타)
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  mtngId=849는 stat_cd '3'(DRAFT) 위원회 회의 → [서명자 지정] 버튼 노출.
+  2026-07-30 변경: 부서/위원회/정당 3개 탭 제거, /hrmis/autocomplete(mv_signer_autocomplete) 단일 검색으로 전환.
+  MV의 search_text = lower(이름+부서명+직위명)이라 대소문자 무관 검색과 부서명 검색이 모두 동작해야 한다.
+  검증 데이터: 개발 DB에 'Хон-test Гиль дон (국회의원1)'(대문자 Х로 시작, 프로필 사진 보유)이 있고,
+  부서명 'Отдел комитета по международным делам...' 소속 5명이 있다.
+  읽기 전용: 저장 없이 취소로 닫는다. DB 무변경.
+steps:
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=849" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "결재선 섹션 렌더 (초안)" } }
+  - { action: click, target: { ref: mtapv_assign_btn, description: "[서명자 지정/변경] → 모달 오픈" } }
+  - { action: wait_for, target: { ref: mapvl_search_input, description: "모달 검색 입력 (탭바는 제거됨)" } }
+  - { action: wait_for, target: { ref: mapvl_user_row, description: "검색어 없이 초기 목록 로드 (limit 30)" } }
+  - { action: screenshot, name: "09-modal-no-tabs-initial-list" }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "хон" }
+  - { action: wait_for, target: { ref: mapvl_user_avatar_img, description: "소문자 검색 → 사진 보유자 행 아바타 (profileImgPath 조인 런타임 증거)" } }
+  - { action: assert_value, target: { css: ".mapvl-user_row:first-child .text_bold", description: "소문자 'хон'으로 대문자 'Хон-test' 매칭 — 구 구현이면 0건" }, value: "Хон-test Гиль дон (국회의원1)" }
+  - { action: screenshot, name: "09-lowercase-search-hit" }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "ХОН" }
+  - { action: assert_value, target: { css: ".mapvl-user_row:first-child .text_bold", description: "대문자 'ХОН'으로도 동일 매칭" }, value: "Хон-test Гиль дон (국회의원1)" }
+  - { action: screenshot, name: "09-uppercase-search-hit" }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "международ" }
+  - { action: wait_for, target: { ref: mapvl_user_row, description: "부서명 일부로 검색 → 해당 부서 인원 (부서 탭 대체 근거)" } }
+  - { action: screenshot, name: "09-dept-name-search" }
+  - { action: click, target: { ref: mapvl_user_row_first, description: "첫 행 선택 → 칩 추가" } }
+  - { action: assert_visible, target: { ref: mapvl_chip_num, text: "1", description: "선택 칩 순번 1" } }
+  - { action: screenshot, name: "09-selected-chip" }
+  - { action: click, target: { ref: mapvl_cancel_btn, description: "저장 없이 취소 (DB 무변경)" } }

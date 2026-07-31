@@ -1,0 +1,35 @@
+id: mtng-apvl-cmt-reject-flow
+title: 위원회 결재선 — 반려(사유 필수) → 사유 표시 → 취소로 초안 복귀
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  mtngId=826은 statCd '3'(DRAFT) 위원회 회의. self 서명자로 요청 후 반려한다.
+  반려 시 회의 statCd는 '4' 유지(요청자 취소로 '3' 복귀 — 가정 A2 설계).
+  RejectModal은 API 호출 전에 성공 토스트를 먼저 띄우는 기존 컴포넌트 결함이 있음 — 토스트가 아닌
+  섹션의 REJECTED 배지·사유 라인으로 실제 반영을 검증한다. 종료 상태: 취소로 초안 복귀(req CANCELED 이력).
+steps:
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=826" }
+  - { action: wait_for, target: { ref: mtapv_section } }
+  - { action: click, target: { ref: mtapv_assign_btn } }
+  - { action: wait_for, target: { ref: mapvl_search_input } }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
+  - { action: wait_for, target: { ref: mapvl_user_row } }
+  - { action: click, target: { ref: mapvl_user_row_first } }
+  - { action: click, target: { ref: mapvl_save_btn } }
+  - { action: wait_for, target: { ref: mtapv_chip } }
+  - { action: click, target: { ref: mtapv_request_btn } }
+  - { action: wait_for, target: { ref: mtapv_reject_btn, description: "본인 차례 → [반려] 버튼(red)" } }
+  - { action: click, target: { ref: mtapv_reject_btn } }
+  - { action: wait_for, target: { ref: reject_modal_textarea, description: "반려 사유 모달" } }
+  - { action: fill, target: { ref: reject_modal_textarea }, value: "E2E reject test" }
+  - { action: screenshot, name: "03-reject-modal" }
+  - { action: click, target: { ref: reject_modal_submit, description: "반려 확정 → POST /bill/mtng/apvl/reject" } }
+  - { action: wait_for, target: { ref: mtapv_badge_rejected, description: "전체 상태 배지 = 반려됨" } }
+  - { action: assert_visible, target: { ref: mtapv_rjct_line, text: "E2E reject test", description: "반려 사유 라인에 입력한 사유 표시" } }
+  - { action: screenshot, name: "03-rejected" }
+  - { action: click, target: { ref: mtapv_cancel_btn, description: "REJECTED 상태에서도 요청자 취소 가능" } }
+  - { action: wait_for, target: { ref: confirm_popup } }
+  - { action: click, target: { ref: confirm_accept } }
+  - { action: wait_for, target: { ref: mtapv_empty, description: "초안 복귀" } }
+  - { action: screenshot, name: "03-canceled-back-to-draft" }
