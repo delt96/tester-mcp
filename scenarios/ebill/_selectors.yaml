@@ -109,6 +109,12 @@ gtw_signer_fixed_table:
   css: ".gtw-signer_fixed"
 gtw_cancel_btn:
   css: ".popup_footer button.v_btn.btn_primary.btn_md"
+# 전자서명 PIN 모달 (ApprovalModal.vue) — VITE_ENABLE_SIGN='true'일 때만 열린다.
+# 현재 local/staging/production 모두 false라 이 모달은 뜨지 않아야 한다.
+esign_pin_modal:
+  css: ".p-dialog input[type='password']"
+esign_pin_lock_icon:
+  css: ".p-dialog .pi-lock"
 reject_modal_textarea:
   css: ".p-dialog textarea.form_control.full"
 reject_modal_submit:

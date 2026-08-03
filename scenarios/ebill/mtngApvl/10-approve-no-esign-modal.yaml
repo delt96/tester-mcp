@@ -1,0 +1,41 @@
+id: mtng-apvl-approve-no-esign-modal
+title: 회의 승인 — VITE_ENABLE_SIGN=false에서 PIN 모달 없이 즉시 승인되는지
+locale: ru
+login_as: gduser
+tags: [mtngApvl]
+precondition: >
+  mtngId=849는 statCd '3'(DRAFT) 위원회 회의, 결재 요청 이력 0건(2026-08-03 확인).
+  검증 목적 (2026-08-03 e-sign 추가 후 갱신): MtngApprovalLineSection에 PIN 모달 분기가
+  생겼다 — isSignEnabled면 ApprovalModal을 열고, 아니면 기존 confirm 팝업을 띄운다.
+  현재 .env.local은 VITE_ENABLE_SIGN=false이므로 confirm 경로만 타야 하고,
+  approve 호출의 pinCode는 null, ebs_mtng_apvl.sign_hash는 null로 남아야 한다.
+  증명 방식: confirm 수락 직후 곧바로 '승인 완료' 배지가 뜨면 중간에 PIN 모달이
+  개입하지 않았다는 뜻이다(모달이 떴다면 입력 대기 상태라 배지가 뜰 수 없다).
+  함께 검증되는 것: selectSigner* 쿼리에 sign_hash를 추가했으므로 결재선 조회·승인이
+  정상 동작하려면 DDL(2026-08-03-mtng-apvl-sign-hash.sql)이 적용돼 있어야 한다.
+  ⚠ 파괴적: 단일 서명자라 승인 즉시 최종 승인 처리되어 회의가 statCd '1'(SCHEDULED)로
+  전환되고 위원회 구성원 알림이 발송된다. 복원하지 않는다.
+steps:
+  # --- 요청 생성 ---
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=849" }
+  - { action: wait_for, target: { ref: mtapv_section } }
+  - { action: click, target: { ref: mtapv_assign_btn } }
+  - { action: wait_for, target: { ref: mapvl_search_input, description: "서명자 지정 모달 (탭 제거 후 검색 입력이 앵커)" } }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "gduser" }
+  - { action: wait_for, target: { ref: mapvl_user_row } }
+  - { action: click, target: { ref: mapvl_user_row_first } }
+  - { action: assert_visible, target: { ref: mapvl_chip_num, text: "1", description: "선택 반영 확인 — 없으면 fnSave가 조용히 리턴한다" } }
+  - { action: click, target: { ref: mapvl_save_btn } }
+  - { action: wait_for, target: { ref: mtapv_chip } }
+  - { action: click, target: { ref: mtapv_request_btn } }
+  - { action: wait_for, target: { ref: mtapv_approve_btn, description: "본인이 현재 결재자" } }
+  - { action: screenshot, name: "09-before-approve" }
+
+  # --- 승인: confirm 팝업만 거치고 PIN 모달 없이 끝나야 함 ---
+  - { action: click, target: { ref: mtapv_approve_btn, description: "[승인] → useConfirm 팝업" } }
+  - { action: wait_for, target: { ref: confirm_popup } }
+  - { action: screenshot, name: "09-confirm-popup-only" }
+  - { action: click, target: { ref: confirm_accept, description: "수락 → POST /bill/mtng/apvl/approve (pinCode null)" } }
+  - action: wait_for
+    target: { ref: mtapv_badge_approved, description: "PIN 모달 개입 없이 즉시 승인 완료 — 모달이 떴다면 입력 대기라 이 배지가 뜨지 않는다" }
+  - { action: screenshot, name: "09-approved-without-pin-modal" }
