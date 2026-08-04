@@ -1,21 +1,23 @@
 id: p2a-referral-main-designate-save
-title: Phase 2a — 회부 이행요청에서 주이행자(별) 지정 후 등록 → 저장 성공 toast
+title: Phase 2a — 회부 이행요청에서 소관위원장 주이행자 기본 지정 그대로 등록 → 저장 성공 toast
 locale: ru
 login_as: gduser
 ephemeral: true
 precondition: >
-  billId=EB_8067fc85-2385-473d-9efa-b7991bfafc22, taskId=13300 (활성 COMMITTEE_REFERRAL, 위원회 3개,
-  이행자 프리필됨). 파괴적 — 등록 시 의안 회부 전이 + task 완료(1회성, 재실행 불가). 프리필된 첫 이행자를
-  별(★)로 주이행자 지정 후 등록. 성공 시 저장 toast(t10454). 이후 DB로 main_rspns_id 검증 예정.
+  활성 COMMITTEE_REFERRAL task + 위원회(소관 포함) 세팅된 의안이 필요하다. 파괴적 — 등록 시 의안
+  회부 전이 + task 완료(1회성, 재실행 불가). 기존 대상 EB_8067fc85-2385-473d-9efa-b7991bfafc22 /
+  taskId=13300은 이미 소진됐을 수 있으므로 재실행 시 새 의안으로 billmng_cmt_doc_b를 갱신할 것.
+  ※ 2026-08-04 변경: 소관위원회 위원장이 첫 행으로 정렬되고 주이행자로 기본 지정되므로, 예전의
+  "C 배지를 눌러 지정" 단계는 제거했다(누르면 오히려 해제된다). 기본 지정 상태 그대로 등록해
+  workerId가 payload에 실려 나가는 것까지 확인한다. 등록 후 DB로 main_rspns_id / worker_id 검증.
 steps:
   - { action: navigate, url: "${vars.billmng_cmt_doc_b}" }
   - { action: wait_for, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼(insertLetter, t10827)" } }
   - { action: click, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼 → 이행요청 모달 오픈" } }
   - { action: wait_for, target: { ref: dialog_textarea, description: "이행요청 모달 오픈(내용 textarea)" } }
-  - { action: wait_for, target: { css: ".dialog_main_area .responder_row .main-star-btn", description: "이행자 프리필 + 별 토글 로드 대기" } }
-  - { action: click, target: { css: ".dialog_main_area .responder_row:first-child .main-star-btn", description: "첫 이행자 행 별 토글 → 주이행자 지정" } }
-  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:first-child .main-star-btn[aria-pressed='true']", description: "첫 행 주이행자 지정 확인(aria-pressed=true)" } }
-  - { action: fill, target: { ref: dialog_textarea, description: "이행요청 내용" }, value: "위원회 회부 - 주이행자 지정 기능테스트" }
-  - { action: click, target: { css: "button.btn_md.btn_primary", text: "Регистрация", description: "모달 등록 버튼(addRequest) → POST /eas/workRequest/response(workerId 포함)" } }
+  - { action: wait_for, target: { css: ".dialog_main_area .responder_row .main-worker-btn", description: "이행자 프리필 + C 배지 렌더 대기" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:first-child .main-worker-btn[aria-pressed='true']", description: "★ 클릭 없이 첫 행(소관위원장)이 주이행자로 기본 지정됨" } }
+  - { action: fill, target: { ref: dialog_textarea, description: "이행요청 내용" }, value: "위원회 회부 - 소관위 주이행자 기본지정 검증" }
+  - { action: click, target: { css: "button.btn_md.btn_primary", text: "Регистрация", description: "모달 등록 버튼(addRequest) → POST /eas/workRequest/response(workerId=소관위원장 EPH id)" } }
   - { action: assert_visible, target: { ref: toast_success, description: "저장 성공 toast(t10454). ephemeral — 등록 직후 단일 체크" } }
   - { action: screenshot, name: "after-referral-designate-save" }
