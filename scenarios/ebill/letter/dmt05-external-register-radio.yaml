@@ -5,9 +5,9 @@ login_as: tester
 ephemeral: true
 steps:
   - { action: navigate, url: "/main/letter/external/insert" }
-  - { action: wait_for, target: { css: "#radio4", description: "기타(DMT05) 라디오 (오프라인 종이등록 전용, v-if=!externalId)" } }
-  - { action: assert_visible, target: { css: "label[for='radio4']", text: "прочие", description: "기타 라디오 라벨 ru=прочие (t10638). 기존 DMT02=Для сведения, DMT01=Требуется ответ" } }
+  - { action: wait_for, target: { css: "input[type='radio'][value='DMT05']", description: "기타(DMT05) 라디오 (오프라인 종이등록 전용, showDmt05=!externalId). id는 ExternalDocFormInc가 인스턴스별로 생성하므로 value로 지목" } }
+  - { action: assert_visible, target: { css: "input[type='radio'][value='DMT05'] + label", text: "прочие", description: "기타 라디오 라벨 ru=прочие (t10638). 기존 DMT02=Для сведения, DMT01=Требуется ответ" } }
   - { action: screenshot, name: "01-radio-etc-visible" }
-  - { action: click, target: { css: "#radio4", description: "기타 라디오 선택" } }
+  - { action: click, target: { css: "input[type='radio'][value='DMT05']", description: "기타 라디오 선택" } }
   - { action: assert_visible, target: { css: ".deadline_check_area", description: "기타 선택 시 기한일 영역 표시 (type && type!==DMT02)" } }
   - { action: screenshot, name: "02-deadline-shown" }

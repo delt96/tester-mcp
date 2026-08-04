@@ -11,7 +11,7 @@ steps:
   - { action: navigate, url: "/main/letter/external/insert" }
   - { action: wait_for, target: { css: ".btn_outline_primary", description: "외부문서 작성 하단 등록 버튼(@click=fn_register)" } }
   # 1) 타입 선택 (DMT02=정보용, 기한 불필요) — resolver의 type 검증 통과용
-  - { action: click, target: { css: "#radio2", description: "문서 타입 라디오 DMT02(정보용)" } }
+  - { action: click, target: { css: "input[type='radio'][value='DMT02']", description: "문서 타입 라디오 DMT02(정보용). id는 ExternalDocFormInc가 인스턴스별로 생성하므로 value로 지목" } }
   # 2) 제목 입력 — resolver의 subTitle 검증 통과용
   - { action: fill, target: { css: ".main_section .sub_title_area input.form_control", description: "제목 입력(v-model subTitle)" }, value: "E2E unassigned recipient check" }
   # 3) 첫 수신자 지정: PrimeVue AutoComplete dropdown 버튼 클릭 → 오버레이 첫 항목 선택
