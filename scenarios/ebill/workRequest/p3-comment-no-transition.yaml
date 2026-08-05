@@ -1,0 +1,32 @@
+id: p3-comment-no-transition
+title: Phase 3 댓글 작성 — 카드 하단 입력 노출, 작성 후 목록 반영 (상태 전이 없음을 DB로 확인)
+locale: kr
+login_as: gduser
+ephemeral: true
+precondition: >
+  gduser1(EPH9)이 work_req 1444(rspns_id=1827, work_status=WS01, rspns_dtm null)의 이행자다.
+  이행대기함 목록 라벨은 문서 제목이 아니라 **이행요청 내용**(work_cn)이다
+  (getWorkList가 `req.work_cn as doc_subtle`로 별칭). work_req 1444의 work_cn은 'tyryt'.
+  검색창은 v-model이 input 이벤트에 묶여 있어 자동화 fill로는 안 채워지므로 쓰지 말 것.
+  ★ 이번 Phase의 핵심은 **댓글 작성과 이행 완료의 분리**다. 이 시나리오는 댓글만 쓰고
+  이행완료 버튼은 누르지 않는다. 실행 후 팀장이 DB로 work_status가 WS01 그대로이고
+  rspns_dtm이 여전히 null인지 확인한다 — 그것이 분리가 성립했다는 증거다.
+  ★ 이행완료 버튼은 이제 **작성자·서명자에게만** 노출된다. work_req 1444는 reg_id=25,
+  signer_id=NULL이고 gduser1은 user_id=9(이행자)이므로 버튼이 보이지 않는 것이 정상이다.
+  DSL에 부정 단언이 없어 스크린샷 01로 육안 확인한다.
+  파괴적 — 실제 댓글 1건이 생성된다(eas_work_comment).
+steps:
+  - { action: navigate, url: "/main/letter/executionInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "이행대기함 좌측 목록" } }
+  - { action: click, target: { ref: list_item, text: "tyryt", description: "★ work_req 1444의 이행요청 — 목록 라벨은 work_cn" } }
+  - { action: wait_for, target: { css: ".right_top_area .command", description: "이행요청 카드 로드" } }
+
+  # C2 — 댓글 입력은 토글 없이 항상 노출된다
+  - { action: assert_visible, target: { css: ".right_top_area .comment_area textarea", description: "★ 댓글 입력창 — isWrite 토글 없이 항상 노출(C2)" } }
+  - { action: screenshot, name: "01-card-with-comment-input", description: "★ 이행자 시야 — 댓글 입력창은 있고 이행완료 버튼(t10481)은 없어야 한다" }
+
+  - { action: fill, target: { css: ".right_top_area .comment_area textarea", description: "댓글 내용" }, value: "Phase3 댓글 전이없음 검증" }
+  - { action: click, target: { css: ".right_top_area .comment_area .write_area button.btn_outline_neutral", description: "등록(t10103) → POST /eas/workComment" } }
+  - { action: wait_for, target: { css: ".right_top_area .comment_item", text: "Phase3 댓글 전이없음 검증", description: "★ 작성한 댓글이 목록에 반영 — refreshComments 동작" } }
+  - { action: assert_visible, target: { css: ".right_top_area .comment_item .comment_del", description: "본인 댓글이므로 삭제 버튼 노출" } }
+  - { action: screenshot, name: "02-comment-added" }
