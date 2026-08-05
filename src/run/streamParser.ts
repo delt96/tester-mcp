@@ -7,6 +7,7 @@ export interface StreamState {
   lastTool?: string;
   toolCount: number;
   consecutiveTool: number;   // run-length of the same tool_use back-to-back (groping signal)
+  deniedTools: string[];     // tool names from the result event's permission_denials
 }
 
 // Parses stream-json lines into a diagnostic snapshot. Stores ONLY event
@@ -14,7 +15,7 @@ export interface StreamState {
 // may contain secrets). `now` is injected for deterministic timing in tests.
 export function makeStreamAccumulator(now: () => number = () => Date.now()) {
   const t0 = now();
-  const state: StreamState = { trail: [], toolCount: 0, consecutiveTool: 0 };
+  const state: StreamState = { trail: [], toolCount: 0, consecutiveTool: 0, deniedTools: [] };
 
   function handleContent(content: unknown) {
     if (!Array.isArray(content)) return;
@@ -47,11 +48,17 @@ export function makeStreamAccumulator(now: () => number = () => Date.now()) {
         session_id: typeof ev.session_id === "string" ? ev.session_id : undefined,
         total_cost_usd: typeof ev.total_cost_usd === "number" ? ev.total_cost_usd : undefined,
       };
+      // Names only — a denial carries the rejected tool_input, which can hold fill values (secrets).
+      if (Array.isArray(ev.permission_denials)) {
+        for (const d of ev.permission_denials as Array<Record<string, unknown>>) {
+          if (typeof d?.tool_name === "string") state.deniedTools.push(d.tool_name);
+        }
+      }
     }
   }
 
   function snapshot(): StreamState {
-    return { envelope: state.envelope, trail: [...state.trail], lastTool: state.lastTool, toolCount: state.toolCount, consecutiveTool: state.consecutiveTool };
+    return { envelope: state.envelope, trail: [...state.trail], lastTool: state.lastTool, toolCount: state.toolCount, consecutiveTool: state.consecutiveTool, deniedTools: [...state.deniedTools] };
   }
 
   return { push, snapshot };

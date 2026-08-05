@@ -2,24 +2,24 @@ import { describe, it, expect } from "vitest";
 import { collectSecretValues, redactSecrets, redactString } from "../../src/secrets/redactSecrets.js";
 
 describe("collectSecretValues", () => {
-  it("SECRET_* env 값만, 길이>=4만 수집", () => {
+  it("collects only SECRET_* env values of length >= 4", () => {
     const vals = collectSecretValues({
       env: {
         SECRET_TESTER_PASSWORD: "best1234",
         SECRET_TESTER_USERNAME: "admin",
-        SECRET_SHORT: "x", // 길이 1 → 과잉마스킹 방지로 제외
+        SECRET_SHORT: "x", // length 1 — excluded to avoid over-masking
         OTHER: "nope",
       },
     });
     expect(vals.sort()).toEqual(["admin", "best1234"]);
   });
-  it("secrets 객체의 문자열 leaf 값을 재귀 수집한다", () => {
+  it("recursively collects string leaves from the secrets object", () => {
     const vals = collectSecretValues({
       secrets: { tester: { username: "admin", password: "best1234" }, nested: { deep: { k: "abcd" } } },
     });
     expect(vals.sort()).toEqual(["abcd", "admin", "best1234"]);
   });
-  it("파일과 env를 합치고 중복은 제거한다", () => {
+  it("merges file and env values, dropping duplicates", () => {
     const vals = collectSecretValues({
       secrets: { tester: { password: "best1234" } },
       env: { SECRET_TESTER_PASSWORD: "best1234", SECRET_TESTER_USERNAME: "admin" },
@@ -29,26 +29,26 @@ describe("collectSecretValues", () => {
 });
 
 describe("redactString", () => {
-  it("모든 비밀값을 ***로 치환", () => {
+  it("replaces every secret value with ***", () => {
     expect(redactString("login best1234 ok best1234", ["best1234"])).toBe("login *** ok ***");
     expect(redactString("plain", [])).toBe("plain");
-    expect(redactString("a", ["", "a"])).toBe("***"); // 빈 문자열은 무시
+    expect(redactString("a", ["", "a"])).toBe("***"); // empty strings are ignored
   });
 });
 
 describe("redactSecrets", () => {
-  it("결과 객체에서 시크릿 값을 ***로 치환한다", () => {
+  it("replaces secret values inside a result object", () => {
     const result = {
       status: "PASS",
-      evidence: ["비밀번호: best1234 입력", "ID: admin"],
+      evidence: ["password: best1234 entered", "ID: admin"],
       raw_executor_text: "logged in as admin / best1234",
     };
     const red = redactSecrets(result, ["best1234", "admin"]);
-    expect(red.evidence).toEqual(["비밀번호: *** 입력", "ID: ***"]);
+    expect(red.evidence).toEqual(["password: *** entered", "ID: ***"]);
     expect(red.raw_executor_text).toBe("logged in as *** / ***");
     expect(red.status).toBe("PASS");
   });
-  it("시크릿 없으면 원본 그대로", () => {
+  it("returns the original when there are no secrets", () => {
     const r = { a: 1 };
     expect(redactSecrets(r, [])).toEqual(r);
   });

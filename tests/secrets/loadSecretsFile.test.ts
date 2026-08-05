@@ -11,7 +11,7 @@ describe("loadSecretsFile", () => {
     created.length = 0;
   });
 
-  it("존재하는 파일을 파싱해 객체로 반환한다", () => {
+  it("parses an existing file into an object", () => {
     const dir = mkdtempSync(join(tmpdir(), "tmsec-"));
     created.push(dir);
     const file = join(dir, "tester-mcp.secrets.yaml");
@@ -19,7 +19,7 @@ describe("loadSecretsFile", () => {
     expect(loadSecretsFile(file)).toEqual({ tester: { username: "u1", password: "p1" } });
   });
 
-  it("파일이 없으면 빈 객체를 반환한다", () => {
+  it("returns an empty object when the file is absent", () => {
     const dir = mkdtempSync(join(tmpdir(), "tmsec-"));
     created.push(dir);
     expect(loadSecretsFile(join(dir, "nope.yaml"))).toEqual({});

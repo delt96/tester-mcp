@@ -1,5 +1,5 @@
 export interface ExecutorArgsOptions {
-  prompt: string; systemPrompt: string; model: string;
+  prompt: string; systemPrompt: string; model: string; effort?: string;
 }
 export function buildExecutorArgs(o: ExecutorArgsOptions): string[] {
   // Flag set verified by live smoke tests against claude -p --chrome:
@@ -13,10 +13,14 @@ export function buildExecutorArgs(o: ExecutorArgsOptions): string[] {
   //   so this trims unused MCP tool schemas + instructions from the executor's context.
   // - --exclude-dynamic-system-prompt-sections: move per-machine bits (cwd/env/git) out of
   //   the system prompt → better cross-process prompt-cache reuse across parallel/repeat runs.
+  // --effort trades reasoning depth for tokens. Omitted → the CLI's own default (high) applies;
+  // 'low' is the lever that offsets the cost of running a bigger model than haiku.
+  const effort = o.effort ? ["--effort", o.effort] : [];
   return [
     "-p", o.prompt,
     "--chrome",
     "--model", o.model,
+    ...effort,
     "--append-system-prompt", o.systemPrompt,
     "--output-format", "stream-json",
     "--verbose",                 // stream-json requires --verbose; emits per-event JSON lines

@@ -11,6 +11,21 @@ truth for prerequisites and the scenario DSL. Read it before writing scenarios.
 - The claude-in-chrome browser extension must be installed and connected. The
   executor drives a **real, visible Chrome window** — it is NOT headless and it
   keeps cookies/session. Chrome/Edge only.
+- **Don't run a haiku executor** — as observed on 2026-08-05. Every browser tool
+  came back "Claude in Chrome requires permission" and runs ended NOT_TESTED with
+  `denied_tools` set, while sonnet and opus passed with byte-identical flags and an
+  identical 42-tool list. Seen 9 times, interleaved, across sessions an hour apart.
+  Treat this as a reproduced observation, not a documented rule: no public doc
+  states a model requirement and the extension's own UI offers Haiku 4.5, so it may
+  be a bug and may stop applying — re-test before assuming it still holds. Default
+  is `sonnet`.
+- **Prefer one connected Chrome.** The extension connects per Anthropic account,
+  not per machine, so a teammate's Chrome on the same account also shows up
+  (`list_connected_browsers` lists every one). With two or more connected, an
+  interactive session is asked which browser to use — a prompt a `-p` executor
+  cannot answer, and one it cannot resolve itself: `select_browser` is denied
+  inside the executor, and a browser picked interactively (by `select_browser` or
+  by `switch_browser` pairing) does not reach the executor process.
 - On **Windows**, the `--chrome` flag is required for claude-in-chrome to work in
   PowerShell. **WSL is not supported.**
 - Run `tester-mcp init` once per project to install the skill and scaffold
@@ -25,6 +40,27 @@ tester-mcp run scenarios/<project>/<area>/<id>.yaml -c tester-mcp.config.yaml
 The CLI spawns the executor, waits, and writes a result to `runs/<runId>/`.
 A hard timeout (default 5 min, `runner.timeout_ms` or `--timeout`) kills a stuck
 executor and reports NOT_TESTED.
+
+`runner.effort` (`low` | `medium` | `high` | `xhigh` | `max`, omit for the CLI
+default) trades reasoning depth for tokens. It is the main cost lever now that
+the executor runs sonnet rather than haiku: on one measured scenario, `low` cut
+cost 26% and wall time 41% (`$0.61`→`$0.45`, 117s→69s) and reached the same
+verdict. That scenario ended early on an app error, so `low` is not yet verified
+across a full multi-step run — raise it if you see shallow judgment on long
+scenarios.
+
+### What the executor does NOT inherit
+
+Each executor is spawned deliberately stripped of the host environment, so a
+scenario runs the same on any machine and cannot be hijacked into the host's
+skill/doc workflow (unisolated, it calls Skill/Task/Bash and never opens a browser):
+
+- Project and local settings are skipped (`--setting-sources user`), hooks are off,
+  and slash commands are disabled. **Project-scoped CLAUDE.md, project memory, and
+  hooks never reach the executor** — you cannot hand it anything by writing to
+  project memory or settings; everything it needs must be in the scenario itself.
+- `Skill,Task,Agent,Bash,Write,Edit,Read,Glob,Grep,WebFetch,WebSearch` are hard-denied.
+- No ambient MCP servers are loaded; only claude-in-chrome (via `--chrome`).
 
 ### Running multiple scenarios in parallel
 
@@ -199,6 +235,11 @@ round-trips. To verify them reliably:
 
 On NOT_TESTED, read the run's `executor_log` (path is in the result JSON) to see the
 tool sequence and errors — that's how the Planner diagnoses and fixes the scenario.
+
+If the result carries `denied_tools`, the scenario is not at fault: the extension
+refused the executor. Check `runner.model` first (haiku is denied every browser
+tool), then the extension connection — see Prerequisites. Re-running unchanged
+fails identically.
 
 ## Minimal example
 

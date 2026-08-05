@@ -18,7 +18,7 @@ const lines = [
 ];
 
 describe("makeStreamAccumulator", () => {
-  it("envelope를 result 이벤트에서 회수", () => {
+  it("recovers the envelope from the result event", () => {
     const acc = makeStreamAccumulator(() => 0);
     for (const l of lines) acc.push(l);
     const s = acc.snapshot();
@@ -26,7 +26,7 @@ describe("makeStreamAccumulator", () => {
     expect(s.envelope?.session_id).toBe("S1");
     expect(s.envelope?.total_cost_usd).toBe(0.01);
   });
-  it("trail·lastTool·toolCount 추출", () => {
+  it("extracts trail, lastTool and toolCount", () => {
     const acc = makeStreamAccumulator(() => 0);
     for (const l of lines) acc.push(l);
     const s = acc.snapshot();
@@ -37,37 +37,54 @@ describe("makeStreamAccumulator", () => {
     ]);
     expect(s.trail.map((t) => t.phase)).toEqual(["use", "result", "use"]);
   });
-  it("연속 동일 도구 호출을 consecutiveTool로 센다 (groping 감지용)", () => {
+  it("counts back-to-back calls of the same tool in consecutiveTool (groping signal)", () => {
     const acc = makeStreamAccumulator(() => 0);
     const use = (name: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name }] } });
     const res = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", is_error: false }] } });
     acc.push(use("find")); acc.push(res);
     acc.push(use("find")); acc.push(res);
     acc.push(use("find"));
-    expect(acc.snapshot().consecutiveTool).toBe(3);   // tool_result가 사이에 와도 연속 카운트
-    acc.push(use("click"));                            // 다른 도구 → 리셋
+    expect(acc.snapshot().consecutiveTool).toBe(3);   // a tool_result in between does not break the run
+    acc.push(use("click"));                            // a different tool resets it
     expect(acc.snapshot().consecutiveTool).toBe(1);
   });
-  it("비밀 페이로드 미보존 (input/text 안 들어감)", () => {
+  it("never stores secret payloads (no input/text kept)", () => {
     const acc = makeStreamAccumulator(() => 0);
     for (const l of lines) acc.push(l);
     const json = JSON.stringify(acc.snapshot());
     expect(json).not.toContain("best1234");
     expect(json).not.toContain("thinking about");
   });
-  it("깨진 줄은 skip, 빈 줄 무시", () => {
+  it("skips broken lines and ignores blank ones", () => {
     const acc = makeStreamAccumulator(() => 0);
     acc.push("not json");
     acc.push("");
     acc.push(lines[4]);
     expect(acc.snapshot().envelope?.result).toContain("PASS");
   });
-  it("result에 비밀이 있어도 trail은 깨끗 (누출면이 envelope.result로 한정)", () => {
+  it("collects permission_denials as tool names only", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    acc.push(JSON.stringify({ type: "result", result: "denied", permission_denials: [
+      { tool_name: "mcp__claude-in-chrome__tabs_context_mcp", tool_use_id: "t1", tool_input: { pw: "best1234" } },
+      { tool_name: "mcp__claude-in-chrome__tabs_create_mcp", tool_use_id: "t2", tool_input: {} },
+    ] }));
+    const s = acc.snapshot();
+    expect(s.deniedTools).toEqual([
+      "mcp__claude-in-chrome__tabs_context_mcp", "mcp__claude-in-chrome__tabs_create_mcp",
+    ]);
+    expect(JSON.stringify(s.deniedTools)).not.toContain("best1234");   // tool_input never stored
+  });
+  it("no permission_denials → empty deniedTools", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    for (const l of lines) acc.push(l);
+    expect(acc.snapshot().deniedTools).toEqual([]);
+  });
+  it("keeps the trail clean even when result holds a secret (the leak surface is envelope.result only)", () => {
     const acc = makeStreamAccumulator(() => 0);
     acc.push(JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "fill" }] } }));
     acc.push(JSON.stringify({ type: "result", result: "password was best1234" }));
     const s = acc.snapshot();
-    expect(JSON.stringify(s.trail)).not.toContain("best1234");   // trail은 도구 이름만
-    expect(s.envelope?.result).toContain("best1234");            // raw는 envelope에만 (하위서 redact)
+    expect(JSON.stringify(s.trail)).not.toContain("best1234");   // the trail holds tool names only
+    expect(s.envelope?.result).toContain("best1234");            // raw lives only on the envelope (redacted downstream)
   });
 });

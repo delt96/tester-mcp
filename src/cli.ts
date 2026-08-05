@@ -19,9 +19,9 @@ import { makeRunId } from "./util/runId.js";
 import { loadGuide } from "./guide/loadGuide.js";
 
 const program = new Command();
-program.name("tester-mcp").description("Opus + Haiku + Chrome screen E2E test orchestrator");
+program.name("tester-mcp").description("Opus (planner) + Sonnet (executor) + Chrome screen E2E test orchestrator");
 
-// [확장5] add report/diff commands here.
+// [ext5] add report/diff commands here.
 program
   .command("run")
   .argument("<scenarios...>", "scenario YAML path(s) (files or directories; multiple allowed)")
@@ -64,6 +64,7 @@ program
         runId,
         targets: { frontend: config.targets.frontend },
         model: config.runner.model,
+        effort: config.runner.effort,
         env,
         resolveValue: (v) => resolveSecrets(v, { secrets }),
         timeoutMs,

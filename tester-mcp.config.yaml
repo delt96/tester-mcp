@@ -1,7 +1,8 @@
 targets:
   frontend: http://localhost:5173
 runner:
-  model: haiku
+  model: sonnet
+  effort: low
   timeout_ms: 900000
   chrome_flags:
     - --chrome

@@ -3,6 +3,30 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
+## [0.5.0]
+
+### Changed
+- **`runner.model` now defaults to `sonnet`.** A haiku executor is denied every
+  claude-in-chrome tool — each call returns "Claude in Chrome requires permission"
+  and the run ends NOT_TESTED — while sonnet and opus pass with byte-identical
+  flags and an identical 42-tool list. Reproduced 9 times, interleaved, across
+  sessions an hour apart, both through the CLI and through a bare `claude -p`.
+  No public doc states a model requirement and the Chrome extension's own UI
+  offers Haiku 4.5, so this is a reproduced observation rather than a documented
+  rule — it may be a bug and may stop applying.
+- All source-level text is English: comments, test descriptions, thrown CLI
+  errors, and the `not_tested_reason` strings written into result JSON.
+
+### Added
+- `runner.effort` (`low` | `medium` | `high` | `xhigh` | `max`) forwards to the
+  executor as `--effort`; omitted leaves the CLI default. It is the cost lever now
+  that the executor runs sonnet: on one measured scenario `low` cut cost 26% and
+  wall time 41% ($0.61→$0.45, 117s→69s) and reached the same verdict.
+- `denied_tools` on the scenario result, plus a `not_tested_reason` that names the
+  real cause when the extension refuses the executor. Previously such runs were
+  reported as "could not parse JSON out of the executor's output", which hid the
+  cause behind a symptom and cost a full debugging session.
+
 ## [0.4.0]
 
 ### Fixed

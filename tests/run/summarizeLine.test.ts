@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { summarizeLine } from "../../src/run/summarizeLine.js";
 
 describe("summarizeLine", () => {
-  it("tool_use → 화살표+이름(접두사 제거)", () => {
+  it("renders tool_use as arrow + name, prefix stripped", () => {
     const l = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "mcp__claude-in-chrome__navigate" }] } });
     expect(summarizeLine(l)).toBe("→ navigate");
   });
@@ -10,11 +10,11 @@ describe("summarizeLine", () => {
     expect(summarizeLine(JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", is_error: false }] } }))).toBe("← ok");
     expect(summarizeLine(JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", is_error: true }] } }))).toBe("✗ error");
   });
-  it("result 이벤트 → ■ RESULT", () => {
+  it("renders a result event as ■ RESULT", () => {
     expect(summarizeLine(JSON.stringify({ type: "result", result: "x" }))).toBe("■ RESULT");
   });
-  it("narration(text만)·system·깨진 줄·빈 줄 → undefined", () => {
-    expect(summarizeLine(JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "생각중" }] } }))).toBeUndefined();
+  it("returns undefined for narration-only text, system events, broken lines and blank lines", () => {
+    expect(summarizeLine(JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "thinking" }] } }))).toBeUndefined();
     expect(summarizeLine(JSON.stringify({ type: "system", subtype: "init" }))).toBeUndefined();
     expect(summarizeLine("not json")).toBeUndefined();
     expect(summarizeLine("")).toBeUndefined();

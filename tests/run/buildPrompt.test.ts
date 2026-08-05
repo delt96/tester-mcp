@@ -12,7 +12,7 @@ const scenario: Scenario = {
 };
 
 describe("localeToLanguageType", () => {
-  it("locale → localStorage value 매핑", () => {
+  it("maps locale to a localStorage value", () => {
     expect(localeToLanguageType("kg")).toBe("lng_type_1");
     expect(localeToLanguageType("ru")).toBe("lng_type_2");
     expect(localeToLanguageType("kr")).toBe("lng_type_3");
@@ -20,7 +20,7 @@ describe("localeToLanguageType", () => {
 });
 
 describe("buildUserPrompt", () => {
-  it("앱 URL + 로케일 고정 + step 체크리스트 포함", () => {
+  it("includes the app URL, the locale pin and the step checklist", () => {
     const p = buildUserPrompt(scenario, { frontend: "http://localhost:5173" }, (v) => v.replace("${secrets.tester.username}", "U"));
     expect(p).toContain("http://localhost:5173");
     expect(p).toContain("lng_type_2");          // locale pin
@@ -28,17 +28,17 @@ describe("buildUserPrompt", () => {
     expect(p).toContain('Fill: [css #userId] ← "U"');   // secrets resolved
     expect(p).toContain("Assert visible: [css #v_header]");
   });
-  it("결과 JSON 방출 지시 포함", () => {
+  it("instructs the executor to emit result JSON", () => {
     const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
     expect(p).toMatch(/JSON/);
     expect(p).toContain("PASS");
   });
-  it("사전해석 target 사용 + don't-grope 지시", () => {
+  it("uses pre-resolved targets and tells the executor not to grope", () => {
     const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
     expect(p).toMatch(/pre-resolved/);
     expect(p).toMatch(/don't grope/);
   });
-  it("assert_value의 기대값도 secret 해석된다 (fill과 동일)", () => {
+  it("resolves secrets in an assert_value expectation too, same as fill", () => {
     const sc: Scenario = {
       id: "x", title: "x", locale: "ru",
       steps: [{ action: "assert_value", target: { css: "#userId" }, value: "${secrets.tester.username}" }],
@@ -46,7 +46,7 @@ describe("buildUserPrompt", () => {
     const p = buildUserPrompt(sc, { frontend: "http://x" }, (v) => v.replace("${secrets.tester.username}", "U"));
     expect(p).toContain('Assert value: [css #userId] == "U"');
   });
-  it("ephemeral 시나리오면 즉시-단일-체크 지시 주입", () => {
+  it("injects the check-once-immediately rule for an ephemeral scenario", () => {
     const eph = { ...scenario, ephemeral: true };
     const p = buildUserPrompt(eph, { frontend: "http://x" }, (v) => v);
     expect(p).toMatch(/ephemeral/i);
@@ -56,37 +56,37 @@ describe("buildUserPrompt", () => {
 });
 
 describe("SYSTEM_CONTRACT", () => {
-  it("4종 라벨 + 안전규칙(시나리오 외 동작 금지)", () => {
+  it("carries the four labels and the safety rule against acting outside the scenario", () => {
     expect(SYSTEM_CONTRACT).toContain("NOT_TESTED");
     expect(SYSTEM_CONTRACT).toMatch(/outside the scenario/i);
   });
-  it("셀렉터 우선 + 더듬기 금지", () => {
+  it("puts the selector first and forbids groping", () => {
     expect(SYSTEM_CONTRACT).toMatch(/selector/i);
     expect(SYSTEM_CONTRACT).toMatch(/grope/i);
   });
-  it("전체 페이지 읽기 금지", () => {
+  it("forbids full-page reads", () => {
     expect(SYSTEM_CONTRACT).toContain("read_page");
   });
-  it("1회 시도 후 즉시 자가종료", () => {
+  it("self-bails immediately after one attempt", () => {
     expect(SYSTEM_CONTRACT).toMatch(/once|one attempt/i);
   });
-  it("같은 find 반복(groping) 금지 + 런타임 kill 경고", () => {
+  it("forbids repeating the same find (groping) and warns about the runtime kill", () => {
     expect(SYSTEM_CONTRACT).toMatch(/groping/i);
   });
-  it("handoff_notes를 핑퐁 연료로 요구", () => {
+  it("requires handoff_notes as fuel for the ping-pong", () => {
     expect(SYSTEM_CONTRACT).toContain("handoff_notes");
   });
-  it("assert_value 평가법 명시 (요소 값 읽어 정확 비교)", () => {
+  it("spells out how assert_value is evaluated: read the value, compare exactly", () => {
     expect(SYSTEM_CONTRACT).toMatch(/assert_value/);
     expect(SYSTEM_CONTRACT).toMatch(/\.value/);
   });
-  it("per-tab 디스플린: 자기 tab_id만 조작 (병렬 안전)", () => {
+  it("per-tab discipline: act only on your own tab_id, so parallel runs are safe", () => {
     expect(SYSTEM_CONTRACT).toContain("tab_id");
     expect(SYSTEM_CONTRACT).toMatch(/tab isolation/i);
     expect(SYSTEM_CONTRACT).toMatch(/tab mix-up/i);
     expect(SYSTEM_CONTRACT).toContain("tabs_create_mcp");   // force a new tab, no reuse
   });
-  it("스크린샷 best-effort·비차단 + ephemeral 정책", () => {
+  it("screenshots are best-effort and non-blocking, plus the ephemeral policy", () => {
     expect(SYSTEM_CONTRACT).toMatch(/best-effort|evidence only/i);
     expect(SYSTEM_CONTRACT).toMatch(/re-capturing|loop/i);
     expect(SYSTEM_CONTRACT).toMatch(/ephemeral/i);

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { KNOWN_ACTIONS, isKnownAction, describeTarget, renderStep } from "../../src/scenario/actions.js";
 
 describe("describeTarget", () => {
-  it("제공된 모든 전략을 우선순위 순서로 합친다", () => {
+  it("joins every provided strategy in priority order", () => {
     expect(describeTarget({ css: "#userId", placeholder: "ИНН" }))
       .toBe('css #userId / placeholder "ИНН"');
     expect(describeTarget({ text: "Sign In", role: "button" }))
@@ -12,16 +12,16 @@ describe("describeTarget", () => {
 });
 
 describe("actions registry", () => {
-  it("화면 액션 7종을 안다", () => {
+  it("knows the seven screen actions", () => {
     expect([...KNOWN_ACTIONS].sort()).toEqual(
       ["assert_value", "assert_visible", "click", "fill", "navigate", "screenshot", "wait_for"]
     );
   });
-  it("미등록 액션은 모른다", () => {
+  it("does not know an unregistered action", () => {
     expect(isKnownAction("assert_toast")).toBe(false);
     expect(isKnownAction("click")).toBe(true);
   });
-  it("step을 지시문으로 렌더한다", () => {
+  it("renders a step as an instruction line", () => {
     expect(renderStep({ action: "navigate", url: "/" })).toBe("Navigate: /");
     expect(renderStep({ action: "fill", target: { css: "#userId" }, value: "u1" }))
       .toBe('Fill: [css #userId] ← "u1"');

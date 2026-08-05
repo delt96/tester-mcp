@@ -15,22 +15,22 @@ beforeAll(() => {
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 describe("expandScenarioPaths", () => {
-  it("디렉토리 → 정렬된 .yaml/.yml만", () => {
+  it("expands a directory to sorted .yaml/.yml files only", () => {
     const out = expandScenarioPaths([dir]);
     expect(out.map((p) => p.replace(/.*[\\/]/, ""))).toEqual(["a.yml", "b.yaml"]);
   });
-  it("개별 파일은 그대로", () => {
+  it("passes individual files through unchanged", () => {
     const f = join(dir, "b.yaml");
     expect(expandScenarioPaths([f])).toEqual([f]);
   });
-  it("중복 제거", () => {
+  it("removes duplicates", () => {
     const f = join(dir, "b.yaml");
     expect(expandScenarioPaths([f, f])).toEqual([f]);
   });
-  it("없는 경로면 에러", () => {
+  it("throws on a missing path", () => {
     expect(() => expandScenarioPaths([join(dir, "nope.yaml")])).toThrow(/scenario path not found/);
   });
-  it("시나리오 없는 디렉토리면 에러", () => {
+  it("throws on a directory with no scenarios", () => {
     expect(() => expandScenarioPaths([join(dir, "empty")])).toThrow(/no scenarios/);
   });
 });

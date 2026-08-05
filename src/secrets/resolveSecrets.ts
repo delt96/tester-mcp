@@ -14,7 +14,7 @@ export function resolveSecrets(value: string, opts: ResolveOpts = {}): string {
     const key = "SECRET_" + path.replace(/\./g, "_").toUpperCase();
     const v = env[key];
     if (v === undefined)
-      throw new Error(`시크릿 누락: ${path} (tester-mcp.secrets.yaml 의 ${path} 또는 env ${key})`);
+      throw new Error(`missing secret: ${path} (set ${path} in tester-mcp.secrets.yaml, or env ${key})`);
     return String(v);
   });
 }

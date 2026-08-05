@@ -2,21 +2,21 @@ import { describe, it, expect } from "vitest";
 import { parseExecutorResult } from "../../src/result/parseExecutorResult.js";
 
 describe("parseExecutorResult (lenient)", () => {
-  it("코드펜스 안 JSON 추출", () => {
-    const t = '설명\n```json\n{"status":"PASS","evidence":["#v_header 보임"]}\n```';
+  it("extracts JSON from inside a code fence", () => {
+    const t = 'prose\n```json\n{"status":"PASS","evidence":["#v_header visible"]}\n```';
     const r = parseExecutorResult(t);
     expect(r.status).toBe("PASS");
-    expect(r.evidence).toEqual(["#v_header 보임"]);
+    expect(r.evidence).toEqual(["#v_header visible"]);
   });
-  it("순수 JSON도 파싱", () => {
+  it("parses bare JSON too", () => {
     expect(parseExecutorResult('{"status":"FAIL"}').status).toBe("FAIL");
   });
-  it("파싱 불가 시 NOT_TESTED + 원문 보존", () => {
-    const r = parseExecutorResult("자연어만 있음");
+  it("falls back to NOT_TESTED and keeps the raw text when parsing fails", () => {
+    const r = parseExecutorResult("prose only, no JSON");
     expect(r.status).toBe("NOT_TESTED");
-    expect(r.raw_executor_text).toContain("자연어");
+    expect(r.raw_executor_text).toContain("prose only");
   });
-  it("status 4종 외면 NOT_TESTED 강등", () => {
+  it("demotes to NOT_TESTED when status is not one of the four labels", () => {
     expect(parseExecutorResult('{"status":"OK"}').status).toBe("NOT_TESTED");
   });
 });

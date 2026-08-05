@@ -2,40 +2,48 @@ import { describe, it, expect } from "vitest";
 import { buildExecutorArgs } from "../../src/run/buildExecutorArgs.js";
 
 describe("buildExecutorArgs", () => {
-  it("claude -p 인자 합성", () => {
+  it("assembles the claude -p arguments", () => {
     const a = buildExecutorArgs({ prompt: "P", systemPrompt: "S", model: "haiku" });
     expect(a.slice(0, 2)).toEqual(["-p", "P"]);
     for (const f of ["--chrome", "--model", "haiku", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "--dangerously-skip-permissions", "--no-session-persistence"])
       expect(a).toContain(f);
-    expect(a).not.toContain("--json-schema");   // [확장4] 이 슬라이스 제외
-    expect(a).not.toContain("--bare");           // 실측: --bare는 auth 끊김("Not logged in")
+    expect(a).not.toContain("--json-schema");   // [ext4] out of scope for this slice
+    expect(a).not.toContain("--bare");           // measured: --bare breaks auth ("Not logged in")
   });
 
-  it("최소 컨텍스트 로드: 비사용 MCP 제거 + 캐시 친화 플래그", () => {
+  it("loads minimal context: drops unused MCP servers, keeps cache-friendly flags", () => {
     const a = buildExecutorArgs({ prompt: "P", systemPrompt: "S", model: "haiku" });
-    // --strict-mcp-config + 빈 --mcp-config: chrome은 --chrome이 제공하므로 살아있고,
-    // obsidian/alarm 등 사용자 MCP 서버는 제거됨 (실측: chrome 툴 정상 동작 확인).
+    // --strict-mcp-config + empty --mcp-config: chrome still arrives via --chrome,
+    // while user MCP servers (obsidian/alarm/...) are dropped (measured: chrome tools still work).
     expect(a).toContain("--strict-mcp-config");
     const mi = a.indexOf("--mcp-config");
     expect(mi).toBeGreaterThan(-1);
     expect(JSON.parse(a[mi + 1])).toEqual({ mcpServers: {} });
-    // 머신별 섹션을 첫 user 메시지로 이동 → 프로세스 간 프롬프트 캐시 재사용↑
+    // move per-machine sections into the first user message -> better cross-process prompt-cache reuse
     expect(a).toContain("--exclude-dynamic-system-prompt-sections");
   });
 
-  it("격리: 호스트 CLAUDE.md/훅/스킬 하이재킹 차단 (실측 검증된 플래그)", () => {
+  it("passes --effort when set, omits it otherwise", () => {
+    const withEffort = buildExecutorArgs({ prompt: "P", systemPrompt: "S", model: "sonnet", effort: "low" });
+    const ei = withEffort.indexOf("--effort");
+    expect(ei).toBeGreaterThan(-1);
+    expect(withEffort[ei + 1]).toBe("low");
+    expect(buildExecutorArgs({ prompt: "P", systemPrompt: "S", model: "sonnet" })).not.toContain("--effort");
+  });
+
+  it("isolation: blocks host CLAUDE.md / hooks / skills hijacking (flags verified live)", () => {
     const a = buildExecutorArgs({ prompt: "P", systemPrompt: "S", model: "haiku" });
-    // 스킬 비활성 (Skill 호출 차단)
+    // skills off (no Skill invocation)
     expect(a).toContain("--disable-slash-commands");
-    // project/local 설정 미로드
+    // project/local settings not loaded
     const si = a.indexOf("--setting-sources");
     expect(si).toBeGreaterThan(-1);
     expect(a[si + 1]).toBe("user");
-    // 훅 비활성 (SessionStart superpowers 훅 차단)
+    // hooks off (blocks the SessionStart superpowers hook)
     const sj = a.indexOf("--settings");
     expect(sj).toBeGreaterThan(-1);
     expect(JSON.parse(a[sj + 1])).toEqual({ disableAllHooks: true });
-    // 방랑 도구 하드 차단 (Task/Bash/Write/Edit/Read 등)
+    // hard-deny the wandering tools (Task/Bash/Write/Edit/Read etc.)
     const di = a.indexOf("--disallowedTools");
     expect(di).toBeGreaterThan(-1);
     for (const t of ["Skill", "Task", "Bash", "Write", "Edit", "Read"])

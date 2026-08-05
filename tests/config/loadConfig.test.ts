@@ -10,21 +10,31 @@ runner:
 `;
 
 describe("parseConfig", () => {
-  it("설정 YAML 파싱", () => {
+  it("parses the config YAML", () => {
     const c = parseConfig(YAML);
     expect(c.targets.frontend).toBe("http://localhost:5173");
     expect(c.runner.model).toBe("haiku");
   });
-  it("model 미지정 시 기본 haiku", () => {
-    expect(parseConfig("project: x\ntargets:\n  frontend: http://x").runner.model).toBe("haiku");
+  it("defaults to sonnet — haiku executors are denied chrome tools", () => {
+    expect(parseConfig("project: x\ntargets:\n  frontend: http://x").runner.model).toBe("sonnet");
   });
-  it("frontend 없으면 에러", () => {
+  it("parses runner.effort", () => {
+    expect(parseConfig("targets:\n  frontend: http://x\nrunner:\n  effort: low").runner.effort).toBe("low");
+  });
+  it("effort is undefined when unset (CLI default applies)", () => {
+    expect(parseConfig(YAML).runner.effort).toBeUndefined();
+  });
+  it("rejects an unknown effort level", () => {
+    expect(() => parseConfig("targets:\n  frontend: http://x\nrunner:\n  effort: turbo"))
+      .toThrow(/effort/);
+  });
+  it("throws when frontend is missing", () => {
     expect(() => parseConfig("project: x")).toThrow(/frontend/);
   });
-  it("timeout_ms 미지정 시 기본 300000(5분)", () => {
+  it("defaults timeout_ms to 300000 (5 min)", () => {
     expect(parseConfig(YAML).runner.timeout_ms).toBe(300000);
   });
-  it("timeout_ms 설정값 사용", () => {
+  it("uses the configured timeout_ms", () => {
     expect(parseConfig("targets:\n  frontend: http://x\nrunner:\n  timeout_ms: 60000").runner.timeout_ms).toBe(60000);
   });
 });

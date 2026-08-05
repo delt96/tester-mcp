@@ -1,4 +1,4 @@
-// [확장6] target multi-strategy. testid omitted (this project has none — verified).
+// [ext6] target multi-strategy. testid omitted (this project has none — verified).
 export interface Target {
   css?: string;
   placeholder?: string;
@@ -10,7 +10,7 @@ export interface Target {
 
 export type Locale = "kg" | "ru" | "kr";
 
-// [확장1] Screen-only actions for this slice. Widen later (assert_toast/assert_api).
+// [ext1] Screen-only actions for this slice. Widen later (assert_toast/assert_api).
 export type Step =
   | { action: "navigate"; url: string }
   | { action: "fill"; target: Target; value: string }

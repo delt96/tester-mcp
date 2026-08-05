@@ -12,7 +12,7 @@ export function describeTarget(t: Target): string {
   return parts.join(" / ") || "(no target)";
 }
 
-// [확장1] Single source of truth for actions + prompt rendering.
+// [ext1] Single source of truth for actions + prompt rendering.
 const RENDERERS: Record<ActionName, (s: any) => string> = {
   navigate: (s) => `Navigate: ${s.url}`,
   fill: (s) => `Fill: [${describeTarget(s.target)}] ← "${s.value}"`,

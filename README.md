@@ -1,6 +1,6 @@
 # @delt/tester-mcp
 
-Opus (planner) + Haiku (executor) + Chrome screen E2E test orchestrator.
+Opus (planner) + Sonnet (executor) + Chrome screen E2E test orchestrator.
 The CLI spawns `claude -p --chrome` per scenario and reports one of four labels:
 PASS / PARTIAL / FAIL / NOT_TESTED.
 

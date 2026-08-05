@@ -17,9 +17,9 @@ function extractJson(text: string): any | null {
 export function parseExecutorResult(resultText: string): PartialResult {
   const obj = extractJson(resultText);
   if (!obj || typeof obj !== "object")
-    return { status: "NOT_TESTED", not_tested_reason: "executor 출력 JSON 파싱 실패", raw_executor_text: resultText };
+    return { status: "NOT_TESTED", not_tested_reason: "could not parse JSON out of the executor's output", raw_executor_text: resultText };
   if (!STATUSES.includes(obj.status))
-    return { status: "NOT_TESTED", not_tested_reason: `status 라벨이 4종 아님: ${String(obj.status)}`, raw_executor_text: resultText };
+    return { status: "NOT_TESTED", not_tested_reason: `status is not one of the four labels: ${String(obj.status)}`, raw_executor_text: resultText };
   return {
     status: obj.status,
     evidence: Array.isArray(obj.evidence) ? obj.evidence : undefined,

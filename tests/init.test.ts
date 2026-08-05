@@ -4,7 +4,7 @@ import { renderConfigYaml, skillsDirFor, secretsExampleYaml, skillAssetNames } f
 import { parse as parseYaml } from "yaml";
 
 describe("renderConfigYaml", () => {
-  it("frontend + model 만 있을 때 backend/project/language 없이 생성", () => {
+  it("emits only frontend + model when backend/project/language are absent", () => {
     const yaml = renderConfigYaml({ frontend: "http://localhost:5173", model: "haiku" });
     const parsed = parseYaml(yaml) as any;
     expect(parsed).toEqual({
@@ -14,7 +14,7 @@ describe("renderConfigYaml", () => {
     expect(yaml).not.toMatch(/project:/);
     expect(yaml).not.toMatch(/language:/);
   });
-  it("backend가 있으면 targets.backend 포함", () => {
+  it("includes targets.backend when a backend is given", () => {
     const yaml = renderConfigYaml({
       frontend: "http://localhost:5173",
       backend: "http://localhost:8081",
@@ -49,11 +49,11 @@ describe("skillAssetNames", () => {
 });
 
 describe("secretsExampleYaml", () => {
-  it("tester만 라이브 블록 (주석 계정은 파싱에 안 잡힘)", () => {
+  it("keeps only tester live — commented-out accounts do not parse", () => {
     const parsed = parseYaml(secretsExampleYaml()) as any;
     expect(parsed).toEqual({ tester: { username: "YOUR_ID", password: "YOUR_PASSWORD" } });
   });
-  it("다중 계정 컨벤션을 주석으로 안내", () => {
+  it("documents the multi-account convention in a comment", () => {
     const raw = secretsExampleYaml();
     expect(raw).toMatch(/\$\{secrets\.<account>\.username\}/);
     expect(raw).toContain("# admin:");

@@ -14,12 +14,12 @@ const result: ScenarioResult = {
 };
 
 describe("writeResult", () => {
-  it("runs/<runId>/<scenario>.json 작성", () => {
+  it("writes runs/<runId>/<scenario>.json", () => {
     dir = mkdtempSync(join(tmpdir(), "be2e-"));
     const p = writeScenarioResult(dir, result);
     expect(JSON.parse(readFileSync(p, "utf8")).status).toBe("PASS");
   });
-  it("summary.json 집계", () => {
+  it("aggregates summary.json", () => {
     dir = mkdtempSync(join(tmpdir(), "be2e-"));
     const s = JSON.parse(readFileSync(writeSummary(dir, "RID", "2026-05-26T00:00:00Z", [result]), "utf8"));
     expect(s.total).toBe(1); expect(s.by_status.PASS).toBe(1);

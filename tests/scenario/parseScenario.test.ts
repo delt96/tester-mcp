@@ -3,7 +3,7 @@ import { parseScenario, parseScenarioObject } from "../../src/scenario/parseScen
 
 const YAML = `
 id: login-success
-title: 로그인 성공
+title: login succeeds
 locale: ru
 login_as: tester
 on_failure: stop
@@ -21,7 +21,7 @@ steps:
 `;
 
 describe("parseScenario", () => {
-  it("YAML을 Scenario로 파싱한다", () => {
+  it("parses YAML into a Scenario", () => {
     const s = parseScenario(YAML);
     expect(s.id).toBe("login-success");
     expect(s.locale).toBe("ru");
@@ -29,18 +29,18 @@ describe("parseScenario", () => {
     expect(s.steps[0]).toEqual({ action: "navigate", url: "/" });
     expect((s.steps[1] as any).target).toEqual({ css: "#userId", placeholder: "ИНН" });
   });
-  it("id/title/steps 누락 시 에러", () => {
+  it("throws when id/title/steps are missing", () => {
     expect(() => parseScenario("title: x")).toThrow(/id/);
   });
-  it("미등록 액션이면 에러", () => {
+  it("throws on an unregistered action", () => {
     expect(() => parseScenario("id: a\ntitle: b\nsteps:\n  - action: assert_toast"))
       .toThrow(/assert_toast/);
   });
-  it("id에 경로 문자가 있으면 거부 (path injection 방지)", () => {
+  it("rejects an id containing path characters (blocks path injection)", () => {
     expect(() => parseScenario("id: ../../etc/x\ntitle: t\nsteps: []")).toThrow(/id/);
     expect(() => parseScenario("id: a/b\ntitle: t\nsteps: []")).toThrow(/id/);
   });
-  it("ephemeral 플래그 파싱 (기본 false)", () => {
+  it("parses the ephemeral flag (defaults to false)", () => {
     const minStep = "steps:\n  - action: navigate\n    url: /";
     expect(parseScenario(`id: a\ntitle: t\n${minStep}`).ephemeral).toBe(false);
     expect(parseScenario(`id: a\ntitle: t\nephemeral: true\n${minStep}`).ephemeral).toBe(true);

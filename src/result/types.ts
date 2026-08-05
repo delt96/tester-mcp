@@ -10,6 +10,7 @@ export interface ScenarioResult {
   steps: StepResult[]; environment: Environment;
   handoff_notes?: string; raw_executor_text?: string;
   last_tool?: string; tool_count?: number; executor_log?: string;
+  denied_tools?: string[];
 }
 export interface RunSummary {
   run_id: string; started_at: string; total: number;

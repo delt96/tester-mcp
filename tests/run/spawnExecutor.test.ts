@@ -14,14 +14,14 @@ const resultLine = JSON.stringify({ type: "result", result: '{"status":"PASS"}',
 const toolLine = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "navigate" }] } });
 
 describe("parseEnvelope", () => {
-  it("JSON envelope 파싱, 실패 시 raw", () => {
+  it("parses the JSON envelope, falling back to raw", () => {
     expect(parseEnvelope('{"result":"R"}').result).toBe("R");
     expect(parseEnvelope("plain").result).toBe("plain");
   });
 });
 
 describe("spawnExecutor (streaming)", () => {
-  it("정상 종료: envelope + state 반환, 각 줄 로그", async () => {
+  it("clean exit: returns envelope + state and logs every line", async () => {
     const logged: string[] = [];
     const r = await spawnExecutor(
       { prompt: "P", systemPrompt: "S", model: "haiku" },
@@ -33,13 +33,13 @@ describe("spawnExecutor (streaming)", () => {
     expect(logged.length).toBe(2);
   });
 
-  it("스톨: 무이벤트 stallMs 초과 시 kill + killedReason='stall', trail 보존", async () => {
+  it("stall: kills after stallMs with no events, sets killedReason='stall', keeps the trail", async () => {
     let killed: string | undefined;
     const spawner: StreamSpawner = (_c, _a, h) => {
-      h.onLine(toolLine);                       // 하나만 오고 침묵
+      h.onLine(toolLine);                       // one line, then silence
       return { kill: (sig) => { killed = sig; h.onClose(null, sig); } };
     };
-    const now = (() => { let t = 0; return () => (t += 1000); })(); // 매 호출 +1s
+    const now = (() => { let t = 0; return () => (t += 1000); })(); // +1s per call
     const r = await spawnExecutor(
       { prompt: "P", systemPrompt: "S", model: "haiku" },
       { spawner, logLine: () => {}, now, stallMs: 1500, tickMs: 1 }
@@ -50,11 +50,11 @@ describe("spawnExecutor (streaming)", () => {
     expect(r.envelope).toBeUndefined();
   });
 
-  it("hung child(SIGTERM 무시): SIGKILL 에스컬레이션 + 강제 resolve, trail 보존", async () => {
+  it("hung child ignoring SIGTERM: escalates to SIGKILL, force-resolves, keeps the trail", async () => {
     const sigs: string[] = [];
     const spawner: StreamSpawner = (_c, _a, h) => {
-      h.onLine(toolLine);                       // 한 줄 오고 영원히 침묵 (close 안 함)
-      return { kill: (s) => { sigs.push(s); } }; // 시그널 무시 → close 안 일어남
+      h.onLine(toolLine);                       // one line, then silence forever (never closes)
+      return { kill: (s) => { sigs.push(s); } }; // signals ignored -> close never fires
     };
     const now = (() => { let t = 0; return () => (t += 1000); })();
     const r = await spawnExecutor(
@@ -64,15 +64,15 @@ describe("spawnExecutor (streaming)", () => {
     expect(sigs).toContain("SIGTERM");
     expect(sigs).toContain("SIGKILL");
     expect(r.killedReason).toBe("stall");
-    expect(r.state.lastTool).toBe("navigate");   // 강제 resolve여도 trail 남음
+    expect(r.state.lastTool).toBe("navigate");   // the trail survives a forced resolve
     expect(r.envelope).toBeUndefined();
   });
 
-  it("groping: 같은 도구를 gropingLimit회 연속 호출하면 kill + killedReason='groping' (이벤트가 계속 흘러 stall엔 안 걸려도)", async () => {
+  it("groping: kills after gropingLimit back-to-back calls of the same tool, even though events keep flowing so stall never fires", async () => {
     let killed: string | undefined;
     const findLine = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "find" }] } });
     const spawner: StreamSpawner = (_c, _a, h) => {
-      for (let i = 0; i < 8; i++) h.onLine(findLine);   // 같은 find 8회 — 이벤트는 계속 흐름
+      for (let i = 0; i < 8; i++) h.onLine(findLine);   // the same find 8 times — events keep flowing
       return { kill: (sig) => { killed = sig; h.onClose(null, sig); } };
     };
     const r = await spawnExecutor(
@@ -85,7 +85,7 @@ describe("spawnExecutor (streaming)", () => {
     expect(r.envelope).toBeUndefined();
   });
 
-  it("정상 교대 호출은 groping으로 오인하지 않는다", async () => {
+  it("does not mistake normal alternating calls for groping", async () => {
     const a = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "find" }] } });
     const b = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "click" }] } });
     const r = await spawnExecutor(
@@ -96,10 +96,10 @@ describe("spawnExecutor (streaming)", () => {
     expect(r.envelope?.result).toBe('{"status":"PASS"}');
   });
 
-  it("하드 타임아웃: timeoutMs 초과 → killedReason='timeout'", async () => {
+  it("hard timeout: exceeding timeoutMs sets killedReason='timeout'", async () => {
     const spawner: StreamSpawner = (_c, _a, h) => {
       h.onLine(toolLine);
-      return { kill: () => h.onClose(null, "SIGTERM") }; // SIGTERM에 정상 종료
+      return { kill: () => h.onClose(null, "SIGTERM") }; // exits cleanly on SIGTERM
     };
     const r = await spawnExecutor(
       { prompt: "P", systemPrompt: "S", model: "haiku" },
