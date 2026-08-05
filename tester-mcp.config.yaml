@@ -10,4 +10,5 @@ runner:
 vars:
   billmng_cmt_doc_a: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8eb5a0fd-372e-471f-b876-c74c9e450177&taskId=13173"
   billmng_cmt_doc_b: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_8067fc85-2385-473d-9efa-b7991bfafc22&taskId=13300"
-  legalact_doc_url: "/main/billMng/legalActMng/billMng/Dtl?id=EB_126d83ed-4b5a-4c41-8a07-cddc5abcbe4d&taskId=13184"
+  # LEGAL_ACTION(1900) 진행중 + result_doc 없음. 이전 EB_126d83ed/13184는 2026-07-27 완료되어 GOVERNMENT_DECISION으로 넘어감
+  legalact_doc_url: "/main/billMng/legalActMng/billMng/Dtl?id=EB_3c267ff1-5ff4-48b8-aec0-1f54dd864fb6&taskId=13612"
