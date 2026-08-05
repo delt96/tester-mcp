@@ -11,9 +11,11 @@ precondition: >
   ★ 이번 Phase의 핵심은 **댓글 작성과 이행 완료의 분리**다. 이 시나리오는 댓글만 쓰고
   이행완료 버튼은 누르지 않는다. 실행 후 팀장이 DB로 work_status가 WS01 그대로이고
   rspns_dtm이 여전히 null인지 확인한다 — 그것이 분리가 성립했다는 증거다.
-  ★ 이행완료 버튼은 이제 **작성자·서명자에게만** 노출된다. work_req 1444는 reg_id=25,
-  signer_id=NULL이고 gduser1은 user_id=9(이행자)이므로 버튼이 보이지 않는 것이 정상이다.
-  DSL에 부정 단언이 없어 스크린샷 01로 육안 확인한다.
+  ★ 이행완료 버튼은 **작성자·서명자·그 문서의 수신자**에게 노출된다(2026-08-05 수신자 추가).
+  work_req 1444는 reg_id=25, signer_id=NULL이고 gduser1은 user_id=9(이행자)다. 이행자라는
+  사실만으로는 버튼이 안 뜨지만, **gduser1이 그 문서의 eas_received_info 행을 가지면 이제 뜬다**
+  (참조 수신 포함). DB 미확인이므로 스크린샷 01에 버튼이 보이더라도 회귀로 단정하지 말 것 —
+  수신 행 유무를 먼저 확인해야 한다. DSL에 부정 단언이 없어 육안 확인에 의존한다.
   파괴적 — 실제 댓글 1건이 생성된다(eas_work_comment).
 steps:
   - { action: navigate, url: "/main/letter/executionInbox" }
@@ -23,7 +25,7 @@ steps:
 
   # C2 — 댓글 입력은 토글 없이 항상 노출된다
   - { action: assert_visible, target: { css: ".right_top_area .comment_area textarea", description: "★ 댓글 입력창 — isWrite 토글 없이 항상 노출(C2)" } }
-  - { action: screenshot, name: "01-card-with-comment-input", description: "★ 이행자 시야 — 댓글 입력창은 있고 이행완료 버튼(t10481)은 없어야 한다" }
+  - { action: screenshot, name: "01-card-with-comment-input", description: "★ 이행자 시야 — 댓글 입력창 노출 확인. 이행완료 버튼(t10481)은 gduser1이 이 문서의 수신자가 아닐 때만 없다(precondition 참조)" }
 
   - { action: fill, target: { css: ".right_top_area .comment_area textarea", description: "댓글 내용" }, value: "Phase3 댓글 전이없음 검증" }
   - { action: click, target: { css: ".right_top_area .comment_area .write_area button.btn_outline_neutral", description: "등록(t10103) → POST /eas/workComment" } }
