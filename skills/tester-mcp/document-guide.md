@@ -105,6 +105,11 @@ A scenario is one YAML file. Fields:
 - `navigate` — `{ action: navigate, url: "/path" }` (relative to `targets.frontend`).
 - `fill` — `{ action: fill, target: <target>, value: "..." }`.
 - `click` — `{ action: click, target: <target> }`.
+- `double_click` — `{ action: double_click, target: <target> }`. Maps to the browser tool's
+  `double_click`. Use it for grid rows that open a detail/form view on double-click, where a single
+  click only selects the row. Do not express this as a `click` with a "double-click it" `description`:
+  that leaves the choice to the executor, which may issue a single `left_click` and then report on a
+  screen it never opened.
 - `wait_for` — `{ action: wait_for, target: <target> }`.
 - `assert_visible` — `{ action: assert_visible, target: <target> }`. Presence/visibility ONLY — it
   does not check content. An input is always "visible", so this can't tell you a value was restored.

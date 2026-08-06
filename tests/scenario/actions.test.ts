@@ -12,9 +12,9 @@ describe("describeTarget", () => {
 });
 
 describe("actions registry", () => {
-  it("knows the seven screen actions", () => {
+  it("knows the eight screen actions", () => {
     expect([...KNOWN_ACTIONS].sort()).toEqual(
-      ["assert_value", "assert_visible", "click", "fill", "navigate", "screenshot", "wait_for"]
+      ["assert_value", "assert_visible", "click", "double_click", "fill", "navigate", "screenshot", "wait_for"]
     );
   });
   it("does not know an unregistered action", () => {
@@ -29,5 +29,9 @@ describe("actions registry", () => {
       .toBe("Assert visible: [css #v_header]");
     expect(renderStep({ action: "assert_value", target: { css: "#title" }, value: "Draft 1" }))
       .toBe('Assert value: [css #title] == "Draft 1"');
+  });
+  it("renders double_click as a distinct instruction from click", () => {
+    expect(renderStep({ action: "double_click", target: { css: "tbody > tr" } }))
+      .toBe("Double-click: [css tbody > tr]");
   });
 });

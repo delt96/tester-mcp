@@ -15,7 +15,7 @@ steps:
   - { action: wait_for, target: { ref: datatable, description: "등록 대기 DataTable" } }
 
   # 2) 더블클릭 진입 → 임시저장
-  - { action: click, target: { css: ".p-datatable-tbody > tr:has(button.v_btn.btn_outline_primary.btn_sm)", description: "등록대기 행을 **마우스 더블클릭(double_click)** — 등록 폼으로 이동" } }
+  - { action: double_click, target: { css: ".p-datatable-tbody > tr:has(button.v_btn.btn_outline_primary.btn_sm)", description: "등록대기 행 — 더블클릭 시 등록 폼으로 이동" } }
   - { action: wait_for, target: { css: ".ext_doc_card", description: "등록요청문서 지정 카드 — 폼 진입 확인" } }
   - { action: click, target: { ref: btn_outline_md, text: "임시저장", description: "[임시저장](10998) 버튼 — 저장 후 등록 대기 리스트로 자동 이동" } }
   - { action: wait_for, target: { ref: datatable, description: "등록 대기 DataTable 복귀" } }

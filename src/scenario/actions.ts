@@ -17,6 +17,7 @@ const RENDERERS: Record<ActionName, (s: any) => string> = {
   navigate: (s) => `Navigate: ${s.url}`,
   fill: (s) => `Fill: [${describeTarget(s.target)}] ← "${s.value}"`,
   click: (s) => `Click: [${describeTarget(s.target)}]${s.destructive ? " (destructive)" : ""}`,
+  double_click: (s) => `Double-click: [${describeTarget(s.target)}]`,
   wait_for: (s) => `Wait for: [${describeTarget(s.target)}] to appear${s.timeout_ms ? ` (${s.timeout_ms}ms)` : ""}`,
   assert_visible: (s) => `Assert visible: [${describeTarget(s.target)}]`,
   assert_value: (s) => `Assert value: [${describeTarget(s.target)}] == "${s.value}"`,

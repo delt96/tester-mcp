@@ -86,6 +86,10 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toMatch(/tab mix-up/i);
     expect(SYSTEM_CONTRACT).toContain("tabs_create_mcp");   // force a new tab, no reuse
   });
+  it("pins a Double-click step to the computer tool's double_click action", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/Double-click/);
+    expect(SYSTEM_CONTRACT).toContain("double_click");
+  });
   it("screenshots are best-effort and non-blocking, plus the ephemeral policy", () => {
     expect(SYSTEM_CONTRACT).toMatch(/best-effort|evidence only/i);
     expect(SYSTEM_CONTRACT).toMatch(/re-capturing|loop/i);
