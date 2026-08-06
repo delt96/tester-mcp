@@ -1,0 +1,21 @@
+id: gvrn-trsf-sign-pending-badge
+title: 정부이송 예정 — 내 서명 대기 카운트(사이드바 뱃지) + 목록 '내 차례' 배지
+locale: ru
+login_as: lgactuser
+precondition: >
+  DB 사전 세팅 전제: bill EB_5dc09664(6-6925/26)가 WS02(서명 진행중)이고,
+  서명 2순위가 legalactuser(EPH 20) = SS02(내 차례), 1순위는 SS03(서명완료)이라 진행률은 1/2.
+  API로 count=1 / myTurnYn=Y 확인 완료 상태에서 화면 렌더만 검증한다.
+  사이드바 카운트는 com_menu 149(정부이송 예정) 항목의 li[data-menu-key='149'] 안 span에 숫자로 표시된다.
+  0이면 빈 문자열이라 숫자가 보이면 곧 카운트 API가 호출·반영됐다는 뜻.
+  읽기 전용 시나리오 — 서명/수정요청 버튼은 누르지 않는다(누르면 SS02가 소모되어 재현 데이터가 사라진다).
+steps:
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "정부이송 예정 목록 테이블 렌더" } }
+  - { action: assert_visible, target: { css: "#v_sidebar .depth2 li[data-menu-key='149']", description: "사이드바 2단 '정부이송 예정' 항목(com_menu 149)" } }
+  - { action: assert_value, target: { css: "#v_sidebar .depth2 li[data-menu-key='149'] span", description: "사이드바 뱃지 카운트 숫자 — setGvrnTrsfSignCount()가 채운 alarm[149]" }, value: "1" }
+  - { action: screenshot, name: "sidebar-badge-1" }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "6-6925/26", description: "SS02 대상 의안 행" } }
+  - { action: assert_visible, target: { css: ".badge-myturn", description: "목록 상태 컬럼의 '내 차례' 배지 — myTurnYn='Y'인 행에만" } }
+  - { action: assert_value, target: { css: ".badge-myturn", description: "배지 텍스트 t('11150') ru" }, value: "Моя очередь" }
+  - { action: screenshot, name: "list-myturn-badge" }
