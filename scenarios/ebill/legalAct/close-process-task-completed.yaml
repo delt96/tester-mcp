@@ -1,0 +1,23 @@
+id: close-process-task-completed
+title: 기타의안 종료 — 검토완료(C) 상태에서 9999 전환
+locale: ru
+login_as: lgactuser
+precondition: >
+  ⚠ 파괴적. 의안을 실제로 9999(ST500 종료)로 보낸다. 롤백 SQL은
+  scratchpad/rollback-close-test.sql 참조.
+  대상: 6-6889/26 (EB_b8979ca3, bill_kind='2'/bp_df_id=2, step 1900, LEGAL_ACTION task 13182 status='C').
+  검토완료를 이미 누른 상태 — executeAction 경로였다면 "task is already completed"로 막혔을 케이스다.
+  전제: ebs_bp_step_transition id 33 (bp_df_id=2, 1900 -CLOSE_PROCESS-> 9999)이 DB에 있어야 한다.
+  검증: (1) 종료 버튼이 노출되고 (2) 확인 팝업 수락 시 목록으로 이동한다(fnGoList).
+  스텝 전환 자체는 실행 후 DB로 별도 확인한다.
+steps:
+  - { action: navigate, url: "/main/billMng/legalActMng/billMng/Dtl?id=EB_b8979ca3-9f77-4ba5-a86f-9d93799d23c5&taskId=13182" }
+  - { action: wait_for, target: { css: ".content_section .btn_group_fixed button.btn_outline_primary", text: "Список", description: "상세 하단 '목록' 버튼(t10084) — 페이지 마운트 확인" } }
+  - { action: assert_visible, target: { ref: legalact_close_btn, text: "Завершить", description: "'종료하기' 버튼(t10497, @click=closeProcess). billKind=='2' 조건" } }
+  - { action: screenshot, name: "close-completed-button-visible" }
+  - { action: click, target: { ref: legalact_close_btn, text: "Завершить", description: "종료 버튼 클릭 → ConfirmPopup(t10433)" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "PrimeVue 확인 팝업" } }
+  - { action: screenshot, name: "close-completed-confirm" }
+  - { action: click, target: { ref: confirm_accept, description: "확인 수락 → POST /bill/review/closeProcess" } }
+  - { action: wait_for, target: { css: ".board_info .total_num", description: "목록 화면 총건수 — fnGoList() 이동 확인" } }
+  - { action: screenshot, name: "close-completed-after-list" }

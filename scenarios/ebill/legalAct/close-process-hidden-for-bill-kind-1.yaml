@@ -1,0 +1,17 @@
+id: close-process-hidden-for-bill-kind-1
+title: 기타의안 종료 — 법률안(bill_kind=1) 1900 화면의 버튼 구성
+locale: ru
+login_as: lgactuser
+precondition: >
+  비파괴. 클릭하지 않고 버튼 구성만 본다.
+  대상: 6-6949/26 (EB_3c267ff1, bill_kind='1'/bp_df_id=1, step 1900).
+  bp_df_id=1에는 1900 -CLOSE_PROCESS-> 9999 전이가 없으므로 종료 버튼이 뜨면 안 된다.
+  뜬다면 누를 때 "next step not found" 500이 난다.
+  ⚠ DSL에 부재 단언(assert_not_visible)이 없다. 여기서는 "같은 1900 화면에 정부이송(t11072)이
+  보인다"까지만 자동 검증하고, 종료 버튼 부재는 스크린샷으로 판단한다.
+  ⚠ 의안이 LEGAL_ACTION에 머물러야 성립 — 진행되면 버튼 자체가 사라져 FAIL(코드 회귀 아님).
+steps:
+  - { action: navigate, url: "${vars.legalact_doc_url}" }
+  - { action: wait_for, target: { css: ".content_section .btn_group_fixed button.btn_outline_primary", text: "Список", description: "상세 하단 '목록' 버튼(t10084) — 페이지 마운트 확인" } }
+  - { action: assert_visible, target: { ref: legalact_action_link, description: "1900 액션 링크가 최소 1개 렌더 — bill_kind=1 화면이 정상 로드됐음을 확인" } }
+  - { action: screenshot, name: "close-hidden-bill-kind-1-buttons" }

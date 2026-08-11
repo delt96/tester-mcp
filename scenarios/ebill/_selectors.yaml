@@ -144,3 +144,11 @@ board_total_num:
 # 화면 제목 (TitleComp.vue의 h2) — 전 화면 공통. 텍스트는 각 시나리오에서 local override
 content_title:
   css: ".content_tit"
+# 법률행위 상세 하단 액션 (legalActMng/billMngDtl.vue) — 검토완료·정부이송·거부수용·임시위원회·종료가
+# 전부 같은 클래스의 <a>라 클래스만으로는 못 가른다.
+legalact_action_link:
+  css: ".content_section .btn_group_fixed a.v_btn.btn_primary.btn_md"
+# 종료(t10497)는 템플릿 최하단이라 항상 마지막 <a>다. 다만 종료가 없는 화면에서는 직전 <a>가
+# 잡히므로(오탐) text를 함께 지정해 확인할 것. billKind=='2'에서만 노출된다.
+legalact_close_btn:
+  css: ".content_section .btn_group_fixed a.v_btn.btn_primary.btn_md:last-child"
