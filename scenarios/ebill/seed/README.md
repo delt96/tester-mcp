@@ -22,21 +22,32 @@
 | 3200 | 정부이송 | 정부이송 공문 결재(자동 이송) |
 | 3300 | 공포 | 결과보고 → [완료] |
 
-## ⚠ 가장 큰 제약 — tester-mcp는 파일을 업로드할 수 없다
+## 파일 업로드 (2026-08-12부터 가능)
 
-DSL 액션은 8개뿐이다: `navigate` `fill` `click` `double_click` `wait_for` `assert_visible`
-`assert_value` `screenshot`. **파일 업로드 액션이 없다.**
+DSL 액션은 9개다: `navigate` `fill` `click` `double_click` `upload` `wait_for` `assert_visible`
+`assert_value` `screenshot`. `upload`가 추가되어 **공문파일이 필수인 지점도 자동화된다.**
 
-| 지점 | 왜 막히나 |
+```yaml
+- { action: upload, target: { css: "#officialfile" }, file: "documentSample.pdf" }
+```
+
+파일은 `scenarios/ebill/_fixtures/`에 두고 파일명만 적는다. 과거 이 문서는 아래 지점들을
+"업로드 불가라 막힘"으로 기록했으나, 이제 전부 시도 가능하다 — 다만 각 화면의 실제 셀렉터는
+개별 검증이 필요하다.
+
+| 지점 | 필요한 파일 |
 |---|---|
-| 각 부서 **의견서 등록** | `공문파일` 필수. 없으면 **오류 없이 조용히 실패** |
-| **톡돔 작성** | 공문파일 필수 |
-| **법률 등록**(정부이송작업) | 법률파일 kg/ru 2개 필수 |
-| **정부이송 공문** | 공문파일 필수 |
-| 외부수신문서 오프라인 등록 | 공문파일 필수 |
+| 각 부서 **의견서 등록** | 공문파일 1개 |
+| **톡돔 작성** | 공문파일 1개 |
+| **법률 등록**(정부이송작업) | 법률파일 kg/ru 2개 (`upload` 2회, input이 각각 별도) |
+| **정부이송 공문** | 공문파일 1개 |
+| 외부수신문서 오프라인 등록 | 공문파일 1개 |
 
-반대로 **의안접수·위원회회부·본회의 부의·결과입력·검증요청은 파일이 필요 없어 전부 자동화된다.**
-그래서 `seed-05`는 처음부터 끝까지 tester-mcp만으로 돌아간다.
+**주의:** file input은 클릭하면 안 된다. 네이티브 파일 선택창이 열려 executor가 멈춘다.
+`target`은 반드시 `input[type=file]` 자체를 가리켜야 하며, 앞에 놓인 `label`·버튼이 아니다.
+
+의안접수·위원회회부·본회의 부의·결과입력·검증요청은 원래 파일이 필요 없어 `seed-05`는
+처음부터 끝까지 tester-mcp만으로 돌아간다.
 
 ## 실행 순서
 
@@ -53,7 +64,7 @@ node bin/tester-mcp.js run scenarios/ebill/seed/05-plenary-submit-and-result.yam
 | 파일 | 하는 일 | 계정 | 파일업로드 |
 |---|---|---|---|
 | `01-register-and-review-request.yaml` | 대기 건 → 의안등록 → 이첩 → 법률검토 이행요청 + [C] | gduser → lgrvhead | 불필요 |
-| `02-lgreview-complete.yaml` | 검토결과 저장 → 의견서 → 결재 | lgrvstaff → lgrvhead → gduser | **필요** |
+| `02-lgreview-complete.yaml` | 검토결과 저장 → 의견서 → 결재 | lgrvstaff → lgrvhead → gduser | **필요** (upload 액션으로 가능) |
 | `03-committee-referral.yaml` | 소관위원회 지정 → 회부 요청(수행자 3명 자동) | gduser | 불필요 |
 | `04-dept-main-executors.yaml` | 3개 부서장이 각자 부서원에게 이행요청 + **[C] 주 이행자** | cmthead/langhead/exntnhead | 불필요 |
 | `05-plenary-submit-and-result.yaml` | 본회의 등록 → 안건부의하기 → 가결 → 검증요청 | mainmtng | **불필요** |

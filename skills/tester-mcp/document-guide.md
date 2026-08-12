@@ -119,6 +119,14 @@ A scenario is one YAML file. Fields:
   a restored/computed field instead of leaning on `assert_visible` + a `description` (which forces the
   AI to interpret and is non-deterministic). `value` supports `${secrets.*}` like `fill`.
 - `screenshot` — `{ action: screenshot, name: "after-login" }`.
+- `upload` — `{ action: upload, target: <target>, file: "documentSample.pdf" }`. Uploads a real file
+  to a file input through the browser tool's `file_upload`. `file` is a BARE FILENAME inside the
+  nearest `_fixtures/` directory (same nearest-ancestor lookup as `_fragments/`); the runner resolves
+  it to an absolute path at parse time and fails before spawning an executor if it is missing, so
+  `validate` catches a typo for free. Point `target` at the `input[type=file]` element ITSELF, never
+  at the visible "choose file" button or its `label` — clicking those opens a native file picker the
+  executor cannot see and the session freezes there. The input is often hidden (`display:none`, with
+  a styled `label[for=...]` drawn in front of it); that is expected and `find` still resolves it.
 
 Native `<select>`: there is no separate select action — use `fill` with the option's `value` or its
 visible label as the value; the executor sets the option and dispatches `change`.
@@ -130,10 +138,11 @@ Scenarios live per project; `_`-prefixed entries are shared assets, not scenario
     scenarios/<project>/
       _fragments/<name>.yaml     # shared step sequences
       _selectors.yaml            # named target aliases (selector cache)
+      _fixtures/<name>.<ext>     # files uploaded by the `upload` action
       <area>/<id>.yaml
 
-Lookup is nearest-ancestor: from the scenario file upward, the first `_fragments/` dir and the
-first `_selectors.yaml` win.
+Lookup is nearest-ancestor: from the scenario file upward, the first `_fragments/` dir, the first
+`_selectors.yaml` and the first `_fixtures/` dir win (each resolved independently).
 
 Fragment file — `id`, optional `params` (name → default; empty value = required), `steps`
 (same actions as scenarios; `use` inside a fragment is an error — no nesting):
