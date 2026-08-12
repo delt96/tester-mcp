@@ -17,6 +17,7 @@ import { writeScenarioResult, writeSummary } from "./result/writeResult.js";
 import { captureEnv } from "./env/captureEnv.js";
 import { makeRunId } from "./util/runId.js";
 import { loadGuide } from "./guide/loadGuide.js";
+import { checkPreflight, PREFLIGHT_TIMEOUT_MS } from "./preflight/checkPreflight.js";
 
 const program = new Command();
 program.name("tester-mcp").description("Opus (planner) + Sonnet (executor) + Chrome screen E2E test orchestrator");
@@ -33,9 +34,24 @@ program
   .option("--verbose", "stream executor tool activity to the console")
   .option("--out-dir <path>", "output base dir for results/logs (default runs)", "runs")
   .option("--tag <tags>", "run only scenarios carrying at least one of these comma-separated tags")
-  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string; tag?: string }) => {
+  .option("--no-preflight", "skip the pre-run target health check")
+  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string; tag?: string; preflight?: boolean }) => {
     try {
       const config = loadConfig(resolve(opts.config));
+
+      // Runs before scenarios are even loaded: if the target is dead or is a different app, nothing
+      // below matters. Do NOT normalize the URL (localhost → 127.0.0.1) — Chrome resolves localhost
+      // to ::1 first, so rewriting it here would check a different listener than the executor sees,
+      // which is exactly the bug this catches (another app held IPv6 [::1]:5173).
+      if (opts.preflight !== false && config.preflight?.length) {
+        const failures = await checkPreflight(config.preflight, (url) =>
+          fetch(url, { signal: AbortSignal.timeout(PREFLIGHT_TIMEOUT_MS) }));
+        if (failures.length) {
+          for (const f of failures) console.error(`preflight failed: ${f.url} — ${f.reason}`);
+          console.error("no executor was spawned. Fix the target(s) or re-run with --no-preflight.");
+          process.exit(2);
+        }
+      }
       const secrets = loadSecretsFile(resolve(opts.secrets));
       const files = expandScenarioPaths(scenarioPaths);
       const all = files.map((f) => loadScenario(f, config.vars));

@@ -36,6 +36,31 @@ describe("checkPreflight", () => {
     expect(f[0].reason).toContain("ECONNREFUSED");
   });
 
+  // Node's global fetch throws a bare "fetch failed" and hides the real errno on .cause. Without
+  // unwrapping it the operator cannot tell a dead port from a DNS miss or a TLS failure.
+  it("unwraps the cause so the real errno is visible, not just 'fetch failed'", async () => {
+    const wrapped: PreflightFetch = async () => {
+      throw new Error("fetch failed", { cause: new Error("connect ECONNREFUSED ::1:59999") });
+    };
+    const f = await checkPreflight([{ url: "http://dead" }], wrapped);
+    expect(f[0].reason).toContain("ECONNREFUSED");
+  });
+
+  // Measured shape on Node 22 for a refused localhost connection: cause is an AggregateError whose
+  // own message is EMPTY — the per-address errors carry the errno, and they name both the IPv6 and
+  // the IPv4 attempt. That address list is the evidence for a port-squatting diagnosis, so keep it.
+  it("unwraps an AggregateError cause, whose own message is empty", async () => {
+    const agg = new AggregateError(
+      [new Error("connect ECONNREFUSED ::1:59999"), new Error("connect ECONNREFUSED 127.0.0.1:59999")],
+      ""
+    );
+    const wrapped: PreflightFetch = async () => { throw new Error("fetch failed", { cause: agg }); };
+    const f = await checkPreflight([{ url: "http://dead" }], wrapped);
+    expect(f[0].reason).toContain("ECONNREFUSED");
+    expect(f[0].reason).toContain("::1:59999");
+    expect(f[0].reason).toContain("127.0.0.1:59999");
+  });
+
   it("checks only connectivity when no expectation is declared", async () => {
     expect(await checkPreflight([{ url: "http://x" }], ok(404))).toEqual([]);
   });
