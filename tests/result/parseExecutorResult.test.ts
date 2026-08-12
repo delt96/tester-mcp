@@ -16,6 +16,10 @@ describe("parseExecutorResult (lenient)", () => {
     expect(r.status).toBe("NOT_TESTED");
     expect(r.raw_executor_text).toContain("prose only");
   });
+  it("reads the top-level screenshots array", () => {
+    const r = parseExecutorResult('{"status":"PASS","screenshots":["C:\\\\tmp\\\\a.png"]}');
+    expect(r.screenshots).toEqual(["C:\\tmp\\a.png"]);
+  });
   it("demotes to NOT_TESTED when status is not one of the four labels", () => {
     expect(parseExecutorResult('{"status":"OK"}').status).toBe("NOT_TESTED");
   });
@@ -53,6 +57,12 @@ describe("parseExecutorResult (salvage from unparseable JSON)", () => {
   it("never promotes a per-step status when the envelope carries none", () => {
     const noEnvelope = '{"steps": [{ "index": 1-2, "action": "click", "status": "PASS" }]}';
     expect(parseExecutorResult(noEnvelope).status).toBe("NOT_TESTED");
+  });
+  it("salvages screenshots even when the steps array is malformed", () => {
+    const t = '{"status":"PASS","screenshots":["C:\\\\tmp\\\\a.png"],"steps":[{"index": 1-2}]}';
+    const r = parseExecutorResult(t);
+    expect(r.parse_repaired).toBe(true);
+    expect(r.screenshots).toEqual(["C:\\tmp\\a.png"]);
   });
   it("leaves an unsalvageable output as a plain NOT_TESTED", () => {
     const r = parseExecutorResult("prose only, no JSON");

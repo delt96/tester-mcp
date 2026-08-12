@@ -1,7 +1,7 @@
 import { STATUSES, type Status } from "./types.js";
 
 export interface PartialResult {
-  status: Status; evidence?: string[]; steps?: any[];
+  status: Status; evidence?: string[]; screenshots?: string[]; steps?: any[];
   handoff_notes?: string; not_tested_reason?: string;
   pattern_inference?: "assumed_ok" | "unknown"; raw_executor_text?: string;
   parse_repaired?: boolean;
@@ -44,6 +44,7 @@ function salvage(text: string): PartialResult | null {
   return {
     status,
     evidence: salvageArray(text, "evidence"),
+    screenshots: salvageArray(text, "screenshots"),
     handoff_notes: salvageString(text, "handoff_notes"),
     not_tested_reason: salvageString(text, "not_tested_reason"),
     parse_repaired: true,
@@ -61,6 +62,9 @@ export function parseExecutorResult(resultText: string): PartialResult {
   return {
     status: obj.status,
     evidence: Array.isArray(obj.evidence) ? obj.evidence : undefined,
+    screenshots: Array.isArray(obj.screenshots)
+      ? obj.screenshots.filter((s: unknown) => typeof s === "string")
+      : undefined,
     steps: Array.isArray(obj.steps) ? obj.steps : undefined,
     handoff_notes: typeof obj.handoff_notes === "string" ? obj.handoff_notes : undefined,
     not_tested_reason: typeof obj.not_tested_reason === "string" ? obj.not_tested_reason : undefined,

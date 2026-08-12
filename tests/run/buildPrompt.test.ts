@@ -46,6 +46,13 @@ describe("buildUserPrompt", () => {
     const p = buildUserPrompt(sc, { frontend: "http://x" }, (v) => v.replace("${secrets.tester.username}", "U"));
     expect(p).toContain('Assert value: [css #userId] == "U"');
   });
+  it("puts screenshots at the top level, not inside the fragile steps array", () => {
+    const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
+    const shotAt = p.indexOf('"screenshots"');
+    const stepsAt = p.indexOf('"steps"');
+    expect(shotAt).toBeGreaterThan(-1);
+    expect(shotAt).toBeLessThan(stepsAt);
+  });
   it("pins the step index to one integer, because a range breaks JSON parsing", () => {
     const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
     expect(p).toMatch(/single integer/i);
@@ -99,6 +106,10 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toMatch(/best-effort|evidence only/i);
     expect(SYSTEM_CONTRACT).toMatch(/re-capturing|loop/i);
     expect(SYSTEM_CONTRACT).toMatch(/ephemeral/i);
+  });
+  it("tells the executor to persist screenshots and report their paths", () => {
+    expect(SYSTEM_CONTRACT).toContain("save_to_disk");
+    expect(SYSTEM_CONTRACT).toContain("screenshots");
   });
   it("contracts assert_not_visible, including the settle rule that stops a free pass", () => {
     expect(SYSTEM_CONTRACT).toContain("assert_not_visible");

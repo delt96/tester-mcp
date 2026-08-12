@@ -21,7 +21,7 @@ export type Step =
   | { action: "assert_visible"; target: Target }
   | { action: "assert_not_visible"; target: Target }
   | { action: "assert_value"; target: Target; value: string }
-  | { action: "screenshot"; name?: string; save?: boolean };
+  | { action: "screenshot"; name?: string };
 
 export type ActionName = Step["action"];
 
