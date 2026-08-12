@@ -107,6 +107,10 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toMatch(/re-capturing|loop/i);
     expect(SYSTEM_CONTRACT).toMatch(/ephemeral/i);
   });
+  it("forbids inventing expectations the steps do not state", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/do not invent expectations/i);
+    expect(SYSTEM_CONTRACT).toMatch(/disappearing from a list/i);
+  });
   it("tells the executor to persist screenshots and report their paths", () => {
     expect(SYSTEM_CONTRACT).toContain("save_to_disk");
     expect(SYSTEM_CONTRACT).toContain("screenshots");

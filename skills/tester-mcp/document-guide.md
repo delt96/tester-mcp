@@ -113,6 +113,11 @@ A scenario is one YAML file. Fields:
 - `wait_for` — `{ action: wait_for, target: <target> }`.
 - `assert_visible` — `{ action: assert_visible, target: <target> }`. Presence/visibility ONLY — it
   does not check content. An input is always "visible", so this can't tell you a value was restored.
+- `assert_not_visible` — `{ action: assert_not_visible, target: <target> }`. The target must be
+  absent from the DOM, or present but not visible. Use it for "it is gone from the list" — after a
+  delete, an approval that clears the queue, or a filter that should exclude a row.
+  **A page that has not rendered yet passes this for free**, so put a `wait_for` on a stable
+  container immediately before it. Without that the check is vacuous and always passes.
 - `assert_value` — `{ action: assert_value, target: <target>, value: "expected" }`. The deterministic
   content check: the executor reads the element's value (form control `.value`; otherwise its
   textContent) and compares it EXACTLY to `value` → PASS if equal, FAIL if different. Use this to verify
@@ -194,6 +199,14 @@ strategies **once** and does NOT grope the page — on a first-attempt miss it b
 with NOT_TESTED and reports what it actually saw. A precise selector is what drives
 pass rate and speed. For multi-step UI (filters, dropdowns, modals), script the
 open→select sequence as explicit steps with `wait_for` between them.
+
+**`description` is also read as an expectation.** It is a last-resort *locator*, but the executor
+also compares it against what it sees and bails with NOT_TESTED when the two disagree — even when
+`css` or a `ref` alias already pinned the element. A stale description is therefore a scenario bug,
+not a harmless comment: a run stopped because its description said "법적행위 목록" while the screen
+read "본회의검증". Keep every description true to the screen, or leave it out. This check is the
+model's judgment, not a deterministic rule, so never rely on it to verify content — use
+`assert_value` for that.
 
 **Do NOT target or assert by translated (i18n) text.** A label whose translation
 isn't synced to the DB yet renders as a **raw key** (e.g. `10998`) in *every* locale,
