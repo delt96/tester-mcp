@@ -39,6 +39,37 @@ describe("parseConfig", () => {
   });
 });
 
+describe("parseConfig (preflight)", () => {
+  const base = "targets:\n  frontend: http://localhost:5173\n  backend: http://localhost:8081\n";
+
+  it("substitutes ${targets.*} so the port is declared once", () => {
+    const c = parseConfig(base + 'preflight:\n  - { url: "${targets.frontend}", expect_title: eBill }\n  - { url: "${targets.backend}/v3/api-docs", expect_status: [200, 401] }\n');
+    expect(c.preflight?.[0].url).toBe("http://localhost:5173");
+    expect(c.preflight?.[1].url).toBe("http://localhost:8081/v3/api-docs");
+    expect(c.preflight?.[0].expect_title).toBe("eBill");
+    expect(c.preflight?.[1].expect_status).toEqual([200, 401]);
+  });
+  it("normalizes a single expect_status into a list", () => {
+    const c = parseConfig(base + 'preflight:\n  - { url: "${targets.frontend}", expect_status: 200 }\n');
+    expect(c.preflight?.[0].expect_status).toEqual([200]);
+  });
+  it("fails when preflight refers to a target that is not configured", () => {
+    const noBackend = "targets:\n  frontend: http://x\n";
+    expect(() => parseConfig(noBackend + 'preflight:\n  - { url: "${targets.backend}/h" }\n'))
+      .toThrow(/targets\.backend/);
+  });
+  it("rejects a non-numeric expect_status", () => {
+    expect(() => parseConfig(base + 'preflight:\n  - { url: "${targets.frontend}", expect_status: ok }\n'))
+      .toThrow(/expect_status/);
+  });
+  it("requires a url on every entry", () => {
+    expect(() => parseConfig(base + "preflight:\n  - { expect_title: eBill }\n")).toThrow(/url/);
+  });
+  it("leaves preflight undefined when the block is absent", () => {
+    expect(parseConfig(base).preflight).toBeUndefined();
+  });
+});
+
 describe("vars", () => {
   it("parses vars as a string map", () => {
     const c = parseConfig(`targets: { frontend: "http://x" }\nvars: { doc_url: "/main/a?id=1" }`);
