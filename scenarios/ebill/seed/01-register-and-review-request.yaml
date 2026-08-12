@@ -69,7 +69,8 @@ steps:
   - { action: fill, target: { label: "이행자", css: ".p-dialog .p-autocomplete-input", description: "이행자 autocomplete(첫 번째). 라벨로 서명자와 구분" }, value: "LGRVuser2" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "이행자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "LGRVuser2 선택" } }
-  - { action: fill, target: { css: ".p-dialog textarea.form_control", description: "이행 내용" }, value: "E2E-SEED 법률검토 요청" }
+  # ⚠ .full 이 빠지면 매칭에 실패해 입력이 수행자 autocomplete 로 흘러든다(2026-08-12 실측)
+  - { action: fill, target: { css: ".p-dialog textarea.form_control.full", description: "이행 내용" }, value: "E2E-SEED 법률검토 요청" }
   # [C] 배지 = 주 이행자 지정. 이걸 눌러야 다음 단계에서 [의견서 작성] 버튼이 나온다
   - { action: click, target: { css: ".p-dialog .p-autocomplete + span, .p-dialog [class*='badge']", text: "C", description: "이행자 우측 [C] 배지 — 주 이행자 지정(EA-02). 클릭 시 빨간색으로 활성화된다" } }
   # ⚠ "LGRVuser" 로 검색하면 LGRVuser1(부서장)·LGRVuser2(직원) 2건이 뜬다. :first-child 로 찍으면

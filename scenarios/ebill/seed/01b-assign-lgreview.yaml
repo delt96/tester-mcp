@@ -1,0 +1,44 @@
+id: seed-01b-assign-lgreview
+title: "[시딩] 법률검토 이행요청 — 부서장이 수신 등록요청문서에서 부서원을 [C] 주 이행자로 지정"
+locale: kr
+login_as: lgrvhead
+tags: [seed, e2e-fullflow]
+precondition: >
+  seed-01 의 후반부(블록 5~7)만 떼어낸 시나리오다. **파일 업로드가 필요 없어 자동화된다.**
+
+  왜 분리했나: seed-01 앞부분(의안등록)은 원문 파일 kg/ru 업로드가 필요해 tester-mcp 로
+  못 돌린다. 그래서 의안 생성까지는 사람이 하고, 이 시나리오가 그 뒤를 이어받는다.
+  DSL 에 upload 액션이 추가되면 seed-01 로 통합할 수 있다.
+
+  선행 조건: 의안이 등록되어 법무실로 이첩됐고(ebs_bp_tasks step_id=1200, assigned_to=LGRV),
+  그 등록요청문서가 이 계정(LGRVuser1)의 수신함에 있어야 한다. 문서 제목에 **E2E-SEED** 가
+  포함돼 있어야 대상을 찾는다.
+
+  ★ [C] 주 이행자 지정이 이 시나리오의 존재 이유다. 이행자로만 넣으면 trgt_user_id 가 채워지지
+  않아 부서원의 '이행받은 의안' 목록에 뜨지 않고, 상세에 [의견서 작성] 버튼도 나오지 않는다.
+  2026-08-12 실측 — 이 지정을 빠뜨려 seed-02 가 NOT_TESTED 로 끝났다.
+
+  산출물: LGRVuser2 가 주 이행자로 지정된 법률검토 이행요청. 이후 seed-02 가 이어받는다.
+on_failure: stop
+steps:
+
+  # ── 1) 수신함에서 등록요청문서 열기
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
+  - { action: screenshot, name: "01b-a-inbox" }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 등록요청문서(DMT01)" } }
+  # 수신함 상세도 CommandComponent 를 쓴다(Inbox.vue:589) — [이행자추가] 버튼은 button.add_command
+  - { action: wait_for, target: { css: "button.add_command", description: "[이행자추가](10479) — 수신 상세 진입 신호" } }
+  - { action: screenshot, name: "01b-b-inbox-detail" }
+
+  # ── 2) 이행요청 모달 — 이행자 + [C] 주이행자 + 서명자(본인)
+  #   2026-08-12 1차 실행에서 자체 셀렉터가 DOM 과 안 맞아 executor 가 좌표 클릭으로 떨어졌고,
+  #   서명자 입력란을 못 찾아 groping 으로 끝났다. RequestModal.vue 근거가 있는 fragment 로 교체.
+  - use: assign-main-executor
+    with: { executor: "LGRVuser2", signer: "LGRVuser1", content: "E2E-SEED 법률검토 요청" }
+  - { action: screenshot, name: "01b-d-workrequest-filled" }
+
+  # ── 3) 결과 확인 — 본인 서명이므로 '발송' 상태여야 한다
+  - { action: wait_for, target: { css: "[class*='badge']", description: "이행요청 카드 렌더" } }
+  - { action: screenshot, name: "01b-e-workrequest-created" }
+  - { action: assert_visible, target: { css: "[class*='badge']", text: "발송", description: "'발송됨' 배지 — 요청자 본인을 서명자로 지정해 즉시 발송된 증거(EA-01). '서명 대기'면 타인이 서명자로 잡힌 것" } }
