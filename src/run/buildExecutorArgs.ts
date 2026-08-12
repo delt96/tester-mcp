@@ -1,5 +1,6 @@
 export interface ExecutorArgsOptions {
   prompt: string; systemPrompt: string; model: string; effort?: string;
+  allowRead?: boolean;
 }
 export function buildExecutorArgs(o: ExecutorArgsOptions): string[] {
   // Flag set verified by live smoke tests against claude -p --chrome:
@@ -16,6 +17,14 @@ export function buildExecutorArgs(o: ExecutorArgsOptions): string[] {
   // --effort trades reasoning depth for tokens. Omitted → the CLI's own default (high) applies;
   // 'low' is the lever that offsets the cost of running a bigger model than haiku.
   const effort = o.effort ? ["--effort", o.effort] : [];
+  // Read is denied by default (it is one of the tools that make a loose executor wander).
+  // But claude-in-chrome's file_upload gates on it: with Read denied it refuses every path with
+  // "only files this session is allowed to read can be uploaded", even one inside the repo — so
+  // upload scenarios must allow it. Measured 2026-08-12: allowing Read was the ONLY change needed
+  // (--add-dir made no difference, since --dangerously-skip-permissions already covers paths
+  // outside cwd), and the executor called Read 0 times across the passing runs.
+  const denied = ["Skill", "Task", "Agent", "Bash", "Write", "Edit", "NotebookEdit", "Glob", "Grep", "WebFetch", "WebSearch"];
+  if (!o.allowRead) denied.push("Read");
   return [
     "-p", o.prompt,
     "--chrome",
@@ -41,6 +50,6 @@ export function buildExecutorArgs(o: ExecutorArgsOptions): string[] {
     "--setting-sources", "user",                                // skip project/local settings (hooks/config)
     "--settings", JSON.stringify({ disableAllHooks: true }),    // no hooks (SessionStart)
     "--disallowedTools",                                        // hard-deny the wandering tools
-    "Skill,Task,Agent,Bash,Write,Edit,Read,NotebookEdit,Glob,Grep,WebFetch,WebSearch",
+    denied.join(","),
   ];
 }

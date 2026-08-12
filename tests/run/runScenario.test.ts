@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runScenario, notTestedReason, chromeDenialReason } from "../../src/run/runScenario.js";
+import { runScenario, notTestedReason, chromeDenialReason, hasUpload } from "../../src/run/runScenario.js";
 import type { Scenario } from "../../src/scenario/types.js";
 import type { StreamSpawner } from "../../src/run/spawnExecutor.js";
 
@@ -95,5 +95,16 @@ describe("runScenario (streaming)", () => {
     const r = await runScenario(scenario, { ...base, spawner, logLine: () => {} });
     expect(r.status).toBe("NOT_TESTED");
     expect(r.last_tool).toBe("navigate");   // the common spread applies on the parse-NOT_TESTED path too
+  });
+});
+
+describe("hasUpload", () => {
+  it("is true only when a step uploads a file", () => {
+    const base = { id: "s", title: "t", on_failure: "stop" as const };
+    expect(hasUpload({ ...base, steps: [{ action: "navigate", url: "/" }] })).toBe(false);
+    expect(hasUpload({
+      ...base,
+      steps: [{ action: "navigate", url: "/" }, { action: "upload", target: { css: "input" }, file: "C:\\fx\\d.pdf" }],
+    })).toBe(true);
   });
 });

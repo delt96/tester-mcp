@@ -48,12 +48,17 @@ export function chromeDenialReason(deniedTools: string[]): string | undefined {
   return `claude-in-chrome denied the executor (${names.join(", ")}) — re-running as-is will fail the same way. First check runner.model: as of 2026-08-05 a haiku executor was denied every browser tool while sonnet and opus passed with identical flags (reproduced, though no public doc states a model requirement — it may be a bug). If the model is already sonnet/opus, check that the extension is connected and that only your own Chrome is (list_connected_browsers reports every browser on this account).`;
 }
 
+// file_upload only accepts paths the executor session may read, so upload scenarios need Read.
+export function hasUpload(scenario: Scenario): boolean {
+  return scenario.steps.some((s) => s.action === "upload");
+}
+
 export async function runScenario(scenario: Scenario, opts: RunScenarioOptions): Promise<ScenarioResult> {
   const now = opts.now ?? (() => new Date());
   const startedAt = now();
 
   const { envelope, state, killedReason } = await spawnExecutor(
-    { prompt: buildUserPrompt(scenario, opts.targets, opts.resolveValue), systemPrompt: SYSTEM_CONTRACT, model: opts.model, effort: opts.effort },
+    { prompt: buildUserPrompt(scenario, opts.targets, opts.resolveValue), systemPrompt: SYSTEM_CONTRACT, model: opts.model, effort: opts.effort, allowRead: hasUpload(scenario) },
     { spawner: opts.spawner, logLine: opts.logLine, timeoutMs: opts.timeoutMs }
   );
 

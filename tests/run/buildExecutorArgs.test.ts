@@ -49,4 +49,17 @@ describe("buildExecutorArgs", () => {
     for (const t of ["Skill", "Task", "Bash", "Write", "Edit", "Read"])
       expect(a[di + 1]).toContain(t);
   });
+
+  it("denies Read by default but opens it for upload scenarios (file_upload gates on it)", () => {
+    const denied = (o: Parameters<typeof buildExecutorArgs>[0]) => {
+      const a = buildExecutorArgs(o);
+      return a[a.indexOf("--disallowedTools") + 1].split(",");
+    };
+    const base = { prompt: "P", systemPrompt: "S", model: "sonnet" };
+    expect(denied(base)).toContain("Read");
+    expect(denied({ ...base, allowRead: true })).not.toContain("Read");
+    // every other wandering tool stays denied either way
+    for (const t of ["Skill", "Task", "Bash", "Write", "Edit"])
+      expect(denied({ ...base, allowRead: true })).toContain(t);
+  });
 });
