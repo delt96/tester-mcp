@@ -98,6 +98,22 @@ describe("runScenario (streaming)", () => {
     expect(r.parse_repaired).toBe(true);
     expect(r.evidence).toEqual(["ok"]);
   });
+  it("collects the executor's screenshots into the run directory", async () => {
+    const withShot = JSON.stringify({ type: "result",
+      result: '```json\n{"status":"PASS","screenshots":["/tmp/a.png"]}\n```' });
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(withShot); h.onClose(0, null); return { kill() {} }; };
+    const r = await runScenario(scenario, {
+      ...base, spawner, logLine: () => {},
+      resultDir: "runs/RID",
+      screenshotFs: { mkdir: () => {}, copy: () => {} },
+    });
+    expect(r.screenshots?.[0]).toMatch(/runs[/\\]RID[/\\]s1[/\\]a\.png$/);
+  });
+  it("leaves screenshots undefined when the executor reported none", async () => {
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(okResult); h.onClose(0, null); return { kill() {} }; };
+    const r = await runScenario(scenario, { ...base, spawner, logLine: () => {}, resultDir: "runs/RID" });
+    expect(r.screenshots).toBeUndefined();
+  });
   it("envelope present but output is malformed: NOT_TESTED, last_tool kept", async () => {
     const natural = JSON.stringify({ type: "result", result: "prose only — no JSON" });
     const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(tool); h.onLine(natural); h.onClose(0, null); return { kill() {} }; };

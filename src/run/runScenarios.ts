@@ -53,7 +53,7 @@ export async function runScenarios(
           if (sum) console.log(`[${id}] ${sum}`);
         }
       };
-      results[i] = await runScenario(scenarios[i], { ...opts, executorLog: logPath, logLine });
+      results[i] = await runScenario(scenarios[i], { ...opts, executorLog: logPath, logLine, resultDir: dir });
     }
   };
   await Promise.all(Array.from({ length: workers }, () => worker()));

@@ -1,5 +1,8 @@
+import { mkdirSync, copyFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Scenario } from "../scenario/types.js";
 import type { Environment, ScenarioResult } from "../result/types.js";
+import { collectScreenshots, type ScreenshotFs } from "../result/collectScreenshots.js";
 import { buildUserPrompt, SYSTEM_CONTRACT } from "./buildPrompt.js";
 import { spawnExecutor, type StreamSpawner } from "./spawnExecutor.js";
 import { parseExecutorResult } from "../result/parseExecutorResult.js";
@@ -16,7 +19,14 @@ export interface RunScenarioOptions {
   spawner?: StreamSpawner;            // injected for tests
   logLine?: (line: string) => void;  // per-line log sink
   executorLog?: string;              // log file path (result metadata)
+  resultDir?: string;                // run output dir; screenshots are copied under it
+  screenshotFs?: ScreenshotFs;       // injected for tests
 }
+
+const defaultScreenshotFs: ScreenshotFs = {
+  mkdir: (d) => { mkdirSync(d, { recursive: true }); },
+  copy: (s, d) => { copyFileSync(s, d); },
+};
 
 // Maps the executor's kill cause + last observed tool into a NOT_TESTED reason string.
 export function notTestedReason(
@@ -81,8 +91,12 @@ export async function runScenario(scenario: Scenario, opts: RunScenarioOptions):
   const parsed = parseExecutorResult(envelope.result);
   // A denial mid-run doesn't invalidate a verdict the executor still reached — only relabel NOT_TESTED.
   const notTested = parsed.status === "NOT_TESTED";
+  const shots = parsed.screenshots ?? [];
+  const screenshots = opts.resultDir
+    ? collectScreenshots(shots, join(opts.resultDir, scenario.id), opts.screenshotFs ?? defaultScreenshotFs)
+    : shots;
   return {
-    ...common, status: parsed.status,
+    ...common, status: parsed.status, screenshots: screenshots.length ? screenshots : undefined,
     not_tested_reason: notTested ? denialReason ?? parsed.not_tested_reason : parsed.not_tested_reason,
     pattern_inference: parsed.pattern_inference, evidence: parsed.evidence,
     steps: (parsed.steps as any) ?? [], handoff_notes: parsed.handoff_notes,
