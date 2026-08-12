@@ -3,6 +3,36 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
+## [0.7.0]
+
+### Added
+- **`upload` action** — puts a real file into a file input through claude-in-chrome's
+  `file_upload`. `file:` is a bare filename inside the nearest `_fixtures/` directory and is
+  resolved to an absolute path at parse time, so a typo or a missing fixture fails in
+  `validate` before any executor is spawned. Point `target` at the `input[type=file]` itself:
+  clicking the visible button or its `label` opens a native file picker the executor cannot
+  see, and the session freezes there. A hidden input (`display:none`) is expected and works.
+- **`_fixtures/`** — a third shared-asset kind next to `_fragments/` and `_selectors.yaml`,
+  found with the same nearest-ancestor lookup.
+
+### Changed
+- **`Read` is now allowed for scenarios that contain an `upload` step.** `file_upload` gates
+  on Read permission: with Read in `--disallowedTools` it refuses every path — even one
+  inside the repo — with "only files this session is allowed to read can be uploaded".
+  Measured 2026-08-12 across five runs: allowing Read was necessary and sufficient, while
+  `--add-dir` made no difference (`--dangerously-skip-permissions` already covers paths
+  outside cwd), and the executor called Read 0 times in the passing runs. Scenarios without
+  an upload step keep the previous isolation unchanged.
+
+## [0.6.0]
+
+### Added
+- **`double_click` action** — maps to the browser tool's `double_click`, for grid rows that
+  open a detail or form view on double-click where a single click only selects the row.
+  Expressing this as a `click` carrying a "double-click it" description left the actual mouse
+  action to the executor, which could fire one `left_click` and then report on a screen it
+  never opened.
+
 ## [0.5.0]
 
 ### Changed
