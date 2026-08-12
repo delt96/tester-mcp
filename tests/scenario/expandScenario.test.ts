@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { expandRawScenario } from "../../src/scenario/expandScenario.js";
 import type { ReuseAssets } from "../../src/scenario/reuseAssets.js";
 
@@ -88,5 +91,48 @@ describe("stray {{...}}", () => {
   it("errors when {{param}} appears outside a fragment", () => {
     expect(() => expandRawScenario({ id: "s", title: "t", steps: [{ action: "fill", target: { css: "#u" }, value: "{{oops}}" }] }, ctx()))
       .toThrow(/only valid inside/);
+  });
+});
+
+describe("upload fixture resolution", () => {
+  const withFixtures = (fn: (fixDir: string) => void) => {
+    const root = mkdtempSync(join(tmpdir(), "upload-fix-"));
+    try {
+      const fixDir = join(root, "_fixtures");
+      mkdirSync(fixDir);
+      writeFileSync(join(fixDir, "doc.pdf"), "%PDF-1.5");
+      fn(fixDir);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+  const uploadCtx = (fixturesDir?: string) => ({ assets: assets({ fixturesDir }), vars: {}, source: "s.yaml" });
+  const uploadScenario = (file: string) => ({
+    id: "s", title: "t",
+    steps: [{ action: "upload", target: { css: "input[type=file]" }, file }],
+  });
+
+  it("resolves a bare filename against the nearest _fixtures/", () => {
+    withFixtures((fixDir) => {
+      const out = expandRawScenario(uploadScenario("doc.pdf"), uploadCtx(fixDir));
+      expect(out.steps[0].file).toBe(join(fixDir, "doc.pdf"));
+    });
+  });
+
+  it("rejects a path instead of a bare filename", () => {
+    withFixtures((fixDir) => {
+      expect(() => expandRawScenario(uploadScenario("sub/doc.pdf"), uploadCtx(fixDir))).toThrow(/bare filename/);
+      expect(() => expandRawScenario(uploadScenario("C:\\abs\\doc.pdf"), uploadCtx(fixDir))).toThrow(/bare filename/);
+    });
+  });
+
+  it("fails before the executor when the fixture does not exist", () => {
+    withFixtures((fixDir) => {
+      expect(() => expandRawScenario(uploadScenario("missing.pdf"), uploadCtx(fixDir))).toThrow(/fixture not found/);
+    });
+  });
+
+  it("fails when there is no _fixtures/ directory at all", () => {
+    expect(() => expandRawScenario(uploadScenario("doc.pdf"), uploadCtx(undefined))).toThrow(/no _fixtures\//);
   });
 });

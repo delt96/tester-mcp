@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { ReuseAssets } from "./reuseAssets.js";
 
 export interface ExpandContext { assets: ReuseAssets; vars: Record<string, string>; source: string; }
@@ -55,6 +57,24 @@ function resolveRef(target: any, i: number, ctx: ExpandContext): any {
   return { ...alias, ...local };
 }
 
+const PATH_SEP_RE = /[\\/]/;
+
+// upload fixtures resolve at parse time, so a missing file fails before any executor is spawned.
+function resolveUploadFile(step: any, i: number, ctx: ExpandContext): any {
+  if (!step || typeof step !== "object" || step.action !== "upload") return step;
+  const file = step.file;
+  if (typeof file !== "string" || file === "")
+    throw new Error(`${ctx.source}: steps[${i}]: upload requires a 'file' filename`);
+  if (PATH_SEP_RE.test(file))
+    throw new Error(`${ctx.source}: steps[${i}]: upload 'file' must be a bare filename inside _fixtures/ (got "${file}")`);
+  if (!ctx.assets.fixturesDir)
+    throw new Error(`${ctx.source}: steps[${i}]: no _fixtures/ directory found (searched upward from the scenario)`);
+  const abs = join(ctx.assets.fixturesDir, file);
+  if (!existsSync(abs))
+    throw new Error(`${ctx.source}: steps[${i}]: upload fixture not found: ${abs}`);
+  return { ...step, file: abs };
+}
+
 // Parse-time pipeline (spec §4): login_as → use/{{param}} → ref merge → ${vars.*} → stray {{}} check.
 // Returns a raw object with fully expanded steps; schema validation stays in parseScenarioObject.
 export function expandRawScenario(rawIn: unknown, ctx: ExpandContext): any {
@@ -83,6 +103,7 @@ export function expandRawScenario(rawIn: unknown, ctx: ExpandContext): any {
     if (out.value !== undefined) out.value = subst(out.value);
     return out;
   });
+  steps = steps.map((st, i) => resolveUploadFile(st, i, ctx));
   deepMapStrings(steps, (s) => {
     const m = s.match(PARAM_RE);
     if (m)
