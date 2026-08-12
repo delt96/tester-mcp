@@ -12,6 +12,7 @@ export interface Fragment {
 export interface ReuseAssets {
   fragments: Map<string, Fragment>;
   selectors: Record<string, Target>;
+  fixturesDir?: string;
 }
 
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
@@ -65,10 +66,12 @@ export function parseSelectors(yamlText: string, sourcePath: string): Record<str
 }
 
 // Nearest-ancestor lookup: from the scenario's directory upward, take the FIRST
-// _fragments/ dir and the FIRST _selectors.yaml found (independently), stop at fs root.
+// _fragments/ dir, the FIRST _selectors.yaml and the FIRST _fixtures/ dir found
+// (independently), stop at fs root.
 export function discoverReuseAssets(scenarioFile: string): ReuseAssets {
   let fragments: Map<string, Fragment> | undefined;
   let selectors: Record<string, Target> | undefined;
+  let fixturesDir: string | undefined;
   let dir = dirname(resolve(scenarioFile));
   for (;;) {
     if (!fragments) {
@@ -87,9 +90,13 @@ export function discoverReuseAssets(scenarioFile: string): ReuseAssets {
       const selFile = join(dir, "_selectors.yaml");
       if (existsSync(selFile)) selectors = parseSelectors(readFileSync(selFile, "utf8"), selFile);
     }
+    if (!fixturesDir) {
+      const fixDir = join(dir, "_fixtures");
+      if (existsSync(fixDir) && statSync(fixDir).isDirectory()) fixturesDir = fixDir;
+    }
     const parent = dirname(dir);
-    if ((fragments && selectors) || parent === dir) break;
+    if ((fragments && selectors && fixturesDir) || parent === dir) break;
     dir = parent;
   }
-  return { fragments: fragments ?? new Map(), selectors: selectors ?? {} };
+  return { fragments: fragments ?? new Map(), selectors: selectors ?? {}, fixturesDir };
 }

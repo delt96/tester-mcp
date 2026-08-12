@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { parseFragment, parseSelectors, discoverReuseAssets } from "../../src/scenario/reuseAssets.js";
 
@@ -41,6 +41,29 @@ describe("discoverReuseAssets", () => {
     expect(assets.selectors.toast_success).toEqual({ css: ".area-toast", description: "area override" });
     expect(assets.fragments.get("login")?.params).toEqual({ account: "tester" });
   });
+  it("finds the nearest _fixtures/ directory walking up from the scenario", () => {
+    const root = mkdtempSync(join(tmpdir(), "fixtures-lookup-"));
+    try {
+      const fixDir = join(root, "_fixtures");
+      mkdirSync(fixDir);
+      writeFileSync(join(fixDir, "doc.pdf"), "%PDF-1.5");
+      const deep = join(root, "area", "sub");
+      mkdirSync(deep, { recursive: true });
+      expect(discoverReuseAssets(join(deep, "s.yaml")).fixturesDir).toBe(fixDir);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("leaves fixturesDir undefined when no _fixtures/ exists", () => {
+    const dir = mkdtempSync(join(tmpdir(), "fixtures-none-"));
+    try {
+      expect(discoverReuseAssets(join(dir, "s.yaml")).fixturesDir).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("returns empty assets when nothing is found", () => {
     const dir = mkdtempSync(join(tmpdir(), "reuse-assets-empty-"));
     try {
