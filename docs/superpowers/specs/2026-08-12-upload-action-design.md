@@ -156,11 +156,18 @@ if (!o.allowRead) denied.push("Read");
 
 ## 11. 미해결 리스크
 
-1. **실제 eBill 화면 미검증.** 스파이크는 합성 페이지였다. 실물 업로드 위젯과, 업로드 후 서버 전송까지
-   이어지는 흐름(의견서 등록 등)은 아직 확인하지 않았다. 대상 셀렉터는 소스에서 확인해 뒀다 —
-   `AddDragAndDropFileComponent.vue`가 `type='official'`일 때 `#officialfile`(`accept=".pdf"`, 단일 파일)이며
-   앞의 `label[for=officialfile]`을 누르면 네이티브 선택창이 열린다(= 클릭 금지 규칙이 적용되는 지점).
-   구현 후 `seed-02`로 실검증해야 한다.
+1. **실제 eBill 화면 — 부분 해소(2026-08-12).** `upload-live-mydocs` 시나리오가 실화면에서 **PASS**했다:
+   `/main/document/my` → 업로드 모달 → 숨겨진 `#inputFile1_1`(`.file_attatch .form_file{display:none}`)에
+   `file_upload` 주입 성공, `value === 'C:\fakepath\documentSample.pdf'` 정확히 일치.
+   합성 페이지가 아닌 실제 Vue/PrimeVue 화면에서 동작함이 확인됐다.
+
+   **다만 업로드 후 서버 전송·저장까지는 여전히 미검증이다.** 이 시나리오는 비파괴 원칙상 [업로드]를
+   누르지 않는다. 원래 계획했던 `seed-02`(의견서 등록)는 선행 데이터인 `E2E-SEED` 의안이 목록에 없어
+   스텝 1~9에서 NOT_TESTED로 끝났다 — upload 스텝에 도달하지 못했으므로 이 결과는 upload 액션과 무관하다.
+   `seed-01`로 데이터를 만든 뒤 `seed-02`를 다시 돌려야 이 항목이 완전히 해소된다.
+   대상 셀렉터는 소스에서 확인해 뒀다 — `AddDragAndDropFileComponent.vue`가 `type='official'`일 때
+   `#officialfile`(`accept=".pdf"`, 단일 파일)이며 앞의 `label[for=officialfile]`을 누르면 네이티브
+   선택창이 열린다(= 클릭 금지 규칙이 적용되는 지점). `seed-02`에 해당 스텝은 이미 넣어 뒀다.
 2. **Read 허용의 격리 영향은 3회 관측.** 실호출 0건이었지만 표본이 작다. upload 시나리오에만
    열리므로 영향 범위는 제한되나, 장기 관측이 필요하다.
 3. **10MB 상한.** `file_upload`는 단일 호출 합계 10MB 미만을 요구한다. 현재 픽스처(89KB)는 무관하나

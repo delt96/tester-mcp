@@ -1,0 +1,19 @@
+id: upload-live-mydocs
+title: 내 문서함 업로드 모달 — upload 액션이 실제 eBill 화면에서 동작하는지
+locale: ru
+login_as: gduser
+tags: [smoke, upload]
+precondition: >
+  비파괴: 파일을 선택(input에 주입)하기만 하고 모달의 [업로드]는 누르지 않는다 — 서버에 저장되지 않는다.
+  검증 대상은 upload 액션 그 자체다. #inputFile1_1은 .file_attatch 안에 있어 CSS로 display:none 이고
+  (common.css: `.file_attatch .form_file { display: none }`), 옆의 label[for=inputFile1_1]이 실제로
+  보이는 버튼이다 — 그 label을 클릭하면 네이티브 파일 선택창이 열려 세션이 멈추므로 절대 누르면 안 된다.
+  이 시나리오는 "숨겨진 input에 file_upload로 직접 주입" 경로가 실화면에서 성립함을 확인한다.
+steps:
+  - { action: navigate, url: "/main/document/my" }
+  - { action: wait_for, target: { css: ".btn_wrap button.v_btn.btn_primary.btn_sm", description: "파일 업로드 버튼(10309) — 목록 우상단 btn_wrap의 유일한 primary 버튼" } }
+  - { action: click, target: { css: ".btn_wrap button.v_btn.btn_primary.btn_sm", description: "[파일 업로드] → FileUploadModal 열림" } }
+  - { action: wait_for, target: { css: ".p-dialog", description: "파일 업로드 모달" } }
+  - { action: upload, target: { css: "#inputFile1_1", description: "숨겨진 file input. 옆 label[for=inputFile1_1]은 클릭 금지" }, file: "documentSample.pdf" }
+  - { action: assert_value, target: { css: "#inputFile1_1", description: "file input의 value — 파일이 실제로 들어갔으면 브라우저가 C:\\fakepath\\<파일명>으로 채운다" }, value: 'C:\fakepath\documentSample.pdf' }
+  - { action: screenshot, name: "upload-live-mydocs" }

@@ -58,8 +58,12 @@ steps:
   - { action: fill, target: { label: "승인자", css: ".p-dialog .p-autocomplete-input", description: "승인자(Бекитүүчү) — 법률검토 부서장" }, value: "LGRVuser1" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "부서장(LGRVuser1) 선택 — 옵션 회색줄 '직급 · 부서'로 직원과 구분된다" } }
+  # ── 5) 공문파일(Расмий документ) — 없으면 [등록]이 오류 없이 조용히 실패한다
+  # InsertLetter.vue:874가 type='official'로 렌더 → id=officialfile (accept=.pdf, 단일).
+  # fileAttachYn 기본값 true → docMode='official'이라 이 칸은 모달을 열면 바로 보인다.
+  - { action: upload, target: { css: "#officialfile", description: "공문파일 input 자체. 앞의 label[for=officialfile](.v_btn 업로드 아이콘)은 누르면 네이티브 파일 선택창이 열려 세션이 멈추므로 클릭 금지" }, file: "documentSample.pdf" }
   - { action: screenshot, name: "02d-opinion-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일이 없으면 여기서 조용히 실패한다(2026-08-11 확인). 실패 시 파일 업로드 스텝 추가 필요" } }
+  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일이 첨부되어야 통과한다(2026-08-11 실측: 파일 없으면 조용히 실패)" } }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "02e-opinion-registered" }
 
