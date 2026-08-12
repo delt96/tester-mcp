@@ -3,3 +3,5 @@ dist/
 runs/
 *.log
 tester-mcp.secrets.yaml
+.idea/
+.claude/
