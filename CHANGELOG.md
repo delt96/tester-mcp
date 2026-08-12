@@ -3,6 +3,44 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
+## [0.8.0]
+
+### Added
+- **`assert_not_visible` action** — the target must be absent from the DOM, or present but not
+  visible. Fills the gap that made "it is gone from the list" unverifiable, which had turned a bill
+  count check into an assertion that always passed. A page that has not rendered yet passes it for
+  free, so the contract requires judging only after the area has settled (`wait_for` a stable
+  container first); still loading is NOT_TESTED, not PASS.
+- **`preflight:` config block** — declares what proves a target is the right, live app before any
+  executor is spawned. `expect_title` for the frontend, because a status code alone passes when a
+  different app squats the port; `expect_status` for the backend, where 401 behind the auth filter
+  is the liveness signal. URLs interpolate `${targets.frontend}` / `${targets.backend}` so the port
+  is declared once, and are never normalized — rewriting localhost to 127.0.0.1 would check a
+  different listener than Chrome resolves. A failure exits immediately with the expected-vs-observed
+  reason and spawns nothing; `--no-preflight` skips the check.
+- **Screenshots are persisted.** The executor saves them with the browser tool's `save_to_disk` and
+  reports the paths in a top-level `screenshots` array; the runner copies them under
+  `runs/<run_id>/<scenario_id>/`. Paths sit at the top level, not inside `steps[]`, because that
+  array is exactly what breaks when the executor emits a malformed index.
+
+### Changed
+- **A result whose JSON fails to parse is no longer discarded.** `status`, `evidence`,
+  `screenshots`, `handoff_notes` and `not_tested_reason` are recovered from the raw text and flagged
+  with `parse_repaired: true`. Measured on two runs where an `"index": 35-36` range made the whole
+  envelope unparseable and filed a real PASS as NOT_TESTED, losing the handoff notes with it.
+  `status` is read only from the text before `"steps"`: a status inside the steps array belongs to
+  one step, and promoting it would turn a failed run into a pass.
+- **Contract: `description` is read as an expectation, not only as a locator.** The executor
+  compares it against what it sees and bails when they disagree, even when `css` or a `ref` alias
+  already pinned the element — so a stale description is a scenario bug, not a stale comment.
+- **Contract: the executor no longer invents expectations.** A row disappearing from a list after it
+  acted on it is not a failure unless a step asserts otherwise; approving a document clears it from
+  the approval queue, and that is the action working.
+
+### Removed
+- `StepResult.screenshot` and the `screenshot` step's `save` field — both were declared but never
+  populated or read.
+
 ## [0.7.0]
 
 ### Added
