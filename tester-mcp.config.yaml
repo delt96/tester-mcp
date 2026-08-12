@@ -1,5 +1,9 @@
 targets:
   frontend: http://localhost:5173
+  backend: http://localhost:8081
+preflight:
+  - { url: "${targets.frontend}", expect_title: "Мыйзам документтерин" }
+  - { url: "${targets.backend}/v3/api-docs", expect_status: [200, 401] }
 runner:
   model: sonnet
   effort: low

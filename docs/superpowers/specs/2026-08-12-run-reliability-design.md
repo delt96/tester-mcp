@@ -183,14 +183,40 @@ P3 문구는 **관대해지라는 지시가 아니다.** "사라진 것도 성�
   내용 검사에 쓰지 말 것"이라 써뒀는데도 헛단언 3건(`seed-03` `.board_info`, `seed-05` 2차,
   `letter/temp-save-restore`)이 나왔다. 산문 규약만으로는 안 지켜짐이 실측됐으므로, 작성자가
   `wait_for`를 빼먹으면 `assert_not_visible`이 새 형태의 헛단언이 될 수 있다.
-  **사용자 결정으로 수용**하고 §11의 별도 스펙에서 다룬다.
+  **사용자 결정으로 수용**하고 §12의 별도 스펙에서 다룬다.
 - preflight fetch가 프록시·사설 인증서 환경에서 오탐할 수 있다 → `--no-preflight`
 - 스크린샷 상시 저장은 `save_to_disk`가 같은 호출의 파라미터라 라운드트립 추가는 없으나 디스크
   사용량이 늘어난다
 - `parse_repaired`는 표시일 뿐 검증이 아니다. 복구된 PASS는 여전히 executor의 자기보고이며,
   중요한 판정은 DB 대조로 확인해야 한다
 
-## 11. 범위 밖 (후속 스펙 후보)
+## 11. 라이브 검증 결과 (2026-08-12)
+
+§10에 미검증으로 남겼던 항목이 전부 해소됐다.
+
+| 항목 | 결과 | 증거 |
+|---|---|---|
+| preflight가 죽은 대상을 잡는가 | **YES** | 백엔드가 실제로 내려간 상태에서 `preflight failed: .../v3/api-docs — request failed — fetch failed (connect ECONNREFUSED ::1:8081; connect ECONNREFUSED 127.0.0.1:8081)`, exit 2, executor 0회 스폰 |
+| `--no-preflight` 가 건너뛰는가 | **YES** | 없는 시나리오 경로로 판별 — 플래그 없으면 preflight 에러가, 있으면 시나리오 경로 에러가 먼저 난다 |
+| `save_to_disk` 가 파일을 남기는가 | **YES** | `runs/2026-08-12T08-36-58/probe-a-absent/screenshot-1786523859504-0.jpg` (30,835 bytes). 결과 JSON의 `screenshots`가 executor 임시경로가 아닌 **복사된 최종 경로**를 가리킨다. 이미지는 로그인 화면 전체가 정상 렌더된 상태 |
+| `assert_not_visible` 가 판별력이 있는가 | **YES** | 같은 페이지에 대해 없는 요소(`#no-such-element-xyz`) → **PASS**, 보이는 요소(`#userId`) → **FAIL**. 항상 통과하는 헛단언이 아님이 양방향으로 증명됨 |
+
+`expect_title` 실측값은 `Мыйзам документтерин башкаруу системасы` 였다. 플랜이 추정으로 적었던
+`eBill`은 **틀렸다** — 추정값이라고 명시해 둔 덕에 걸렀다.
+
+**Node의 fetch 오류 형태 (실측).** `fetch`는 `"fetch failed"`만 던지고 진짜 errno를 `cause`에
+감춘다. 그 `cause`는 `AggregateError`이고 **자기 `message`는 빈 문자열**이며, errno는 `.errors`
+배열에 해석된 주소마다 하나씩 들어 있다. 단순히 `cause.message`만 읽으면 아무것도 안 나온다 —
+단위 테스트는 통과하는데 실제로는 진단 정보가 0인 상태가 됐었다. 주소를 전부 보여주도록 고쳤고,
+`::1`과 `127.0.0.1`이 나란히 찍히는 것이 IPv6 전용 리스너를 식별하는 근거가 된다.
+
+### 한계 — preflight는 시점 검사다
+
+seed-03 실행에서 드러났다. preflight 통과 시점에 백엔드는 401(정상 생존)이었는데, executor가
+로그인하는 시점에는 죽어 있어 `Network Error` 로 NOT_TESTED가 났다. **preflight는 실행 시작 전
+상태만 보증하며, 실행 중에 죽는 대상은 막지 못한다.** 낭비를 줄이는 장치이지 없애는 장치가 아니다.
+
+## 12. 범위 밖 (후속 스펙 후보)
 
 **헛단언·거짓양성 정적 린트.** 원본 §2-2가 "DSL에 부정 단언이 없는 것보다 이쪽이 더 위험하다"고
 결론지은 계열이다. `seed-05` 1차가 목록 전체에 assert하고 `tr:first-child`를 조작해 **남의 의안
