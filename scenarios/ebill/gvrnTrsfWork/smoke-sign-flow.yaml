@@ -1,0 +1,28 @@
+id: gvrn-trsf-smoke-sign-flow
+title: 정부이송작업 스모크 — S3 목록 렌더 / S4 상세 / 서명(OFF 모드) → 서명완료 전환
+locale: ru
+login_as: lgactuser
+precondition: >
+  API 사전 세팅 완료 상태를 전제한다: bill EB_126d83ed에 법률 v1 등록(작업상태 WS02 서명 진행중),
+  서명자 = legalactuser(EPH 20) 1인, 서명상태 SS02(차례). 프론트 VITE_ENABLE_SIGN=false라 S5 모달의
+  서명 버튼은 PIN 없이 즉시 sign API를 호출하고, 백엔드 APP_TEST_ENDPOINTS_ENABLED=true라 CDS를 스킵한다.
+  파괴적 단계 포함: 서명 실행으로 WS02→WS03 전환(마지막 서명자). 공문 작성·전송은 범위 밖 — 버튼 노출 확인만.
+  메뉴(com_menu 149) 등록됨 — 사이드바 노출도 검증. 이동은 URL로 수행. lng_id 발급·치환 완료 상태라 라벨은 i18n(ru) 기준.
+steps:
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
+  - { action: assert_visible, target: { text: "Ожидающие передачи в правительство", description: "사이드바 신규 메뉴(정부이송 예정, com_menu 149) 노출 — deptmenu 등록 검증" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "S3 정부이송 예정 목록 테이블 렌더" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "Идёт подписание", description: "서명 진행중(WS02) 상태의 스모크 의안 행 — 진행률 (0/1) 병기" } }
+  - { action: screenshot, name: "s3-list" }
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng/Dtl?id=EB_126d83ed-4b5a-4c41-8a07-cddc5abcbe4d" }
+  - { action: wait_for, target: { css: ".gtw_row_turn", description: "서명 테이블의 내 차례(SS02) 강조 행" } }
+  - { action: assert_visible, target: { css: ".gtw-action_row button.v_btn.btn_primary.btn_md", text: "Подписать", description: "[서명(전자서명)] 버튼 — 본인 차례에만 노출" } }
+  - { action: screenshot, name: "s4-before-sign" }
+  - { action: click, target: { css: ".gtw-action_row button.v_btn.btn_primary.btn_md", text: "Подписать", description: "S5 서명 모달 오픈" } }
+  - { action: wait_for, target: { css: ".popup_tit", text: "Подписать", description: "S5 서명 모달 타이틀" } }
+  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "Подписать", description: "모달 내 [서명] 실행 — ENABLE_SIGN=false라 즉시 sign API" } }
+  - { action: wait_for, target: { css: ".p-toast-message-success", description: "저장 성공 토스트" } }
+  - { action: wait_for, target: { text: "Подписание завершено", description: "서명완료(WS03) 상태 표기 — 스텝퍼/상태 영역" } }
+  - { action: assert_visible, target: { css: "button.v_btn.btn_outline_secondary.btn_xs", text: "Скачать лист подписей", description: "[서명부 다운로드] 버튼 — WS03 이후 노출" } }
+  - { action: assert_visible, target: { text: "Создать письмо", description: "[공문 작성] 버튼 — WS03에서 노출 (클릭하지 않음)" } }
+  - { action: screenshot, name: "s4-after-sign-ws03" }

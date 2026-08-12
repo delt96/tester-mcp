@@ -1,0 +1,67 @@
+id: avail-05-letterboxes
+title: "[가용성] 편지함 10종 + 이행요청 서명 승인함 — 각 함에 문서가 있는가"
+locale: kr
+login_as: tester
+tags: [availability, e2e-fullflow]
+precondition: >
+  전자결재 화면(EA-*) 검증에 필요한 데이터가 함별로 있는지 훑는다. 특히 '이행요청 서명 승인함'은
+  이 계정이 서명자로 지정된 이행요청이 있어야 비어 있지 않다 — 없으면 3분할 화면이 빈 상태로만
+  촬영된다(2026-08-11 admin 계정에서 0건 확인). 읽기 전용.
+on_failure: continue
+steps:
+
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: content_title, description: "수신함" } }
+  - { action: screenshot, name: "01-inbox" }
+  - { action: assert_visible, target: { ref: list_item, description: "수신함 문서 1건 이상 — 이행요청/숨기기/의안연결 검증의 출발점" } }
+
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: content_title, description: "결재대기함" } }
+  - { action: screenshot, name: "02-approval-inbox" }
+  - { action: assert_visible, target: { ref: list_item, description: "결재대기 문서 1건 이상(EA-05 무한스크롤·건수표시 검증용)" } }
+
+  - { action: navigate, url: "/main/letter/executionInbox" }
+  - { action: wait_for, target: { ref: content_title, description: "이행대기함" } }
+  - { action: screenshot, name: "03-execution-inbox" }
+  - { action: assert_visible, target: { ref: list_item, description: "이행 문서 1건 이상 — 이행요청 카드(댓글·이행완료·답변문서, EA-20) 검증용" } }
+
+  # ★ 이행요청 서명 승인함 — 서명자로 지정된 건이 없으면 빈 화면
+  - { action: navigate, url: "/main/letter/workApproval" }
+  - { action: wait_for, target: { ref: content_title, description: "이행요청 서명 승인함" } }
+  - { action: screenshot, name: "04-work-approval" }
+  - { action: assert_visible, target: { ref: list_item, description: "서명 대기 이행요청 1건 이상 — 0건이면 EA-01 3분할 화면을 내용 있는 상태로 촬영할 수 없다. 다른 계정이 이 계정을 서명자로 지정해 이행요청을 만들어야 한다" } }
+
+  - { action: navigate, url: "/main/letter/completedItems" }
+  - { action: wait_for, target: { ref: content_title, description: "처리완료함" } }
+  - { action: screenshot, name: "05-completed" }
+  - { action: assert_visible, target: { ref: list_item, description: "처리완료 문서 1건 이상" } }
+
+  - { action: navigate, url: "/main/letter/draftsInbox" }
+  - { action: wait_for, target: { ref: content_title, description: "기안함" } }
+  - { action: screenshot, name: "06-drafts" }
+  - { action: assert_visible, target: { ref: list_item, description: "기안 문서 1건 이상 — 기안함에서 이행요청 생성(EA-17) 검증용" } }
+
+  - { action: navigate, url: "/main/letter/rejected" }
+  - { action: wait_for, target: { ref: content_title, description: "반려함" } }
+  - { action: screenshot, name: "07-rejected" }
+  - { action: assert_visible, target: { ref: list_item, description: "반려 문서 1건 이상 — 재기안(EA-18 연결정보 이관) 검증용" } }
+
+  - { action: navigate, url: "/main/letter/generalDepartmentInbox" }
+  - { action: wait_for, target: { ref: content_title, description: "일반부서(GD) 수신함" } }
+  - { action: screenshot, name: "08-gd-inbox" }
+  - { action: assert_visible, target: { ref: list_item, description: "GD 수신 문서 1건 이상 — 등록일 기간/Токтом 필터(EA-18) 검증용" } }
+
+  - { action: navigate, url: "/main/letter/citizenComplaintInbox" }
+  - { action: wait_for, target: { ref: content_title, description: "시민민원함" } }
+  - { action: screenshot, name: "09-citizen" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "시민민원 1건 이상(EA-13)" } }
+
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { ref: content_title, description: "외부수신함" } }
+  - { action: screenshot, name: "10-ext-receive" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "외부수신 문서 1건 이상(EA-07/EA-08)" } }
+
+  - { action: navigate, url: "/main/letter/external/send" }
+  - { action: wait_for, target: { ref: content_title, description: "외부발신함" } }
+  - { action: screenshot, name: "11-ext-send" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "외부발신 문서 1건 이상(EA-21 그리드 전환)" } }

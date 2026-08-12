@@ -1,0 +1,29 @@
+id: external-send-grid-render
+title: 외부발신함이 3분할이 아닌 검색폼+DataTable 그리드로 렌더되고, 검색 무결과 시 빈 상태가 뜬다
+locale: ru
+login_as: gduser
+precondition: >
+  kgst.documents 중 workflow='out' AND status in ('closed','closing') AND eas_document 조인되는 행이
+  정확히 1건 (id=10, doc_subtle="외부 문서 테스트 03 (2025-07-16)"). 건수가 바뀌면 Total 단언을 조정할 것.
+steps:
+  - { action: navigate, url: "/main/letter/external/send" }
+
+  # 그리드 골격 — 3분할(left_section/lists)이 아니라 수신함과 같은 board_search + DataTable 구조여야 한다
+  - { action: wait_for, target: { css: ".board_search.type2 .search_area", description: "검색 패널" } }
+  - { action: assert_visible, target: { ref: datatable, description: "발신함 목록 DataTable" } }
+  - { action: assert_visible, target: { css: ".board_search.type2 .search_area .search_one:nth-child(4) #searchDocNo", description: "검색폼 4번째 칸 = 문서번호 입력 (4칸 grid의 마지막)" } }
+
+  # 서버가 내려준 총건수가 Total에 반영되는가 (lazy 모드에서 totalRecords는 응답의 totalElements)
+  - { action: assert_value, target: { css: ".board_info .total_num .text_primary", description: "Total 숫자" }, value: "1" }
+
+  # 행이 실제 데이터로 렌더되는가 — 4번째 셀이 제목 컬럼(icon2/resDtm/docNo/docSubtle 순)
+  - { action: assert_value, target: { css: ".p-datatable-tbody > tr:first-child td:nth-child(4)", description: "첫 행 제목 셀" }, value: "외부 문서 테스트 03 (2025-07-16)" }
+  - { action: screenshot, name: "01-send-grid" }
+
+  # 빈 상태 템플릿 — 이번 작업에서 새로 넣은 것. 수신함에는 아직 없다.
+  - { action: fill, target: { css: "#searchDocSubtle", description: "제목 검색 입력" }, value: "ZZZ_NO_MATCH_QUERY" }
+  - { action: click, target: { css: ".button_area .search_button", description: "조회 버튼" } }
+  - { action: wait_for, target: { css: ".v_table .no_data", description: "검색 무결과 빈 상태 블록" } }
+  - { action: assert_visible, target: { css: ".v_table .no_data .text_msg", description: "빈 상태 메시지(t 10075)" } }
+  - { action: assert_value, target: { css: ".board_info .total_num .text_primary", description: "무결과 시 Total" }, value: "0" }
+  - { action: screenshot, name: "02-send-empty-state" }

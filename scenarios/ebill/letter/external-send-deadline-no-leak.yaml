@@ -1,0 +1,29 @@
+id: external-send-deadline-no-leak
+title: 발신함에서 지정한 기한일이 외부수신함 검색조건으로 새지 않는다 (pageStore 키 충돌 회귀)
+locale: ru
+login_as: gduser
+precondition: >
+  회귀 대상. usePageStore는 앱 전역 단일 스토어이고 searchParams가 sessionStorage에 영속된다.
+  발신함이 수신함과 같은 's_deadline' 키를 쓰던 동안에는, 발신함에서 기한일을 지정하고 검색한 뒤
+  수신함에 들어가면 그 값이 수신함 기한일 칸에 채워지고 그 조건으로 서버 조회까지 나갔다.
+  수정 후 발신함은 's_tmlmtDtm'을 쓰므로 수신함 칸은 비어 있어야 한다.
+steps:
+  # 1) 수신함을 먼저 열어 기한일 칸이 원래 비어 있음을 기준선으로 잡는다
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { css: ".board_search.type2 .search_area", description: "수신함 검색 패널" } }
+  - { action: assert_value, target: { css: ".search_area .search_one:nth-child(2) .datepicker-comp input", description: "수신함 기한일 입력 (기준선)" }, value: "" }
+  - { action: screenshot, name: "01-receive-deadline-empty-before" }
+
+  # 2) 발신함으로 이동해 기한일을 지정하고 검색 → pageStore.searchParams에 저장된다
+  - { action: navigate, url: "/main/letter/external/send" }
+  - { action: wait_for, target: { css: ".board_search.type2 .search_area", description: "발신함 검색 패널" } }
+  - { action: fill, target: { css: ".search_area .search_one:nth-child(2) .datepicker-comp input", description: "발신함 기한일 입력" }, value: "2026-12-31" }
+  - { action: click, target: { css: ".button_area .search_button", description: "발신함 조회 버튼" } }
+  - { action: wait_for, target: { ref: datatable, description: "검색 후 발신함 그리드" } }
+  - { action: screenshot, name: "02-send-deadline-set" }
+
+  # 3) 수신함으로 돌아온다 — 기한일 칸은 여전히 비어 있어야 한다 (수정 전에는 2026-12-31이 박혔다)
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { css: ".board_search.type2 .search_area", description: "수신함 검색 패널 재진입" } }
+  - { action: assert_value, target: { css: ".search_area .search_one:nth-child(2) .datepicker-comp input", description: "수신함 기한일 입력 — 발신함 값이 새지 않았는지" }, value: "" }
+  - { action: screenshot, name: "03-receive-deadline-still-empty" }

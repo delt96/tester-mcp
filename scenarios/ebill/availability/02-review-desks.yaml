@@ -1,0 +1,32 @@
+id: avail-02-review-desks
+title: "[가용성] 법률검토 담당자 — 배정받은 의안이 있는가(내 담당/전체 토글 기준)"
+locale: kr
+login_as: lgrvstaff
+tags: [availability, e2e-fullflow]
+precondition: >
+  법률검토 단계를 태우려면 (1) 목록에 검토 대상 의안이 있고 (2) 그 의안의 등록요청문서에서
+  이 계정(LGRVuser2)이 '주 이행자'로 지정돼 있어야 한다. 주 이행자가 아니면 상세 화면에
+  [의견서 작성](Корутунду даярдоо) 버튼이 나타나지 않아 단계를 넘길 수 없다 — 2026-08-11 확인.
+  이 시나리오는 목록 데이터와 배정 여부만 확인하고 아무것도 저장하지 않는다.
+on_failure: continue
+steps:
+
+  - { action: navigate, url: "/main/billMng/lgReviewMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "법무실검토서 목록 제목" } }
+  - { action: screenshot, name: "01-lgreview-list-all" }
+
+  # 전체 보기에 데이터가 있는가
+  - { action: assert_visible, target: { ref: datatable_row, description: "법률검토 목록(전체)에 의안 1건 이상" } }
+
+  # 내 담당(배정) 보기로 전환 — 이 토글이 BL-07의 핵심 UI
+  - { action: assert_visible, target: { ref: bill_view_toggle, description: "[전체/내 담당] 보기 토글 존재(BL-07)" } }
+  - { action: click, target: { ref: bill_view_assigned_btn, description: "[내 담당] 버튼 클릭 — 이행요청으로 배정된 의안만 필터" } }
+  - { action: wait_for, target: { ref: bill_view_assigned_active, description: "[내 담당] 활성 상태 확인" } }
+  - { action: screenshot, name: "02-lgreview-list-assigned" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "내 담당 목록에 의안 1건 이상 — 0건이면 이 계정으로는 법률검토 단계를 진행할 수 없다(주 이행자 지정 필요)" } }
+
+  # 배정된 첫 건의 상세로 진입해 '의견서 작성' 버튼 노출 여부 확인 (= 주 이행자인지 판정)
+  - { action: double_click, target: { ref: datatable_row, description: "내 담당 목록 첫 행 더블클릭 → 법무실검토서 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "법무실검토서 상세 진입" } }
+  - { action: screenshot, name: "03-lgreview-detail" }
+  - { action: assert_visible, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서", description: "[의견서 작성] 버튼 — 주 이행자로 지정된 경우에만 노출된다. 없으면 이행요청 모달에서 [C] 배지로 주 이행자 지정이 선행돼야 한다" } }

@@ -1,0 +1,13 @@
+id: assigned-toggle-persist
+title: 재로그인 후 이행받은 토글 유지 (DB 저장 → 로그인 로딩 → store → 토글)
+locale: ru
+login_as: tester
+ephemeral: true
+precondition: >
+  assigned-toggle-save를 먼저 실행해 admin의 billListView.legalReview='ASSIGNED'가 DB에 저장된 상태여야 한다.
+  이 시나리오는 fresh 로그인으로 시작하므로, 토글이 '이행받은'으로 켜져 있으면 저장값이 재로그인 시 복원됨을 증명한다.
+steps:
+  - { action: navigate, url: "/main/billMng/lgReviewMng/billMng" }
+  - { action: wait_for, target: { ref: bill_view_toggle, description: "전체/이행받은 토글 렌더" } }
+  - { action: assert_visible, target: { ref: bill_view_assigned_active, description: "재로그인 후에도 '이행받은'(두번째 버튼) 활성 유지" } }
+  - { action: screenshot, name: "01-persisted-assigned" }

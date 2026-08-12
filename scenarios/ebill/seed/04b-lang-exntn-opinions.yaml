@@ -1,0 +1,125 @@
+id: seed-04b-lang-exntn-opinions
+title: "[시딩] 언어심사·전문심사 부서 의견서 — 부서원 작성 → 소관위원회 부서장 수신 → 부서장 승인"
+locale: kr
+login_as: langstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  seed-04 로 각 부서장이 부서원에게 이행요청을 걸고 **[C] 주 이행자까지 지정**돼 있어야 한다.
+  주 이행자가 아니면 상세에 [의견서 작성] 버튼이 아예 나오지 않는다.
+
+  언어심사(langReviewMng)·전문심사(lgExntnMng) 상세는 법무실(lgReviewMng)과 구조가 다르다:
+  **결과(진행/거절) 라디오가 없고** 바로 [의견서 작성](10826)으로 간다. 저장 스텝이 없다.
+
+  ★ 이 시나리오도 **의견서 [등록]에서 막힌다.** 의견서 등록에는 공문 파일(Расмий документ)이
+  필수인데(2026-08-12 사용자 확인) DSL 에 upload 액션이 없다. seed-02 와 같은 벽이다.
+  자동으로 검증되는 범위는 **[의견서 작성] 버튼 노출 + 모달 필수값 입력까지**이며,
+  등록·결재 블록은 사람이 이어받아야 한다.
+
+  각 부서 흐름은 동일하다:
+    부서원이 의견서 작성(수신자=소관위원회 부서장 cmtuser1 / 승인자=자기 부서장)
+    → 부서장이 결재대기함에서 결재 → 소관위원회로 전달
+
+  ⚠ autocomplete 접두어 함정: 부서장/부서원 ID가 접두어를 공유한다
+    (LGGSPLZ ⊂ LGGSPLZ2, lgexntnuser ⊂ lgexntnuser2, cmtuser1 ⊂ cmtuser10).
+    부서장은 전체 ID로 좁힐 수 없으므로 **후보 선택은 반드시 text: "부서장"으로** 해야 한다.
+    옵션 회색줄이 '직급 · 부서'라 여기서 갈린다(AutoCompleteUserInput.vue:78).
+
+  ⚠ 미검증: 의견서 모달 내부 셀렉터(언어 체크박스·제목·수신자·승인자)는 seed-02 에서 그대로
+  가져왔고 아직 한 번도 실행되지 않았다. 첫 실행 시 handoff_notes 로 실제 구조를 확인할 것.
+on_failure: stop
+steps:
+
+  # ══════════════════ 언어심사 부서 ══════════════════
+
+  # ── 1) 언어심사 부서원(LGGSPLZ2) — 대상 의안 상세 진입
+  - { action: navigate, url: "/main/billMng/langReviewMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "언어전문의견서 목록" } }
+  - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글 — 배정된 건만" } }
+  - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
+  - { action: screenshot, name: "04b-a-lang-list" }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 언어심사 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "언어심사 상세" } }
+  - { action: screenshot, name: "04b-b-lang-detail" }
+
+  # ── 2) 의견서 작성 — 주 이행자에게만 보이는 버튼
+  - { action: assert_visible, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서 작성", description: "[의견서 작성](10826). 없으면 이 계정이 주 이행자가 아니다 — seed-04 의 [C] 지정을 확인할 것" } }
+  - { action: click, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서 작성", description: "[의견서 작성] → 문서 작성 모달" } }
+  - { action: wait_for, target: { css: ".p-dialog", description: "의견서 작성 모달" } }
+  - { action: screenshot, name: "04b-c-lang-opinion-modal" }
+
+  # ── 3) 필수값 — 언어 / 제목 / 수신자(소관위원회 부서장) / 승인자(언어심사 부서장)
+  - { action: click, target: { css: ".p-dialog input[type=checkbox]", description: "문서 언어 체크박스(공식어) — 언어는 필수(EA-09)" } }
+  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 언어심사 의견서" }
+  - { action: fill, target: { css: ".p-dialog .recipients .p-autocomplete-input, .p-dialog .recipient_area .p-autocomplete-input", description: "수신자 — 소관위원회 부서장" }, value: "cmtuser1" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "cmtuser1(부서장) 선택 — cmtuser10(직원)과 갈라야 한다" } }
+  - { action: fill, target: { label: "승인자", css: ".p-dialog .p-autocomplete-input", description: "승인자 — 언어심사 부서장(LGGSPLZ)" }, value: "LGGSPLZ" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "LGGSPLZ(부서장) 선택 — LGGSPLZ2(직원)와 갈라야 한다" } }
+  - { action: screenshot, name: "04b-d-lang-opinion-filled" }
+  # ★ 공문 파일이 없으면 여기서 오류 없이 조용히 실패한다
+  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일 미첨부 시 조용히 실패(seed-02 와 동일 벽)" } }
+  - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
+  - { action: screenshot, name: "04b-e-lang-opinion-registered" }
+
+  # ── 4) 언어심사 부서장(LGGSPLZ) — 결재
+  - { use: switch-account, with: { account: langhead } }
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 언어심사", description: "언어심사 의견서" } }
+  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역" } }
+  - { action: screenshot, name: "04b-f-lang-approval" }
+  # 개발환경은 esign 미접근이라 PIN 없이 즉시 승인된다(2026-08-12 사용자 확인)
+  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] → 소관위원회 부서장에게 전달" } }
+  - { action: screenshot, name: "04b-g-lang-approved" }
+
+  # ══════════════════ 전문심사 부서 ══════════════════
+
+  # ── 5) 전문심사 부서원(lgexntnuser2) — 대상 의안 상세 진입
+  - { use: switch-account, with: { account: exntnstaff } }
+  - { action: navigate, url: "/main/billMng/lgExntnMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "전문심사부서의견서 목록" } }
+  - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글" } }
+  - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
+  - { action: screenshot, name: "04b-h-exntn-list" }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 전문심사 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "전문심사 상세" } }
+  - { action: screenshot, name: "04b-i-exntn-detail" }
+
+  # ── 6) 의견서 작성
+  - { action: assert_visible, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서 작성", description: "[의견서 작성](10826) — 없으면 주 이행자가 아니다" } }
+  - { action: click, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서 작성", description: "[의견서 작성] → 문서 작성 모달" } }
+  - { action: wait_for, target: { css: ".p-dialog", description: "의견서 작성 모달" } }
+  - { action: screenshot, name: "04b-j-exntn-opinion-modal" }
+
+  # ── 7) 필수값 — 수신자는 동일하게 소관위원회 부서장, 승인자만 전문심사 부서장
+  - { action: click, target: { css: ".p-dialog input[type=checkbox]", description: "문서 언어 체크박스(공식어)" } }
+  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 전문심사 의견서" }
+  - { action: fill, target: { css: ".p-dialog .recipients .p-autocomplete-input, .p-dialog .recipient_area .p-autocomplete-input", description: "수신자 — 소관위원회 부서장" }, value: "cmtuser1" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "cmtuser1(부서장) 선택" } }
+  - { action: fill, target: { label: "승인자", css: ".p-dialog .p-autocomplete-input", description: "승인자 — 전문심사 부서장(lgexntnuser)" }, value: "lgexntnuser" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "lgexntnuser(부서장) 선택 — lgexntnuser2(직원)와 갈라야 한다" } }
+  - { action: screenshot, name: "04b-k-exntn-opinion-filled" }
+  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일 미첨부 시 조용히 실패" } }
+  - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
+  - { action: screenshot, name: "04b-l-exntn-opinion-registered" }
+
+  # ── 8) 전문심사 부서장(lgexntnuser) — 결재
+  - { use: switch-account, with: { account: exntnhead } }
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 전문심사", description: "전문심사 의견서" } }
+  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역" } }
+  - { action: screenshot, name: "04b-m-exntn-approval" }
+  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] → 소관위원회 부서장에게 전달" } }
+  - { action: screenshot, name: "04b-n-exntn-approved" }
+
+  # ── 9) 소관위원회 부서장(cmtuser1) 수신 확인 — 두 부서 의견서가 다 도착했는가
+  - { use: switch-account, with: { account: cmthead } }
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
+  - { action: screenshot, name: "04b-o-cmt-inbox" }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 언어심사 의견서", description: "언어심사 의견서 수신" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 전문심사 의견서", description: "전문심사 의견서 수신" } }

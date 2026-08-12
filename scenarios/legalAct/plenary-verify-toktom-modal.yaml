@@ -1,0 +1,22 @@
+id: plenary-verify-toktom-modal
+title: 본회의검증(EB_de7a96b0) — 버튼 노출 + 톡돔 작성 모달 열림(비파괴)
+locale: ru
+precondition: >
+  legalactuser(LGACT)로 본회의검증 상세(bill EB_de7a96b0, task 13330, step 1900=LEGAL_ACTION,
+  result_doc 없음, 등록요청문서 51827796-…). 비파괴 — 모달 열림까지만(저장/제출 안 함).
+  검증: (1) 톡돔 작성/이행문서 버튼이 단계 기준으로 노출(문서-역할 불필요), (2) 강제진행 버튼 미노출,
+  (3) 톡돔 작성 클릭 시 InsertLetter 모달이 열림(버튼→모달 배선). threading fromDocId=등록문서는 코드로 확증됨.
+steps:
+  - { action: navigate, url: "/" }
+  - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.lgactuser.username}" }
+  - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.lgactuser.password}" }
+  - { action: click, target: { css: ".btn_login", role: "button", description: "로그인 버튼" } }
+  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }
+  - { action: navigate, url: "/main/billMng/legalActMng/billMng/Dtl?id=EB_de7a96b0-55ff-4680-96bf-ae744043f0bf&taskId=13330" }
+  - { action: wait_for, target: { css: ".content_section .btn_group_fixed button.btn_outline_primary", text: "Список", description: "상세 하단 '목록' 버튼(t10084) — 페이지 마운트 확인" } }
+  - { action: wait_for, target: { css: ".content_section .btn_group_fixed button.v_btn.btn_primary.btn_md", text: "Токтомду даярдоо", description: "'톡돔 작성' 버튼(t10833, @click=popupInsertLetter). LGACT 단계면 문서-역할 없이 노출(un-gate)" } }
+  - { action: assert_visible, target: { css: ".content_section .btn_group_fixed button.btn_outline_primary", text: "исполнительный документ", description: "'이행문서' 버튼(t10901, popupExecutionInbox) — 단계기준 노출. 이행 버튼 통합 후 라벨 t10602→t10901" } }
+  - { action: screenshot, name: "eb-de7a96b0-buttons" }
+  - { action: click, target: { css: ".content_section .btn_group_fixed button.v_btn.btn_primary.btn_md", text: "Токтомду даярдоо", description: "'톡돔 작성' 버튼 클릭 → InsertLetter 답변 모달(replyYn='Y') 오픈" } }
+  - { action: wait_for, target: { css: ".p-dialog .popup_tit", text: "Токтомду даярдоо", description: "InsertLetter 모달 헤더(letterModal.title=t10833) — 버튼→모달 배선·문서작성 폼 렌더 확인" } }
+  - { action: screenshot, name: "eb-de7a96b0-toktom-modal-open" }

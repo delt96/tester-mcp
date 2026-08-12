@@ -1,0 +1,25 @@
+id: billregdoc-02-official-file-field-on-form
+title: 의안 접수 폼에 공문파일 칸이 있고, 등록요청문서 검색 UI는 사라졌다
+locale: kr
+login_as: gduser
+precondition: >
+  의안 등록 폼(billMngSave)에 직접 진입한다(외부문서 모드 아님 = extDoc 없음).
+  최근 변경으로 (a) 기존 "등록요청문서" 검색 컴포넌트(.doc_search_field)가 제거되고
+  (b) 파일 영역 아래에 공문파일(fileKindCd 300) 업로드 칸이 추가되었다.
+  공문파일 칸은 extDoc가 없을 때만 렌더되므로 이 진입 경로에서는 보여야 한다.
+  아무것도 저장하지 않는 읽기 전용 검증이다.
+on_failure: stop
+steps:
+
+  - { action: navigate, url: "/main/billMng/gdMng/billMngRc/save" }
+  - { action: wait_for, target: { css: "select.form_control", description: "안건종류(10109) select — 등록 폼 로드 완료 신호" } }
+
+  # 공문파일 칸이 존재해야 한다 (신규 추가분)
+  - { action: assert_visible, target: { css: "th", text: "공문파일", description: "공문파일(10271) 행 헤더 — 폼에 새로 추가된 공문 업로드 칸. 없으면 실패" } }
+  - { action: screenshot, name: "02a-official-file-row" }
+
+  # 기존 파일 칸들도 그대로 있어야 한다 (회귀 확인)
+  - { action: assert_visible, target: { css: "th", text: "문서(키르키즈어)", description: "문서(키르키즈어)(10076) 행 — 기존 파일 영역이 온전한지" } }
+
+  # 등록요청문서 검색 UI는 사라졌어야 한다 — 부재 검증 액션이 없으므로 스크린샷으로 남긴다
+  - { action: screenshot, name: "02b-no-doc-search-field" }

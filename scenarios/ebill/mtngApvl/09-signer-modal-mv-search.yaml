@@ -4,14 +4,14 @@ locale: ru
 login_as: gduser
 tags: [mtngApvl]
 precondition: >
-  mtngId=849는 stat_cd '3'(DRAFT) 위원회 회의 → [서명자 지정] 버튼 노출.
+  mtngId=848는 stat_cd '3'(DRAFT) 위원회 회의 → [서명자 지정] 버튼 노출.
   2026-07-30 변경: 부서/위원회/정당 3개 탭 제거, /hrmis/autocomplete(mv_signer_autocomplete) 단일 검색으로 전환.
   MV의 search_text = lower(이름+부서명+직위명)이라 대소문자 무관 검색과 부서명 검색이 모두 동작해야 한다.
   검증 데이터: 개발 DB에 'Хон-test Гиль дон (국회의원1)'(대문자 Х로 시작, 프로필 사진 보유)이 있고,
   부서명 'Отдел комитета по международным делам...' 소속 5명이 있다.
   읽기 전용: 저장 없이 취소로 닫는다. DB 무변경.
 steps:
-  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=849" }
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=848" }
   - { action: wait_for, target: { ref: mtapv_section, description: "결재선 섹션 렌더 (초안)" } }
   - { action: click, target: { ref: mtapv_assign_btn, description: "[서명자 지정/변경] → 모달 오픈" } }
   - { action: wait_for, target: { ref: mapvl_search_input, description: "모달 검색 입력 (탭바는 제거됨)" } }

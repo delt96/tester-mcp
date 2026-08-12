@@ -1,0 +1,68 @@
+id: seed-04-dept-main-executors
+title: "[시딩] 위원회회부 후 — 3개 부서장이 각자 부서원에게 이행요청 + [C] 주 이행자 지정"
+locale: kr
+login_as: cmthead
+tags: [seed, e2e-fullflow]
+precondition: >
+  seed-03(위원회회부)이 끝나 소관위원회 부서장 / 언어심사 부서장 / 전문심사 부서장 세 명에게
+  '위원회 회부 요청' 이행요청이 발송돼 있어야 한다.
+
+  ★ 회부 요청은 **수신함이 아니라 이행대기함(/main/letter/executionInbox)으로 온다.**
+  2026-08-11 실측 — 수신함만 뒤지다 못 찾는 함정이다.
+
+  각 부서장이 하는 일은 동일하다: 이행대기함에서 해당 문서를 열고 [+ 이행자추가]로 부서원을
+  이행요청에 넣은 뒤 **[C] 배지를 눌러 주 이행자로 지정**하고, 서명자를 본인으로 두어 즉시 발송한다.
+  [C]를 누르지 않으면 부서원 화면에 [의견서 작성]·[심사보고서 등록] 버튼이 나오지 않는다.
+
+  산출물:
+  - 위원회1  : cmtuser1  → ⓒ cmtuser10     (위원회심사 목록 '이행받은 의안'에 즉시 나타남)
+  - 언어심사 : LGGSPLZ   → ⓒ LGGSPLZ2
+  - 전문심사 : lgexntnuser → ⓒ lgexntnuser2
+on_failure: stop
+steps:
+
+  # ── 1) 위원회1 부서장
+  - { action: navigate, url: "/main/letter/executionInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
+  - { action: screenshot, name: "04a-cmt-execution-inbox" }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 위원회 회부 요청" } }
+  - { action: wait_for, target: { css: "button.add_command", description: "[+ 이행자추가] — 상세 진입 신호" } }
+  # 회부 요청 카드에는 소관위원회 부서장에게 이미 ⓒ 가 붙어 있다(gduser1이 회부하며 선지정, BL-05)
+  - { action: assert_visible, target: { css: ".p-dialog, .command_area, body", text: "위원회 회부 요청", description: "회부 요청 카드 존재" } }
+  - { action: screenshot, name: "04b-cmt-request-detail" }
+  - use: assign-main-executor
+    with: { executor: "cmtuser10", signer: "cmtuser1", content: "E2E-SEED 위원회 심사 이행요청" }
+  - { action: screenshot, name: "04c-cmt-assigned" }
+  - { action: assert_visible, target: { css: "[class*='badge']", text: "발송", description: "본인 서명이라 즉시 '발송' — '서명 대기'면 서명자가 타인으로 잡힌 것" } }
+
+  # 위원회심사 목록에 즉시 반영되는지 확인 — 주 이행자 지정의 효과를 눈으로 본다
+  - { action: navigate, url: "/main/billMng/cmtMng/billCmtReview" }
+  - { action: wait_for, target: { ref: datatable, description: "위원회심사 목록" } }
+  - { action: screenshot, name: "04d-cmt-review-list" }
+
+  # ── 2) 언어심사 부서장
+  - { use: switch-account, with: { account: langhead } }
+  - { action: navigate, url: "/main/letter/executionInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 위원회 회부 요청" } }
+  - { action: wait_for, target: { css: "button.add_command", description: "상세 진입" } }
+  - use: assign-main-executor
+    with: { executor: "LGGSPLZ2", signer: "LGGSPLZ", content: "E2E-SEED 언어심사 이행요청" }
+  - { action: screenshot, name: "04e-lang-assigned" }
+
+  # ── 3) 전문심사 부서장
+  - { use: switch-account, with: { account: exntnhead } }
+  - { action: navigate, url: "/main/letter/executionInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 위원회 회부 요청" } }
+  - { action: wait_for, target: { css: "button.add_command", description: "상세 진입" } }
+  - use: assign-main-executor
+    with: { executor: "lgexntnuser2", signer: "lgexntnuser", content: "E2E-SEED 전문심사 이행요청" }
+  - { action: screenshot, name: "04f-exntn-assigned" }
+
+  # ── 4) 결과 확인 — 이행요청 카드가 3건(+회부요청 1건) 쌓여 있어야 한다
+  #     이행요청 목록은 문서 단위로 공유되므로 어느 부서장 화면에서도 전부 보인다(2026-08-11 실측)
+  - { action: assert_visible, target: { css: "body", text: "E2E-SEED 위원회 심사 이행요청", description: "위원회 지정분" } }
+  - { action: assert_visible, target: { css: "body", text: "E2E-SEED 언어심사 이행요청", description: "언어심사 지정분" } }
+  - { action: assert_visible, target: { css: "body", text: "E2E-SEED 전문심사 이행요청", description: "전문심사 지정분" } }
+  - { action: screenshot, name: "04g-all-assigned" }

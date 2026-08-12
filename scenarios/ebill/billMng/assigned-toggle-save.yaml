@@ -1,0 +1,17 @@
+id: assigned-toggle-save
+title: 법무실 검토서 전체/이행받은 토글 렌더→기본 전체→이행받은 클릭→활성전환(저장+재조회)
+locale: ru
+login_as: tester
+ephemeral: true
+precondition: >
+  user_setting에 admin의 billListView.legalReview 행이 없어야 기본 '전체' 활성으로 시작한다(테스트 전 DELETE로 정리됨).
+  admin(관리자)은 법무실 검토서 리스트에 접근 가능. lng 11071(이행받은 의안)은 locales json 미동기화라 두번째 버튼 라벨이 '11071'로 보일 수 있음 → 셀렉터는 위치(nth-child) 기반이라 무관.
+steps:
+  - { action: navigate, url: "/main/billMng/lgReviewMng/billMng" }
+  - { action: wait_for, target: { ref: bill_view_toggle, description: "전체/이행받은 토글 렌더" } }
+  - { action: assert_visible, target: { ref: bill_view_all_active, description: "기본값 '전체'(첫 버튼) 활성" } }
+  - { action: screenshot, name: "01-default-all-active" }
+  - { action: click, target: { ref: bill_view_assigned_btn, description: "'이행받은 의안'(두번째 버튼) 클릭 → setBillListView + POST /user/setting + fnSearch 재조회" } }
+  - { action: wait_for, target: { ref: bill_view_assigned_active, description: "'이행받은' 활성 전환" } }
+  - { action: assert_visible, target: { ref: bill_view_assigned_active, description: "'이행받은' 활성 확인(토글 상태 전환 완료)" } }
+  - { action: screenshot, name: "02-assigned-active" }

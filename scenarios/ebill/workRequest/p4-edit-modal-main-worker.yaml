@@ -1,0 +1,50 @@
+id: p4-edit-modal-main-worker
+title: 수정 모달에서 주 이행자 C 배지 노출 + 교체 시 확인 팝업(10914) — 저장은 하지 않음
+locale: ru
+login_as: gduser
+precondition: >
+  ⚠ 비파괴 — 모달의 수정(Изменить) 버튼은 누르지 않는다. C 배지 토글은 모달 로컬 상태만 바꾸고
+  취소로 닫으므로 DB는 그대로다.
+  대상: doc 5a57775a-575f-4de4-822e-1f5f4290372d "Маданият боюнча мыйзам долбоор" (gduser가 기안,
+  기안함 목록 reg_dtm desc 정렬의 상단). 이 문서에는 이행요청이 2건 달려 있다.
+  - work_req 1592 (WS01, reg_id=9=gduser, worker_id=14, main_rspns_id=2030, 이행자 3명 전원 미응답)
+    → gduser가 작성자이므로 canEdit 성립, 기안함은 edit-yn=true라 수정 버튼이 뜬다.
+  - work_req 1590 (WS03, reg_id=10, signer_id=10) → gduser는 작성자·서명자·수신자 어느 쪽도 아니라
+    버튼이 없다. 따라서 .update_button은 화면에 하나뿐이고 그것이 1592의 것이다.
+  이행자 3명: rspns 2030 cmtuser2(주이행자), 2031 LGGSPLZ, 2032 lgexntnuser. 모달은 주이행자를
+  첫 행으로 끌어올리므로 .responder_row는 (2)=cmtuser2, (3)=LGGSPLZ 순이다.
+  ※ .dialog_main_area의 첫 자식은 .worker_top_area라서 이행자 행은 nth-child(2)부터 시작한다.
+  검증 대상은 2026-08-05 변경분 3가지다:
+  (1) 수정 모드에서 C 배지가 렌더된다 — 이전에는 add/reception 흐름에서만 렌더됐다
+  (2) 저장된 주이행자가 배지에 시드된다 (aria-pressed=true)
+  (3) 다른 사람에게 넘길 때 10914 확인 팝업이 뜨고, PrimeVue Dialog 위에 정상 표시된다
+steps:
+  - { action: navigate, url: "/main/letter/draftsInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "기안함 좌측 목록" } }
+  - { action: click, target: { ref: list_item, text: "Маданият", description: "대상 문서 선택 — 문서 제목은 데이터라 번역 대상이 아니다" } }
+  - { action: wait_for, target: { css: ".right_top_area .command", description: "이행요청 카드 렌더" } }
+  - { action: screenshot, name: "01-drafts-doc-commands" }
+
+  # (1) 수정 버튼 — edit-yn=true(기안함) && canEdit(작성자)
+  - { action: assert_visible, target: { css: ".right_top_area .update_button button", description: "★ 수정 버튼. 1592 카드에만 뜬다(1590은 WS03 + 무권한)" } }
+  - { action: click, target: { css: ".right_top_area .update_button button", description: "수정 모달 오픈" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "모달 오픈 확인(이행내용 textarea)" } }
+
+  # (1) C 배지가 수정 모드에서도 렌더되는가 — 이번 변경의 핵심
+  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:nth-child(2) .main-worker-btn", description: "★ 신규: updateWorkRequest 흐름에서 C 배지 노출(canPickMainWorker)" } }
+  # (2) 저장된 주이행자가 시드되었는가
+  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:nth-child(2) .main-worker-btn[aria-pressed='true']", description: "★ 첫 행(cmtuser2, main_rspns_id=2030)이 이미 지정된 상태로 열린다" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:nth-child(3) .main-worker-btn[aria-pressed='false']", description: "둘째 행(LGGSPLZ)은 미지정" } }
+  - { action: screenshot, name: "02-edit-modal-c-badge-seeded" }
+
+  # (3) 교체 시 확인 팝업 — Dialog 위에 ConfirmPopup이 뜨는지가 관건
+  - { action: click, target: { css: ".dialog_main_area .responder_row:nth-child(3) .main-worker-btn", description: "둘째 행으로 주이행자 이양 시도 → toggleMainWorker가 confirm.require 호출" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "★ 10914 확인 팝업. PrimeVue Dialog 위에 정상 렌더되는지 확인" } }
+  - { action: screenshot, name: "03-confirm-popup-over-dialog" }
+  - { action: click, target: { ref: confirm_accept, description: "확인 수락 → mainWorkerUserId 이동" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:nth-child(3) .main-worker-btn[aria-pressed='true']", description: "★ 둘째 행으로 이양됨" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:nth-child(2) .main-worker-btn[aria-pressed='false']", description: "★ 첫 행 해제 — 배타적 토글" } }
+  - { action: screenshot, name: "04-main-worker-moved" }
+
+  # 저장하지 않고 닫는다
+  - { action: click, target: { css: ".p-dialog button.btn_md.btn_neutral", description: "취소(t10001)로 닫기 — DB 미변경" } }

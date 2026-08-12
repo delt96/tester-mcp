@@ -1,0 +1,81 @@
+id: seed-02-lgreview-complete
+title: "[시딩] 법률검토 완료까지 — 검토결과 저장 → 의견서 등록 → 부서장 결재"
+locale: kr
+login_as: lgrvstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  seed-01 이 만든 'E2E-SEED' 의안이 법률검토 목록에 있고, 이 계정(LGRVuser2)이 그 의안의
+  **주 이행자**로 지정돼 있어야 한다. 주 이행자가 아니면 [의견서 작성] 버튼이 나오지 않는다.
+
+  ★ 이 시나리오는 **블록 4(의견서 등록)에서 반드시 막힌다.** 의견서 등록에는 공문 파일
+  (Расмий документ)이 **필수**이고(2026-08-12 사용자 확인), 파일이 없으면 오류 메시지 없이
+  조용히 등록되지 않는다. tester-mcp DSL 에는 upload 액션이 없어 우회 경로가 없다.
+
+  따라서 자동으로 검증되는 범위는 **블록 1~3(목록 → 토글 → 상세 → 검토결과 저장 →
+  [의견서 작성] 버튼 노출 확인)까지**다. 블록 4~6은 사람이 이어받아야 하며, 자동 실행 시
+  블록 4에서 FAIL/NOT_TESTED 로 끝나는 것이 정상이다 — 버그로 읽지 말 것.
+
+  개발환경 전제(2026-08-12 사용자 확인): esign 서버에 접근할 수 없어 **[결재]를 누르면
+  PIN 입력 없이 자동 승인**된다. 서명자를 본인으로 지정한 건도 자동 패스된다.
+  운영환경에서는 PIN 입력 단계가 추가로 들어간다.
+
+  산출물: 의안 상태가 '법률검토완료'로 넘어가 위원회회부 목록에 나타난다.
+on_failure: stop
+steps:
+
+  # ── 1) 내 담당 목록에서 E2E-SEED 의안 찾기
+  - { action: navigate, url: "/main/billMng/lgReviewMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "법무실검토서 목록" } }
+  - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글 — 배정된 건만 필터(BL-07)" } }
+  - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 행 더블클릭 → 법무실검토서 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "법무실검토서 상세" } }
+  - { action: screenshot, name: "02a-detail" }
+
+  # ── 2) 검토 결과 선택 → 저장(확인 팝업 경유)
+  #     등록일자 입력란은 없다 — 부서장 서명 시점에 자동 기록된다(BL-11)
+  # PrimeVue RadioButton 이 아니라 네이티브 input 이다 — .p-radiobutton 으로는 안 잡힌다
+  - { action: click, target: { css: "#inputRadio1_1", description: "결과 '진행'(lglRvwRsltCode=1) 라디오. id는 billMngDtl.vue:403 고정값. 거절은 #inputRadio1_2(=2). btnSave 가 false면 disabled 라 클릭이 먹지 않는다" } }
+  - { action: click, target: { ref: btn_primary_md, text: "저장", description: "[저장] → ConfirmPopup" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "저장 확인 팝업" } }
+  - { action: click, target: { ref: confirm_accept, description: "확인(Yes)" } }
+  - { action: screenshot, name: "02b-result-saved" }
+
+  # ── 3) 의견서 작성 — 주 이행자에게만 보이는 버튼
+  - { action: assert_visible, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서", description: "[의견서 작성] 버튼 — 없으면 이 계정이 주 이행자가 아니다(seed-01의 [C] 배지 지정 확인 필요)" } }
+  - { action: click, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서", description: "[의견서 작성] → 문서 작성 모달" } }
+  - { action: wait_for, target: { css: ".p-dialog", description: "의견서 작성 모달" } }
+  - { action: screenshot, name: "02c-opinion-modal" }
+
+  # ── 4) 의견서 필수값 — 언어/제목/수신자(GD)/승인자(부서장)
+  - { action: click, target: { css: ".p-dialog input[type=checkbox]", description: "문서 언어 체크박스(공식어) — 언어는 필수(EA-09)" } }
+  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 법무실 검토 의견서" }
+  - { action: fill, target: { css: ".p-dialog .recipients .p-autocomplete-input, .p-dialog .recipient_area .p-autocomplete-input", description: "수신자 — GD부서" }, value: "gduser1" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "gduser1 선택" } }
+  # ⚠ "LGRVuser" 검색은 LGRVuser1(부서장)·LGRVuser2(직원) 2건을 띄운다 — :first-child 로는 못 가른다.
+  #   승인자는 부서장이어야 결재대기함으로 넘어가므로 전체 ID(LGRVuser1)로 좁히고 text 로 확인한다.
+  - { action: fill, target: { label: "승인자", css: ".p-dialog .p-autocomplete-input", description: "승인자(Бекитүүчү) — 법률검토 부서장" }, value: "LGRVuser1" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "부서장(LGRVuser1) 선택 — 옵션 회색줄 '직급 · 부서'로 직원과 구분된다" } }
+  - { action: screenshot, name: "02d-opinion-filled" }
+  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일이 없으면 여기서 조용히 실패한다(2026-08-11 확인). 실패 시 파일 업로드 스텝 추가 필요" } }
+  - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
+  - { action: screenshot, name: "02e-opinion-registered" }
+
+  # ── 5) 부서장으로 전환 → 결재대기함에서 의견서 결재 → 법률검토완료
+  - { use: switch-account, with: { account: lgrvhead } }
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 의견서" } }
+  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역" } }
+  - { action: screenshot, name: "02f-approval-detail" }
+  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] — 전자서명 비활성 환경이면 PIN 모달 없이 바로 처리된다" } }
+  - { action: screenshot, name: "02g-approved" }
+
+  # ── 6) 결과 확인 — 위원회회부 목록에 나타나야 한다
+  - { use: switch-account, with: { account: gduser } }
+  - { action: navigate, url: "/main/billMng/gdMng/billMngCmt" }
+  - { action: wait_for, target: { ref: content_title, description: "위원회회부 목록" } }
+  - { action: screenshot, name: "02h-ready-for-committee" }
+  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안이 위원회회부 대상으로 넘어옴 = 법률검토완료 증거" } }

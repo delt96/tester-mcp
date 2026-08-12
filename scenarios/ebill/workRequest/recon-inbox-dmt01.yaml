@@ -1,0 +1,17 @@
+id: recon-inbox-dmt01
+title: 정찰 — gduser1 수신함 목록과 첫 문서 우측 패널 실태 (비파괴, 조회만)
+locale: kr
+login_as: gduser
+ephemeral: true
+precondition: >
+  비파괴 — 접수/저장 없음. 클릭으로 열람 상태(RS01→RS02)만 바뀔 수 있다.
+  목적: p2-reception-main-designate가 "tst13을 목록에서 찾을 수 없음"으로 실패한 원인 규명.
+  DB상 rcv_id=5119(tst13, DMT01, RS02, hide_yn=N, 이행요청 없음)는 존재한다.
+  스크린샷을 팀장이 직접 판독하므로, 각 스텝은 화면을 담는 데만 집중한다.
+steps:
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 좌측 리스트" } }
+  - { action: screenshot, name: "01-inbox-list-top" }
+  - { action: click, target: { ref: list_item_first, description: "첫 번째 문서 선택 → 상세 로드" } }
+  - { action: wait_for, target: { css: ".right_section", description: "우측 패널 렌더" } }
+  - { action: screenshot, name: "02-first-doc-right-panel" }

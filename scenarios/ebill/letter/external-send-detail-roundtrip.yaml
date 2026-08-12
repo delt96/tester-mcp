@@ -1,0 +1,28 @@
+id: external-send-detail-roundtrip
+title: 발신함 행 클릭 시 별도 상세 화면으로 이동하고 목록으로 되돌아온다
+locale: ru
+login_as: gduser
+precondition: >
+  발신함 목록에 최소 1건. 상세는 신규 라우트 external.send.detail(/main/letter/external/send/detail/:docId).
+  좌측 LetterDetailComponent, 우측 상태확인 버튼 + 결재선 + 수신자.
+steps:
+  - { action: navigate, url: "/main/letter/external/send" }
+  - { action: wait_for, target: { ref: datatable_row, description: "발신함 첫 행" } }
+
+  # 행 클릭 = 별도 라우트로 이동 (예전 3분할은 같은 화면 중앙 패널에 표시했다)
+  - { action: click, target: { css: ".p-datatable-tbody > tr:first-child", description: "첫 행" } }
+
+  # 상세 화면 2단 골격 — InsertExternal.vue와 같은 main_area > left_section + right_section
+  - { action: wait_for, target: { css: ".main_area .left_section", description: "상세 좌측 문서 패널" } }
+  - { action: assert_visible, target: { css: ".main_area .right_section .status_btn", description: "게이트웨이 상태확인 버튼" } }
+  - { action: assert_visible, target: { css: ".main_area .right_section .approvals", description: "결재선 영역" } }
+  - { action: assert_visible, target: { css: ".main_area .right_section .recipients", description: "수신자 영역" } }
+  - { action: screenshot, name: "01-send-detail" }
+
+  # 목록 버튼 → 발신함 그리드 복귀 (3분할이 아니라 그리드로 돌아와야 한다)
+  # right_section에는 btn_group이 2개(위=상태확인, 아래=목록). btn_outline_neutral은 목록 버튼 하나뿐이므로
+  # btn_group을 경유하지 말고 직접 잡는다 — 경유하면 첫 번째 그룹만 보고 "없다"고 판단한다.
+  - { action: click, target: { css: ".main_area .right_section button.btn_outline_neutral", description: "목록(뒤로가기) 버튼" } }
+  - { action: wait_for, target: { ref: datatable, description: "복귀한 발신함 그리드" } }
+  - { action: assert_visible, target: { css: ".board_search.type2 .search_area", description: "복귀 후 검색 패널" } }
+  - { action: screenshot, name: "02-back-to-grid" }

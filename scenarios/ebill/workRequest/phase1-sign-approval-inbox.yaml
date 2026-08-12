@@ -1,0 +1,27 @@
+id: phase1-sign-approval-inbox
+title: Phase 1 — [이행 승인] 3단 레이아웃 + WS00 목록/자동선택/문서본문/이행요청 컴포넌트 렌더
+locale: ru
+login_as: gduser
+precondition: >
+  2026-08-02 UI 2차 개편. WorkApprovalInbox.vue가 결재대기함(ApprovalInbox) 패턴을 따른다:
+  .title_area(TitleComp) + .main_area > .left_section(.list_area 목록만 — 상태 필터 버튼은 제거됨)
+  / .main_section(LetterDetailComponent — 선택 행의 원본 문서, 렌더되면 내부에 .area가 생김)
+  / .right_section > .right_top_area(.btn_group [서명] + .commands > CommandComponent).
+  우측은 이행대기함/수신함이 쓰는 것과 같은 CommandComponent를 add-yn=false로 붙였고,
+  그 조건에서 추가 버튼(v-if="addYn || cascadeYn")과 답변 버튼(canReply — show-reply-btn 없음)은 숨는다.
+  수정/삭제 버튼은 2026-08-05부터 v-if="canEditUi(d)" = (editYn || cascadeYn) && canEdit(d)인데,
+  이 화면은 edit-yn을 넘기지 않으므로(편집 이벤트 리스너가 없다) 사용자 유형과 무관하게 계속 숨는다.
+  목록은 workStatus 파라미터 없이 조회하므로 서버 기본값 WS00만 나온다.
+  전제 데이터: gduser가 서명자인 WS00 이행요청이 최소 1건 존재해야 한다(2026-08-02 기준 1건 확인됨).
+  0건이면 .empty_area만 렌더되어 이 시나리오의 목록 단언이 실패하는데, 그때는 데이터 부재이지 회귀가 아니다.
+  비파괴 — 조회만 하고 [서명] 버튼은 누르지 않는다.
+steps:
+  - { action: navigate, url: "/main/letter/workApproval" }
+  - { action: wait_for, target: { css: ".main_area .left_section", description: "3단 레이아웃 좌측 목록 섹션" } }
+  - { action: assert_visible, target: { css: ".title_area", description: "화면 제목 영역(TitleComp) — '이행 승인'" } }
+  - { action: assert_visible, target: { css: ".left_section .request_list .list_item", description: "★ WS00 이행요청 목록 항목(서명 대기)" } }
+  - { action: assert_visible, target: { css: ".left_section .list_item.active", description: "★ 첫 행 자동 선택 하이라이트 — 진입 시 문서 패널이 비지 않도록" } }
+  - { action: assert_visible, target: { css: ".main_section .area", description: "★ 선택 행의 원본 문서 본문이 실제로 렌더됨(LetterDetailComponent 내부 .area는 docData가 있을 때만 생성)" } }
+  - { action: assert_visible, target: { css: ".right_section .btn_group button", description: "★ [서명] 버튼 — 이 화면의 유일한 주 CTA" } }
+  - { action: assert_visible, target: { css: ".right_section .commands .command_detail", description: "★ 신규: 공용 CommandComponent가 렌더한 이행내용 블록" } }
+  - { action: screenshot, name: "sign-approval-inbox-with-data" }

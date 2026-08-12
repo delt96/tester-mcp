@@ -1,0 +1,27 @@
+id: phase1-referral-b-sign-transition
+title: Phase 1 회부 2단계 — 서명자가 [이행 승인]에서 서명 → WS01 발송 + 의안 회부 전이
+locale: ru
+login_as: lgactuser
+ephemeral: true
+precondition: >
+  phase1-referral-a-create-ws00 실행 직후에만 유효하다. 그 시나리오가 만든 work_req_id=1561은
+  work_status=WS00 / signer_id=20(legalactuser) / reg_id=9(gduser1)이고,
+  eas_bill_link 99가 REFER_TO_COMMITTEE·WORK_APPROVE·PENDING,
+  ebs_bp_tasks 13561(COMMITTEE_REFERRAL)은 아직 P다 — 즉 저장만으로는 의안이 전이되지 않음을 확인한 상태.
+  이 시나리오는 서명자 본인으로 로그인해 [서명]을 눌러 dispatchWorkRequest를 태우고,
+  그 시점에 의안이 회부되는지(P→C) 본다.
+  getSignPendingList는 reg_dt desc 정렬이므로 방금 만든 1561이 목록 첫 행이고 자동 선택된다.
+  VITE_ENABLE_SIGN=false 환경이라 PIN 모달 없이 곧바로 dispatch가 호출된다.
+  메뉴 151 권한이 없어도 라우터에 권한 가드가 없어 직접 navigate로 진입 가능하다.
+  파괴적 — 실제로 의안을 위원회에 회부한다. 되돌릴 수 없다.
+steps:
+  - { action: navigate, url: "/main/letter/workApproval" }
+  - { action: wait_for, target: { css: ".left_section .request_list .list_item", description: "서명 대기 목록에 최소 1건(1561)" } }
+  - { action: assert_visible, target: { css: ".left_section .list_item:first-child .item_cn", text: "Phase1 회부 서명전이 검증", description: "★ 첫 행이 A단계가 만든 그 이행요청인지 확인 — 엉뚱한 건에 서명하지 않도록" } }
+  - { action: assert_visible, target: { css: ".left_section .list_item.active", description: "첫 행 자동 선택 — 서명 대상이 곧 이 건" } }
+  - { action: assert_visible, target: { css: ".main_section .area", description: "원본 문서 본문 렌더 — 서명 전 무엇에 서명하는지 확인 가능" } }
+  - { action: assert_visible, target: { css: ".right_section .commands .command_detail", description: "우측 공용 CommandComponent가 이행요청 상세를 렌더" } }
+  - { action: screenshot, name: "referral-before-sign" }
+  - { action: click, target: { css: ".right_section .btn_group button", description: "★ [서명] → (VITE_ENABLE_SIGN=false라 서명 API 생략) PUT /eas/workRequest/1561/dispatch → WS01 + REFER_TO_COMMITTEE 의안 전이" } }
+  - { action: assert_visible, target: { ref: toast_success, description: "발송 성공 toast(t10454). ForbiddenException이면 에러 토스트가 뜨므로 이 단언이 dispatch 성공까지 확인해준다" } }
+  - { action: screenshot, name: "referral-after-sign" }

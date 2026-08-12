@@ -1,0 +1,35 @@
+id: gvrn-trsf-letter-send-flow
+title: 정부이송작업 — 공문 작성(법률 파일 자동 첨부) → 1인 결재 자동완료 → 전송(WS04)
+locale: ru
+login_as: lgactuser
+precondition: >
+  bill EB_126d83ed가 WS03(서명완료) 상태(직전 스모크 결과). 결재선을 lgactuser 본인 1인으로 지정하면
+  작성자=첫 결재자 자동승인 로직으로 등록 즉시 결재완료(DMS02)+doc_no 채번된다(마지막 순번).
+  letterSent(docId) → PUT /bill/gvrnTrsfWork/letter 배선으로 S4 공문 섹션에 연결된다.
+  ⚠ 파괴적: [전송] 실행 시 의안 워크플로가 TRANSFER_TO_GOVERNMENT로 실제 전환(비가역), gvrn_trsf_dt 기록.
+  GVRN_TRSF_LAW 자동 첨부: 모달 내 첨부 목록에 law 파일 2건이 보여야 한다. 서식은 form_type_cd=GVRN_TRSF_LAW 임시 서식(form_id 322)이 자동 선택됨(REQUEST_REGISTRATION 관례와 동일).
+steps:
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng/Dtl?id=EB_126d83ed-4b5a-4c41-8a07-cddc5abcbe4d" }
+  - { action: wait_for, target: { text: "Подписание завершено", description: "WS03(서명완료) 상태 확인 — 스텝퍼/상태 영역" } }
+  - { action: click, target: { text: "Создать письмо", description: "[공문 작성] 버튼(11113) — 공문 섹션 헤더 또는 빈 상태 버튼" } }
+  - { action: wait_for, target: { css: ".p-dialog", text: "Для подтверждения", description: "InsertLetter 모달 로드 — 문서 타입 라디오(답변용/확인용/서명용 세트, 모달 모드)" } }
+  - { action: assert_visible, target: { text: "law_kg.pdf", description: "GVRN_TRSF_LAW 자동 첨부 — 현재 버전 법률 파일(키르기스어)이 첨부 목록에 표시" } }
+  - { action: screenshot, name: "letter-modal-autofiles" }
+  - { action: click, target: { text: "Для подтверждения", description: "문서 타입 '확인용' 라디오 선택 (모달 모드 라벨 기준)" } }
+  - { action: fill, target: { css: ".p-dialog .sub_title_area input.form_control", description: "제목 입력(v-model subTitle)" }, value: "Смоук — офиц. письмо о передаче (E2E)" }
+  - { action: click, target: { css: ".p-dialog .recipients .p-autocomplete-dropdown", description: "수신자 자동완성 드롭다운" } }
+  - { action: wait_for, target: { css: ".user-autocomplete-overlay .list-item", description: "수신자 오버레이 항목" } }
+  - { action: click, target: { css: ".user-autocomplete-overlay .list-item", description: "수신자 첫 항목 선택" } }
+  - { action: fill, target: { css: ".p-dialog .approve_section .p-autocomplete input", description: "승인자 자동완성 입력 — 본인(legalactuser) 검색" }, value: "legalactuser" }
+  - { action: wait_for, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 오버레이에서 legalactuser 항목" } }
+  - { action: click, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 = 본인 1인 지정 (작성자=첫 결재자 → 자동 승인 → 1인이라 즉시 결재완료)" } }
+  - { action: click, target: { css: ".p-dialog .btn_primary", role: "button", text: "Зарегистрировать", description: "등록하기(10493) — 등록+자동승인+letterSent(docId)" } }
+  - { action: wait_for, target: { css: ".p-toast-message-success", description: "등록/저장 성공 토스트" } }
+  - { action: wait_for, target: { text: "Утверждено", description: "S4 공문 섹션 — 결재상태 '결재완료'(11105). onLetterSent→PUT letter→fnReload 반영. doc_no 채번은 스크린샷으로 확인" } }
+  - { action: screenshot, name: "letter-linked-approved" }
+  - { action: click, target: { text: "Отправить", description: "[전송](10348) — DMS02에서만 노출" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "전송 confirm 팝업" } }
+  - { action: click, target: { ref: confirm_accept, description: "confirm 수락 — send API → WS04 → 목록 이동" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "목록 복귀" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "Передано", description: "해당 의안 행 작업상태 '정부이송'(WS04, 회색 행)" } }
+  - { action: screenshot, name: "list-transferred-ws04" }

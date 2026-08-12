@@ -1,0 +1,42 @@
+id: avail-04-legalact-govtrsf
+title: "[가용성] 법적행위 담당자 — 본회의검증(이행문서·톡돔)과 정부이송 서명 차례가 있는가"
+locale: kr
+login_as: lgactstaff
+tags: [availability, e2e-fullflow]
+precondition: >
+  본회의검증 상세의 [톡돔 추가하기](BL-23)는 이행문서를 작성한 뒤에만 나타난다.
+  정부이송 상세(B19)와 서명자 지정 모달(B21)은 '서명자로 지정된 계정'이라야 진입되며,
+  gduser1 로는 목록에서 상세로 들어가지 못하는 것을 2026-08-11 확인했다.
+  이 시나리오는 진입 가능 여부와 데이터 유무만 확인한다(서명 실행 금지 — 서명하면 의안이
+  다음 단계로 넘어가 다른 화면 촬영 기회가 사라진다).
+on_failure: continue
+steps:
+
+  # ── 1) 본회의검증 목록
+  - { action: navigate, url: "/main/billMng/legalActMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "본회의검증 제목" } }
+  - { action: screenshot, name: "01-legalact-list" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "본회의검증 대상 의안 1건 이상" } }
+
+  # ── 2) 본회의검증 상세 — 이행문서 버튼 통합(BL-24) / 톡돔 버튼(BL-23) 노출 판정
+  - { action: double_click, target: { ref: datatable_row, description: "첫 행 더블클릭 → 본회의검증 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "본회의검증 상세 진입" } }
+  - { action: screenshot, name: "02-legalact-detail" }
+  - { action: assert_visible, target: { ref: legalact_action_link, description: "상세 하단 액션 링크(검토완료/정부이송 등) 존재" } }
+  - { action: assert_visible, target: { css: ".content_section button, .content_section a", text: "톡돔", description: "[톡돔 추가하기](BL-23) — 이행문서를 작성한 뒤에만 나타난다. 없으면 톡돔 등록 화면을 촬영할 수 없다" } }
+
+  # ── 3) 정부이송 대기 목록 — 내 서명 차례 여부
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "정부이송 대기 제목" } }
+  - { action: screenshot, name: "03-gvrntrsf-list" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "정부이송 대기 건 1건 이상" } }
+
+  # ── 4) 정부이송 상세 진입 (서명자 계정에서만 열린다)
+  - { action: double_click, target: { ref: datatable_row, description: "첫 행 더블클릭 → 정부이송 상세. 서명자가 아닌 계정에서는 이동하지 않는다" } }
+  - { action: wait_for, target: { css: ".gtw-user_search input, .content_tit", description: "정부이송 상세 진입 신호" } }
+  - { action: screenshot, name: "04-gvrntrsf-detail" }
+  - { action: assert_visible, target: { css: "button, a", text: "서명", description: "[서명]/[서명자 지정] 버튼 — 상세 진입에 성공했고 서명 차례가 있다는 증거" } }
+
+  # ── 5) 좌측 메뉴 정부이송 서명대기 뱃지(149)
+  - { action: assert_visible, target: { ref: sidebar_badge_149, description: "정부이송 서명 대기 뱃지(menu_id 149) — 숫자가 보이면 내 서명 차례인 건이 있다(BL-03/OV-06)" } }
+  - { action: screenshot, name: "05-sidebar-badge-149" }

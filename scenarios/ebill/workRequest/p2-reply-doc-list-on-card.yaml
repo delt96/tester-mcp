@@ -1,0 +1,23 @@
+id: p2-reply-doc-list-on-card
+title: Phase 2 답변문서 N건 노출 — 이행요청 카드에 답변문서 링크 렌더 (비파괴, 조회만)
+locale: kr
+login_as: gduser
+ephemeral: true
+precondition: >
+  비파괴 — 조회만 한다. 클릭으로 열람 상태만 바뀔 수 있다.
+  gduser1(EPH9)이 work_req 1565(rcv_id=4825, WS03, 주이행자 rspns_id=1993)의 이행자다.
+  이 요청에는 eas_doc_reply 1건이 달려 있다(reply_id=2, doc ed4397d4, 제목 'testttt',
+  문서번호 03-156/26 — 2026-08-04 사용자가 화면에서 저장한 것).
+  ★ 검증 대상: 신규 GET /eas/docReply/workRequest/{workReqId}로 카드가 답변문서를 나열하는지.
+  백엔드는 10:11에 이 컨트롤러를 포함해 재기동됐다(엔드포인트 401 응답으로 라우트 등록 확인).
+  ※ 이행대기함 목록 라벨은 문서 제목이 아니라 **이행요청 내용**(work_cn)이다
+  (getWorkList가 `req.work_cn as doc_subtle`로 별칭). work_req 1565의 work_cn은 '테스트이행요청'.
+  검색창은 v-model이 input 이벤트에 묶여 있어 자동화 fill로는 안 채워지므로 쓰지 말 것.
+steps:
+  - { action: navigate, url: "/main/letter/executionInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "이행대기함 좌측 목록" } }
+  - { action: click, target: { ref: list_item, text: "테스트이행요청", description: "★ work_req 1565의 이행요청 — 목록 라벨은 work_cn" } }
+  - { action: wait_for, target: { css: ".right_top_area .command", description: "이행요청 카드(CommandComponent) 로드" } }
+  - { action: assert_visible, target: { css: ".right_top_area .reply_doc_list", description: "★ 답변문서 목록 영역 — docReplies[workReqId]가 비면 v-if로 렌더되지 않는다" } }
+  - { action: assert_visible, target: { css: ".right_top_area .reply_doc_link", text: "testttt", description: "★ 답변문서 제목 — 매퍼가 eas_document를 조인해 가져온 값" } }
+  - { action: screenshot, name: "01-card-with-reply-doc" }

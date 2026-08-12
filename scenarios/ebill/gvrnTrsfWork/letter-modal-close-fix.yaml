@@ -1,0 +1,32 @@
+id: gvrn-trsf-letter-modal-close-fix
+title: 공문 등록 후 모달 자동 닫힘 + 1인 자동결재 검증 (수정 확인)
+locale: ru
+login_as: lgactuser
+precondition: >
+  bill EB_11787f74(6-6924/26)는 API로 서명완료(WS03) 처리된 상태. 결재선을 legalactuser 본인 1인으로 지정하면
+  등록 즉시: 자동결재(DMS02+채번) → 서버 자동연결(linkLetterIfSigned) → **자동 전송(autoSendIfReady)**
+  까지 한 트랜잭션으로 진행된다 (전송 버튼 제거됨 — 결재완료=전송 스펙).
+  검증 포인트: ① 등록 후 InsertLetter 모달 자동 닫힘(closeAll) ② S4 리로드 후 공문 결재완료(Утверждено)
+  ③ 전송일자(Дата отправки) 행 표시 = WS04 자동 전환 증거.
+  ⚠ 파괴적: 실행 시 이 의안이 실제 정부이송(WS04, 비가역)된다.
+steps:
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng/Dtl?id=EB_11787f74-6bc4-45f0-a859-2d2338b7897b" }
+  - { action: wait_for, target: { text: "Подписание завершено", description: "WS03(서명완료) 상태 확인" } }
+  - { action: click, target: { css: ".gtw-empty button.v_btn", text: "Создать письмо", description: "정부이송 공문 섹션 빈 상태의 [공문 작성](11113) — ⚠ 사이드바 Письма 메뉴에 같은 라벨이 있어 반드시 이 css로 한정" } }
+  - { action: wait_for, target: { css: ".p-dialog", text: "Для сведения", description: "InsertLetter 모달 로드. ⚠ 모달 헤더 타이틀은 법률명 'Закон (проверка аватаров E2E)'로 표시된다 — 이것이 올바른 공문 작성(InsertLetter) 모달이니 절대 닫지 말 것. 판정 기준은 타이틀이 아니라 문서 타입 라디오(Для ответа/Для сведения/Для подписи)와 모드 라디오(Формы документа/Официальный документ)의 존재다" } }
+  - { action: screenshot, name: "letter-modal-open" }
+  - { action: click, target: { css: ".p-dialog label[for='docModeOfficial']", text: "Прикрепить файл", description: "⚠ 필수: '파일 첨부(Прикрепить файл)' 체크박스를 클릭해 해제 → 서식(form) 모드 전환. 체크된 기본 상태(관인문서 모드)는 파일 업로드 필수(10775)라 등록이 경고 토스트와 함께 거부된다. 해제하면 서식 셀렉트가 나타나고 GVRN_TRSF_LAW 서식이 자동 선택됨" } }
+  - { action: wait_for, target: { css: ".p-dialog select.form_control.full", description: "서식 모드 전환 확인 — 서식 선택 셀렉트 출현" } }
+  - { action: click, target: { text: "Для сведения", description: "문서 타입 라디오 선택 — 현재 옵션 3종(Для ответа/Для сведения/Для подписи) 중 통보용" } }
+  - { action: fill, target: { css: ".p-dialog .sub_title_area input.form_control", description: "제목 입력(v-model subTitle)" }, value: "Модальное окно — проверка автозакрытия (E2E)" }
+  - { action: click, target: { css: ".p-dialog .recipients .p-autocomplete-dropdown", description: "수신자 자동완성 드롭다운" } }
+  - { action: wait_for, target: { css: ".user-autocomplete-overlay .list-item", description: "수신자 오버레이 항목" } }
+  - { action: click, target: { css: ".user-autocomplete-overlay .list-item", description: "수신자 첫 항목 선택" } }
+  - { action: fill, target: { css: ".p-dialog .approve_section .p-autocomplete input", description: "승인자 자동완성 입력 — 본인(legalactuser) 검색" }, value: "legalactuser" }
+  - { action: wait_for, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 오버레이에서 legalactuser 항목" } }
+  - { action: click, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 = 본인 1인 지정 → 자동결재 대상" } }
+  - { action: click, target: { css: ".p-dialog .btn_primary", role: "button", text: "Зарегистрировать", description: "등록하기 — 등록+자동승인+letterSent+closeAll" } }
+  - { action: wait_for, target: { css: ".p-toast-message-success", description: "등록 성공 토스트" } }
+  - { action: wait_for, target: { text: "Утверждено", description: "S4 공문 섹션 결재상태 '결재완료'(11105) — 자동결재+자동연결+리로드 반영" } }
+  - { action: assert_visible, target: { text: "Дата отправки", description: "전송일자(11109) 행 — 결재완료 훅의 자동 전송(WS04) 증거" } }
+  - { action: screenshot, name: "auto-transferred-ws04" }

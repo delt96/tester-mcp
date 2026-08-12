@@ -1,0 +1,19 @@
+id: gvrn-trsf-send-resume
+title: 정부이송작업 — (재개) 결재완료 공문 상태에서 전송 → WS04
+locale: ru
+login_as: lgactuser
+precondition: >
+  bill EB_126d83ed: WS03 + 공문 연결 완료(doc_no 03-125/26, DMS02 결재완료) 상태에서 재개.
+  df2 워크플로 전이(1900+TRANSFER_TO_GOVERNMENT→3200) 보강 적용됨.
+  ⚠ 파괴적: 전송 시 의안 워크플로 실전환(비가역).
+steps:
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng/Dtl?id=EB_126d83ed-4b5a-4c41-8a07-cddc5abcbe4d" }
+  - { action: wait_for, target: { text: "Подписание завершено", description: "WS03 상태 확인" } }
+  - { action: wait_for, target: { text: "Утверждено", description: "공문 결재상태 '결재완료' — 문서번호 03-125/26 연결 상태" } }
+  - { action: screenshot, name: "before-send" }
+  - { action: click, target: { text: "Отправить", description: "[전송](10348)" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "전송 confirm 팝업" } }
+  - { action: click, target: { ref: confirm_accept, description: "confirm 수락 — send API → WS04 → 목록 이동" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "목록 복귀" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "Передано", description: "작업상태 '정부이송'(WS04, 회색 행)" } }
+  - { action: screenshot, name: "list-transferred-ws04" }

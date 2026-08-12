@@ -14,5 +14,8 @@ steps:
   - { action: click, target: { text: "답변", role: "button", description: "답변 버튼 클릭 → receptionModalOpen" } }
   - { action: wait_for, target: { css: ".p-dialog", description: "이행요청 RequestModal(PrimeVue Dialog) 열림" } }
   - { action: assert_visible, target: { css: ".p-dialog", text: "이행요청", description: "이행자 지정 모달 헤더(t10475) = DMT01 reception 흐름 정상" } }
-  - { action: assert_visible, target: { css: ".p-dialog .mainWorker", description: "reception 타입 모달의 주 이행자(t10651) 섹션" } }
+  # Phase 2에서 수신 기준 주이행자(.mainWorker) 블록이 제거됐다. 주이행자는 이제 이행자 행의
+  # 별(★) 버튼으로 지정하므로, reception 모달의 확인 지점은 이행자 행 + 서명자 입력이다.
+  - { action: assert_visible, target: { css: ".p-dialog .responder_row input.p-autocomplete-input", description: "이행자 입력 행(주이행자 프리셋 제거 후 입력 가능해야 한다)" } }
+  - { action: assert_visible, target: { css: ".p-dialog .signer_area", description: "서명자 입력(Phase 1)" } }
   - { action: screenshot, name: "02-answer-modal-open" }

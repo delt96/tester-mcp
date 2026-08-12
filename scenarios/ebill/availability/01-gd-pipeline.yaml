@@ -1,0 +1,72 @@
+id: avail-01-gd-pipeline
+title: "[가용성] GD 담당 전 구간 — 외부수신·의안등록대기·접수·위원회회부·본회의부의·정부이송·공포에 진행 가능한 데이터가 있는가"
+locale: kr
+login_as: gduser
+tags: [availability, e2e-fullflow]
+precondition: >
+  외부수신문서 1건이 의안으로 등록되어 공포까지 가는 전 구간을 한 번 돌리려면, 각 단계 화면에
+  '다음 단계로 넘길 수 있는 건'이 최소 1건씩 있어야 한다. 이 시나리오는 GD(gduser1)가 담당하는
+  단계들을 순서대로 열어 데이터 유무만 확인한다. 어떤 것도 등록/수정하지 않는다(읽기 전용).
+  assert_visible 이 FAIL 이면 그 단계에 데이터가 없다는 뜻이며, on_failure=continue 로 다음 단계를 계속 조사한다.
+on_failure: continue
+steps:
+
+  # ── 1) 외부수신함 — 의안등록 접수의 출발점
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { ref: content_title, description: "외부수신함 제목" } }
+  - { action: screenshot, name: "01-ext-receive" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "외부수신함에 문서 1건 이상 — 없으면 [의안등록 접수]로 시작할 원본이 없다" } }
+
+  # ── 2) 의안등록 대기함 — 접수된 외부문서가 쌓이는 큐
+  - { action: navigate, url: "/main/billMng/gdMng/billRegWait" }
+  - { action: wait_for, target: { ref: datatable, description: "의안등록 대기 그리드" } }
+  - { action: screenshot, name: "02-bill-reg-wait" }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr:has(button.v_btn.btn_outline_primary.btn_sm)", description: "마지막 셀에 [접수 취소] 버튼이 있는 행 = 아직 등록되지 않은 대기 건. 이 행이 없으면 의안등록을 새로 시작할 수 없다" } }
+
+  # ── 3) 의안접수(등록) 목록 — 등록요청 상태 의안
+  - { action: navigate, url: "/main/billMng/gdMng/billMngRc" }
+  - { action: wait_for, target: { ref: datatable, description: "의안등록 그리드" } }
+  - { action: screenshot, name: "03-bill-reg" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "의안접수 목록 건 존재" } }
+
+  # ── 4) 위원회회부 — 법률검토 완료 의안이 있어야 회부 가능
+  - { action: navigate, url: "/main/billMng/gdMng/billMngCmt" }
+  - { action: wait_for, target: { ref: content_title, description: "위원회회부 제목" } }
+  - { action: screenshot, name: "04-cmt-referral" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "법률검토가 끝나 회부를 기다리는 의안 1건 이상 — 없으면 회부 단계를 태울 수 없다" } }
+
+  # ── 5) 본회의 부의 — 위원회심사 완료 의안
+  - { action: navigate, url: "/main/billMng/gdMng/billMngMainMtSubmit" }
+  - { action: wait_for, target: { ref: content_title, description: "본회의 부의 제목" } }
+  - { action: screenshot, name: "05-main-mtng-submit" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "본회의 부의 대상 의안 1건 이상" } }
+
+  # ── 6) 정부이송 업무(신규 화면) — 법률안 등록/서명 진행 상태
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "정부이송 대기 제목" } }
+  - { action: screenshot, name: "06-gvrn-trsf-work" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "정부이송 대기 건 1건 이상 — 서명자 지정/순차 서명 화면을 확인하려면 필요" } }
+
+  # ── 7) 정부이송(기존) — 공포/대통령거부 결과 등록 대상
+  - { action: navigate, url: "/main/billMng/gvrnTrsfMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "정부이송 제목" } }
+  - { action: screenshot, name: "07-gvrn-trsf-mng" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "정부이송 단계 의안 1건 이상" } }
+
+  # ── 8) 공포 — 전 구간의 종착점
+  - { action: navigate, url: "/main/billMng/prmgMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "공포 제목" } }
+  - { action: screenshot, name: "08-promulgation" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "공포 대상/완료 의안 1건 이상 — 없으면 공포 화면 촬영·검증이 불가" } }
+
+  # ── 9) 대통령거부 — 분기 경로
+  - { action: navigate, url: "/main/billMng/gdMng/billMngVeto" }
+  - { action: wait_for, target: { ref: content_title, description: "대통령거부 제목" } }
+  - { action: screenshot, name: "09-veto" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "대통령거부 의안 1건 이상(분기 경로 검증용, 없어도 본류 진행에는 지장 없음)" } }
+
+  # ── 10) 외부발신함 — EA-21 개편 화면
+  - { action: navigate, url: "/main/letter/external/send" }
+  - { action: wait_for, target: { ref: content_title, description: "외부발신함 제목" } }
+  - { action: screenshot, name: "10-ext-send" }
+  - { action: assert_visible, target: { ref: datatable_row, description: "외부발신 문서 1건 이상 — 상세 화면(검색폼+그리드 전환) 확인용" } }

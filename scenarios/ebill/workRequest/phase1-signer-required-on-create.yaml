@@ -1,0 +1,25 @@
+id: phase1-signer-required-on-create
+title: Phase 1 — 이행요청 추가 모달에 서명자 입력란 노출 + 미지정 시 저장 거부(11110)
+locale: ru
+login_as: gduser
+precondition: >
+  2026-08-01 Phase 1 배포. RequestModal.vue에 서명자 입력란(.signer_area, 라벨 11154 + AutoCompleteUserInput)이
+  추가되었고, reception/addRequest/fn_update 세 저장 함수 모두 진입부에 `if (!signerId.value)` 가드가 있어
+  t('11110')='Подписанты не назначены.' 경고 토스트를 띄우고 중단한다.
+  다국어 11154는 DB에만 있고 locales json 미동기화 상태라 서명자 라벨이 숫자 '11154'로 보이는 것이 정상이다.
+  수신함에서 참조(ccYn='Y')가 아닌 문서를 선택해야 add-yn이 켜져 '이행요청 추가' 버튼이 뜬다.
+  비파괴 — 서명자를 일부러 비운 채 저장을 눌러 가드에 걸리게 하므로 이행요청이 생성되지 않는다.
+steps:
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 좌측 문서 목록 로드" } }
+  - { action: click, target: { ref: list_item_first, description: "첫 문서 선택 → 우측 이행요청(CommandComponent) 로드" } }
+  - { action: wait_for, target: { css: ".command_title", description: "이행요청 영역 헤더 로드" } }
+  - { action: assert_visible, target: { css: "button.add_command", description: "'이행요청 추가' 버튼 — addYn(ccYn='N')일 때만 노출" } }
+  - { action: click, target: { css: "button.add_command", description: "이행요청 추가 모달 열기(type=add_workRequestAndResponse)" } }
+  - { action: wait_for, target: { css: ".dialog_main_area", description: "RequestModal 본문" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area .signer_area", description: "★ Phase 1 신규: 서명자 입력 영역(라벨 11154 + AutoCompleteUserInput)" } }
+  - { action: screenshot, name: "signer-field-in-request-modal" }
+  - { action: click, target: { css: ".p-dialog-footer button.btn_md.btn_primary", description: "서명자를 비운 채 저장 시도 → addRequest()의 signerId 가드에 걸려야 함" } }
+  - { action: assert_visible, target: { css: ".p-toast-message-warn", description: "★ 서명자 미지정 경고 토스트(11110) — 저장이 거부됨" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area .signer_area", description: "모달이 닫히지 않고 유지되는지(저장 중단 확인)" } }
+  - { action: screenshot, name: "signer-required-guard-toast" }

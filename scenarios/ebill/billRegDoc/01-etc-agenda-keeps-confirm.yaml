@@ -1,0 +1,36 @@
+id: billregdoc-01-etc-agenda-keeps-confirm
+title: 기타주제(billKind=2) 등록은 공문 모달이 아니라 기존 저장 확인창을 유지
+locale: kr
+login_as: gduser
+precondition: >
+  의안 등록 폼(billMngSave)에 직접 진입한다. 기타주제(안건종류=2)는 파일·발의자·발의종류와
+  등록요청문서가 모두 면제되는 종류이므로 안건명 2개만 채우면 저장 검증을 통과한다.
+  접수일자는 오늘 날짜가 기본값이라 입력이 필요 없다.
+  최근 변경으로 일반 의안은 [저장] 시 공문 입력 모달(BillRegDocModal)을 타는데,
+  기타주제는 예전처럼 ConfirmPopup을 타야 한다(회귀 방지 검증).
+  확인창 표시까지만 검증하고 [취소]로 끝내므로 실제 의안은 생성되지 않는다.
+on_failure: stop
+steps:
+
+  # 1) 등록 폼 진입
+  - { action: navigate, url: "/main/billMng/gdMng/billMngRc/save" }
+  - { action: wait_for, target: { css: "select.form_control", description: "안건종류(10109) select — 등록 폼 로드 완료 신호" } }
+  # 문서 검색 UI(.doc_search_field)가 제거되었는지 육안 확인용 스크린샷
+  - { action: screenshot, name: "01a-form-loaded" }
+
+  # 2) 안건종류를 기타주제로 변경 (파일·발의자 검증 면제)
+  - { action: fill, target: { label: "안건종류", css: "select.form_control", description: "안건종류(10109) 행의 native select. '기타주제'(코드 2) 선택" }, value: "기타주제" }
+  - { action: screenshot, name: "01b-etc-selected" }
+
+  # 3) 필수 항목: 안건명 2개
+  - { action: fill, target: { label: "안건명(키르키즈어)", css: "textarea.form_control", description: "안건명(키르키즈어)(10067) textarea" }, value: "E2E autotest bashka tema" }
+  - { action: fill, target: { label: "안건명(러시아어)", css: "textarea.form_control", description: "안건명(러시아어)(10068) textarea" }, value: "E2E autotest prochaya tema" }
+
+  # 4) 저장 → 기타주제는 ConfirmPopup 경로
+  - { action: click, target: { css: "button[type=\"submit\"].v_btn.btn_primary.btn_md", text: "저장", description: "[저장](10174) 버튼" } }
+  - { action: assert_visible, target: { ref: confirm_popup, description: "저장 확인창(10155 '저장하시겠습니까?') — 기타주제는 공문 모달(BillRegDocModal)이 아니라 이 확인창을 타야 한다. 모달이 떴다면 회귀" } }
+  - { action: screenshot, name: "01c-confirm-popup-not-modal" }
+
+  # 5) 취소 — 실제 등록하지 않음
+  - { action: click, target: { css: ".p-confirmpopup [data-pc-section=\"rejectbutton\"]", description: "확인창 [아니오] — 의안을 만들지 않고 종료" } }
+  - { action: screenshot, name: "01d-cancelled" }

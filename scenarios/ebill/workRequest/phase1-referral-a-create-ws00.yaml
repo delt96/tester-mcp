@@ -1,0 +1,30 @@
+id: phase1-referral-a-create-ws00
+title: Phase 1 회부 1단계 — 회부요청 저장(서명자=legalactuser) → WS00, 의안은 아직 전이되지 않아야 함
+locale: ru
+login_as: gduser
+ephemeral: true
+precondition: >
+  billId=EB_1a114d2f-edef-44bd-933b-44b117243e8e, taskId=13561(COMMITTEE_REFERRAL, status=P).
+  2026-08-03 baseline 확인: REGISTRATION=C, LEGAL_REVIEW=C, COMMITTEE_REFERRAL=P, 이 의안의
+  eas_bill_link는 REQUEST_REGISTRATION/APPROVE_LEGAL_REVIEW 2건뿐이고 work_req_id는 모두 null.
+  Phase 1로 RequestModal에 서명자 입력(.signer_area)이 추가되어 미지정 시 저장이 거부되므로,
+  기존 referral-request-success.yaml은 그대로는 통과하지 못한다.
+  ★ 서명자를 작성자(gduser1, pos_hist_id=9)가 아닌 legalactuser(pos_hist_id=20)로 지정해야 한다.
+  본인을 지정하면 signOwnRequestIfSigner가 즉시 dispatch해버려 2단계(서명 시 전이) 검증이 불가능해진다.
+  파괴적 — 의안에 이행요청을 실제로 생성한다. 중복 회부 가드(isCommitteeReferralCompleted) 때문에
+  이 의안으로는 한 번만 실행 가능하다.
+steps:
+  - { action: navigate, url: "/main/billMng/gdMng/billMngCmt/Dtl?id=EB_1a114d2f-edef-44bd-933b-44b117243e8e&taskId=13561" }
+  - { action: wait_for, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼(@click=insertLetter, t10827)" } }
+  - { action: click, target: { ref: btn_primary_md, text: "Направить на подпись", description: "회부 버튼 — 검토내용 저장 후 이행요청 모달 오픈" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "이행요청 모달 내용 textarea (모달 오픈 확인)" } }
+  - { action: click, target: { css: ".responder_row .auto_complete_area button.p-autocomplete-dropdown", description: "이행자 AutoComplete 드롭다운 토글 — 전체 사용자 목록 오픈" } }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay li.p-autocomplete-option", description: "사용자 제안 목록 오버레이(appendTo=body이므로 전역 셀렉터)" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay li.p-autocomplete-option:first-child", description: "이행자 아무나 1명 선택 — 검증 대상 아님" } }
+  - { action: fill, target: { css: ".signer_area .auto_complete_area input.p-autocomplete-input", description: "★ Phase 1 신규 서명자 입력란에 legalactuser 검색어 입력(@complete → fnGetSearchText)" }, value: "legalact" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay li.p-autocomplete-option", description: "legalactuser로 필터된 제안 목록" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay li.p-autocomplete-option:first-child", description: "★ 서명자 = legalactuser(pos_hist_id=20) 지정 → set_signer" } }
+  - { action: fill, target: { ref: dialog_textarea, description: "이행요청 내용" }, value: "Phase1 회부 서명전이 검증 - 2026-08-03" }
+  - { action: click, target: { css: "button.btn_md.btn_primary", text: "Регистрация", description: "등록(@click=addRequest) → POST /eas/workRequest/response(billType=REFER_TO_COMMITTEE), WS00으로 저장" } }
+  - { action: assert_visible, target: { ref: toast_success, description: "저장 성공 toast(t10454). 서명자 미지정이면 대신 11110 경고가 뜨므로 이 단언이 서명자 전달까지 확인해준다" } }
+  - { action: screenshot, name: "referral-saved-ws00" }
