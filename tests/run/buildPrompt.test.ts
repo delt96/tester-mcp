@@ -46,6 +46,11 @@ describe("buildUserPrompt", () => {
     const p = buildUserPrompt(sc, { frontend: "http://x" }, (v) => v.replace("${secrets.tester.username}", "U"));
     expect(p).toContain('Assert value: [css #userId] == "U"');
   });
+  it("pins the step index to one integer, because a range breaks JSON parsing", () => {
+    const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
+    expect(p).toMatch(/single integer/i);
+    expect(p).toMatch(/range/i);
+  });
   it("injects the check-once-immediately rule for an ephemeral scenario", () => {
     const eph = { ...scenario, ephemeral: true };
     const p = buildUserPrompt(eph, { frontend: "http://x" }, (v) => v);

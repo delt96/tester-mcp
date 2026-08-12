@@ -8,7 +8,7 @@ export interface ScenarioResult {
   not_tested_reason?: string; pattern_inference?: "assumed_ok" | "unknown";
   evidence?: string[]; started_at: string; duration_ms: number;
   steps: StepResult[]; environment: Environment;
-  handoff_notes?: string; raw_executor_text?: string;
+  handoff_notes?: string; raw_executor_text?: string; parse_repaired?: boolean;
   last_tool?: string; tool_count?: number; executor_log?: string;
   denied_tools?: string[];
 }

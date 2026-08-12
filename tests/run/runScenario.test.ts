@@ -89,6 +89,15 @@ describe("runScenario (streaming)", () => {
     const r = await runScenario(scenario, { ...base, spawner, logLine: () => {} });
     expect(r.not_tested_reason).toMatch(/claude-in-chrome/);
   });
+  it("a verdict salvaged from malformed JSON reaches the result, flagged as repaired", async () => {
+    const brokenSteps = JSON.stringify({ type: "result",
+      result: '```json\n{"status":"PASS","evidence":["ok"],"steps":[{"index": 35-36,"action":"click","status":"PASS"}]}\n```' });
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(tool); h.onLine(brokenSteps); h.onClose(0, null); return { kill() {} }; };
+    const r = await runScenario(scenario, { ...base, spawner, logLine: () => {} });
+    expect(r.status).toBe("PASS");
+    expect(r.parse_repaired).toBe(true);
+    expect(r.evidence).toEqual(["ok"]);
+  });
   it("envelope present but output is malformed: NOT_TESTED, last_tool kept", async () => {
     const natural = JSON.stringify({ type: "result", result: "prose only — no JSON" });
     const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(tool); h.onLine(natural); h.onClose(0, null); return { kill() {} }; };

@@ -110,5 +110,8 @@ ${checklist}
   "steps": [{ "index": 1, "action": "navigate", "status": "PASS" }],
   "not_tested_reason": "only when NOT_TESTED",
   "handoff_notes": "where you got stuck / next start point"
-}`;
+}
+
+"index" is a single integer — the step number. NEVER write a range like 35-36: it is not valid JSON,
+and the whole result (including your handoff_notes) is lost. Merged two steps? Report the first one.`;
 }

@@ -86,6 +86,6 @@ export async function runScenario(scenario: Scenario, opts: RunScenarioOptions):
     not_tested_reason: notTested ? denialReason ?? parsed.not_tested_reason : parsed.not_tested_reason,
     pattern_inference: parsed.pattern_inference, evidence: parsed.evidence,
     steps: (parsed.steps as any) ?? [], handoff_notes: parsed.handoff_notes,
-    raw_executor_text: parsed.raw_executor_text,
+    raw_executor_text: parsed.raw_executor_text, parse_repaired: parsed.parse_repaired,
   };
 }
