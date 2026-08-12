@@ -100,6 +100,11 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toMatch(/re-capturing|loop/i);
     expect(SYSTEM_CONTRACT).toMatch(/ephemeral/i);
   });
+  it("contracts assert_not_visible, including the settle rule that stops a free pass", () => {
+    expect(SYSTEM_CONTRACT).toContain("assert_not_visible");
+    expect(SYSTEM_CONTRACT).toMatch(/settled/i);
+    expect(SYSTEM_CONTRACT).toMatch(/NOT_TESTED, not PASS/);
+  });
   it("contracts upload: use file_upload, never click the input", () => {
     expect(SYSTEM_CONTRACT).toContain("[Upload]");
     expect(SYSTEM_CONTRACT).toContain("file_upload");

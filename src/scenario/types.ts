@@ -19,6 +19,7 @@ export type Step =
   | { action: "upload"; target: Target; file: string }
   | { action: "wait_for"; target: Target; timeout_ms?: number }
   | { action: "assert_visible"; target: Target }
+  | { action: "assert_not_visible"; target: Target }
   | { action: "assert_value"; target: Target; value: string }
   | { action: "screenshot"; name?: string; save?: boolean };
 

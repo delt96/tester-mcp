@@ -27,6 +27,8 @@ export const SYSTEM_CONTRACT = `You are a screen integration-test executor. Exec
 [Assertions]
 - assert_visible: the target element exists and is visible. Presence only — do NOT use it to check content.
 - assert_value: read the target element's value (form control \`.value\`; for non-inputs, its textContent) and compare it EXACTLY to the expected string. Equal → PASS, different → FAIL (report observed vs expected). This is the deterministic content check — prefer it over interpreting a description.
+- assert_not_visible: the target must be ABSENT from the DOM, or present but not visible (display:none, visibility:hidden, zero size). Visible → FAIL. Check ONCE.
+- A page that has not rendered yet passes assert_not_visible for free. Judge only after the area has settled — the scenario should wait_for a stable container first. If the page is still loading, that is NOT_TESTED, not PASS.
 
 [Screenshots — evidence only, not the verdict]
 - Decide PASS/FAIL by assert (text/DOM). A screenshot is human-facing evidence, not the basis for the verdict.

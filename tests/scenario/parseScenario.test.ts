@@ -40,6 +40,10 @@ describe("parseScenario", () => {
     expect(() => parseScenario("id: ../../etc/x\ntitle: t\nsteps: []")).toThrow(/id/);
     expect(() => parseScenario("id: a/b\ntitle: t\nsteps: []")).toThrow(/id/);
   });
+  it("accepts assert_not_visible as a known action", () => {
+    const y = "id: s\ntitle: t\nsteps:\n  - { action: assert_not_visible, target: { css: '.row' } }\n";
+    expect(parseScenario(y).steps[0].action).toBe("assert_not_visible");
+  });
   it("parses the ephemeral flag (defaults to false)", () => {
     const minStep = "steps:\n  - action: navigate\n    url: /";
     expect(parseScenario(`id: a\ntitle: t\n${minStep}`).ephemeral).toBe(false);
