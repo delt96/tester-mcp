@@ -12,9 +12,9 @@ describe("describeTarget", () => {
 });
 
 describe("actions registry", () => {
-  it("knows the eight screen actions", () => {
+  it("knows the nine screen actions", () => {
     expect([...KNOWN_ACTIONS].sort()).toEqual(
-      ["assert_value", "assert_visible", "click", "double_click", "fill", "navigate", "screenshot", "wait_for"]
+      ["assert_value", "assert_visible", "click", "double_click", "fill", "navigate", "screenshot", "upload", "wait_for"]
     );
   });
   it("does not know an unregistered action", () => {
@@ -33,5 +33,9 @@ describe("actions registry", () => {
   it("renders double_click as a distinct instruction from click", () => {
     expect(renderStep({ action: "double_click", target: { css: "tbody > tr" } }))
       .toBe("Double-click: [css tbody > tr]");
+  });
+  it("renders upload with the parse-time resolved absolute path", () => {
+    expect(renderStep({ action: "upload", target: { css: "input[type=file]" }, file: "C:\\fx\\doc.pdf" }))
+      .toBe('Upload: [css input[type=file]] ← file "C:\\fx\\doc.pdf"');
   });
 });

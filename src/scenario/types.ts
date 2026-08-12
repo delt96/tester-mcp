@@ -16,6 +16,7 @@ export type Step =
   | { action: "fill"; target: Target; value: string }
   | { action: "click"; target: Target; destructive?: boolean }
   | { action: "double_click"; target: Target }
+  | { action: "upload"; target: Target; file: string }
   | { action: "wait_for"; target: Target; timeout_ms?: number }
   | { action: "assert_visible"; target: Target }
   | { action: "assert_value"; target: Target; value: string }

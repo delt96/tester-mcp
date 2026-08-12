@@ -95,4 +95,10 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toMatch(/re-capturing|loop/i);
     expect(SYSTEM_CONTRACT).toMatch(/ephemeral/i);
   });
+  it("contracts upload: use file_upload, never click the input", () => {
+    expect(SYSTEM_CONTRACT).toContain("[Upload]");
+    expect(SYSTEM_CONTRACT).toContain("file_upload");
+    expect(SYSTEM_CONTRACT).toContain("NEVER click a file input");
+    expect(SYSTEM_CONTRACT).toContain("display:none");
+  });
 });
