@@ -1,9 +1,35 @@
 id: login
+# ⚠ navigate 직후 곧바로 fill 하면 값이 날아간다.
+#   2026-08-13 한 세션에서 6회 발생 — 증상은 "로그인 버튼을 눌렀는데 입력칸이 둘 다 비어 있고
+#   로그인 화면에 그대로 머무름". 원인이 안 보이는 형태라 매번 '일시적 실패'로 오인했다.
+#
+#   원인 추정: 요소는 렌더됐지만 Vue 의 v-model 바인딩이 아직 붙기 전에 입력이 들어가면
+#   다음 렌더에서 ref 초기값("")으로 덮여 사라진다(LoginView.vue:16 `const userId = ref("")`).
+#   그래서 **요소 존재 확인만으로는 부족하고, 클릭으로 상호작용 가능 상태를 만든 뒤** 채운다.
+#
+#   ⚠ 값이 안 박히는 것을 로그인 실패로 오인하지 않도록 fill 직후 assert_value 로 즉시 잡는다.
+#   이 단언이 없으면 실패 지점이 '로그인 클릭 이후'로 밀려 보여 CORS·계정 문제와 구분되지 않는다.
+#
+# ⚠ 다계정 시나리오 주의: LoginView.vue:158-161 은 localStorage 의 idChk 가 있으면
+#   onMounted 에서 입력칸을 그 값으로 덮어쓴다("아이디 저장"이 켜진 적이 있으면 남아 있다).
+#   아래 assert_value 가 그 경우도 불일치로 잡아준다 — 엉뚱한 계정으로 조용히 진행되지 않는다.
 params:
   account: tester
 steps:
   - { action: navigate, url: "/" }
+  # ⚠ #userId 가 아니라 **템플릿 마지막의 로그인 버튼**을 기다린다.
+  #   앞쪽 요소는 먼저 렌더돼도 컴포넌트 마운트가 안 끝났을 수 있다. 마지막 요소가 보이면
+  #   최소한 이 템플릿의 렌더는 끝났다는 뜻이다(LoginView.vue:197 input → 208 button 순).
+  - { action: wait_for, target: { css: ".btn_login", description: "로그인 버튼 — 템플릿 마지막 요소. 마운트 완료 신호로 쓴다" } }
+  - { action: wait_for, target: { css: "#userId", description: "아이디 입력칸" } }
+  - { action: click, target: { css: "#userId", placeholder: "ИНН", description: "포커스 확보 — 요소 존재만으로는 v-model 바인딩 완료를 보장하지 못한다" } }
   - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.{{account}}.username}" }
+  # ⚠ 단언 대상을 fill 과 **똑같은 모양**으로 준다(css + placeholder).
+  #   2026-08-13 실측: fill 은 placeholder 로 잡아 성공했는데 assert 가 css 만 줘서
+  #   `document.querySelector('#userId')` 가 null → '값이 비었다'로 오보고됐다.
+  #   단언과 조작이 다른 경로로 요소를 찾으면 서로 다른 것을 보게 된다.
+  - { action: assert_value, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.{{account}}.username}" }
+  - { action: click, target: { css: "#pswd", placeholder: "Ваш пароль", description: "비밀번호 칸 포커스" } }
   - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.{{account}}.password}" }
   - { action: click, target: { css: ".btn_login", role: "button", description: "로그인 버튼" } }
   - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창" } }

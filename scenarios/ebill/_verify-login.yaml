@@ -1,0 +1,14 @@
+id: verify-lgactstaff-login
+title: "[검증] 원복 후 lgactstaff 로그인 확인"
+locale: kr
+login_as: lgactstaff
+tags: [verify]
+precondition: >
+  seed-26(비밀번호 변경) 실행 후 원복 스크립트를 돌린 뒤,
+  secrets 의 원래 비밀번호로 실제 로그인이 되는지 확인한다.
+  DB 해시가 스냅샷과 같다는 것만으로는 "로그인된다"를 증명하지 못하므로 실제로 들어가 본다.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 목록 — 로그인 세션이 살아 있다는 증거" } }
+  - { action: screenshot, name: "verify-login-ok" }
