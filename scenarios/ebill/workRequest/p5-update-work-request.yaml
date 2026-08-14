@@ -1,0 +1,92 @@
+id: p5-update-work-request
+title: 이행요청 수정 저장 — 서명 후에는 서명자 입력이 잠기고, 내용 수정은 저장된다
+locale: ru
+login_as: gduser
+tags: [workRequest]
+precondition: >
+  ★ **산출물 `TS-EBS-37`(이행자 변경) r1099~r1101 을 덮는다.**
+    [변경] 버튼 → 이행요청 변경 모달 → 내용 수정 → [변경] 저장 → 모달 닫힘
+    (API `PUT /eas/workRequest/response`).
+
+  ⚠ **경로 차이를 밝혀둔다.** 산출물 절차는 **수신함** 경로인데 이 시나리오는 **기안함** 경로로 검증한다.
+    두 화면 모두 `edit-yn="true"` 로 같은 컴포넌트·같은 모달·같은 API 를 쓴다
+    (DraftsInbox.vue:384, Inbox.vue:593). 따라서 수정 동작 자체는 동일하나,
+    **수신함에서의 실행은 별도로 확인하지 않았다.**
+
+  대상: doc **'test1'**(문서번호 **6-6952/26**, **DMT01**, gduser 기안)
+        / work_req **1628** (WS01, reg_id=9=gduser, **signer_id=35**).
+
+  ⚠ **대상 선정 조건이 네 가지다** — 하나라도 어기면 [변경] 버튼이 없거나 저장이 막힌다.
+    2026-08-14 에 셋을 연달아 밟았다:
+    ① **`signer_id` 가 있어야 한다.** `fn_update` 진입부 `if (!signerId) { warn(11110); return; }` (프론트)
+       → NULL 이면 저장 무반응. 그 케이스는 `p5b-update-blocked-null-signer.yaml` 로 분리했다.
+       (1차 대상 1484 가 여기 걸렸다.)
+    ② **의안링크가 `TRANSITIONED` 면 안 된다.** 백엔드 `updateWorkRequest` 가
+       `LocalizedForbiddenException("11157")` 로 거부한다
+       (DocumentWorkFlowServiceImpl.java:938-942, "bill action already transitioned").
+       → 화면에는 빨간 오류 토스트 `Доступ запрещён` 이 뜬다. **2차 대상 1679 가 여기 걸렸다.**
+       ⚠ 이건 결함이 아니라 **의도된 잠금**이며, 산출물 `TS-EBS-36` r1094 가 말하는 그 차단이다.
+    ③ **WS03(이행완료)이면 안 된다.** 백엔드가 11070 으로 거부한다.
+    ④ **문서 유형이 `DMT01/02/03/05` 여야 한다 — 여기가 함정이다.**
+       `DraftsInbox.vue:379-394` 에 `CommandComponent` 가 **두 벌** 있고,
+       `canCreateWorkRequest`(= 문서유형이 위 4종) 가 거짓이면 **`edit-yn` 없는 쪽**이 렌더된다.
+       그러면 `canEditUi` 가 false 라 **[변경]·[삭제] 버튼이 아예 없다.**
+       ⚠ `canEdit` 자체는 통과하므로 **[이행완료] 버튼은 그대로 보인다** — 그래서 권한 문제로 오인하기 쉽다.
+       **3차 대상 1619 가 여기 걸렸다**(doc 'testqjq' 가 DMT04 였다).
+    → 1628 은 `eas_bill_link` 행이 없고 WS01 이며 문서가 DMT01 이라 넷 다 만족한다.
+
+  ★ **카드 순서는 `reg_dt desc` 다 — 최신이 1번.** 매퍼에서 확인했고(WorkRequestMapper.xml
+    `getWorkRequestListByUserId` … `order by reg_dt desc`) `p4b` 실행에서도 재확인했다. 추정이 아니다.
+    이 문서의 카드는 3개다: 1629(08-10 14:48) · **1628(08-10 14:46)** · 1600(08-06) → **1628 은 2번 카드**다.
+
+  ★ **r1100 '한 번 서명된 뒤에는 서명자를 변경할 수 없음' 을 여기서 확인한다.**
+    `signerLocked = (type==='updateWorkRequest' && workStatus !== 'WS00')` (RequestModal.vue:64-66)
+    → 서명자 자동완성에 `:is-read-only` 로 전달되고, AutoCompleteUserInput 은 그것을
+      PrimeVue AutoComplete 의 `:disabled` 로 넘긴다(AutoCompleteUserInput.vue:133).
+    1628 은 WS01(=WS00 아님)이므로 **입력칸이 disabled 여야 한다.**
+    ※ 차단 방식이 '경고 메시지'가 아니라 **'입력 자체가 잠김'** 이라는 점이 요지다.
+    2026-08-14 실행에서 이 단언은 이미 PASS 했다(1484 대상, 같은 조건).
+
+  ★ **2026-08-14 최종 PASS.** 저장까지 완주했고 DB 로도 확인했다 —
+    `work_cn` 이 실제로 바뀌었고 `work_status`(WS01)·`signer_id`(35)는 그대로다.
+
+  ⚠ **파괴적** — work_req 1628 의 이행 내용(work_cn)이 실제로 바뀐다.
+    앞부분 '대통령 거부' 는 유지하도록 값을 넣는다(카드 특정에 쓰는 텍스트다).
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/letter/draftsInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "기안함 좌측 목록" } }
+
+  # 기안함이 수백 건이라 목록 상단 가정은 못 쓴다. 부제목으로 좁힌다.
+  # ⚠ 돋보기(통합검색) 버튼은 접근성 이름이 없어 좌표 클릭이 필터 팝업으로 새는 일이 반복됐다
+  #   (2026-08-14, p4b·seed-22). 이유와 대안은 `_fragments/list-filter-search.yaml` 주석 참조.
+  # ⚠ 부제목 'test1' 은 접두어가 겹쳐 gduser 기안분만 18건이 걸린다(`test111` `test1212` …).
+  #   **문서번호로 좁힌다** — 유일하다.
+  - { use: list-filter-search-by-no, with: { letterno: "6-6952/26" } }
+  - { action: click, target: { ref: list_item, text: "6-6952/26", description: "대상 문서 선택 — 문서번호로 특정" } }
+  - { action: wait_for, target: { css: ".right_top_area .command", description: "이행요청 카드 렌더" } }
+
+  # 카드 3개 중 대상을 못박는다(reg_dt desc → 1628 은 2번)
+  - { action: assert_visible, target: { css: ".right_top_area .commands .command:nth-of-type(2) .command_detail", text: "대통령 거부", description: "★ 2번 카드가 work_req 1628 인지 확인. 순서가 바뀌면 여기서 실패해야 한다" } }
+  - { action: click, target: { css: ".right_top_area .commands .command:nth-of-type(2) .update_button button", description: "[변경] 버튼 → 이행요청 변경 모달(type=updateWorkRequest)" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "모달 오픈 확인(이행내용 textarea)" } }
+  - { action: screenshot, name: "01-update-modal-open" }
+
+  # ★ r1100 — 서명자 입력이 잠겨 있어야 한다
+  - { action: assert_visible, target: { css: ".dialog_main_area .signer_area", description: "서명자 영역(라벨 11154)은 렌더된다 — locales json 미동기화라 라벨이 숫자로 보이는 것이 정상" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area .signer_area input:disabled", description: "★★ WS01(=WS00 아님)이므로 서명자 입력이 disabled — signerLocked. 경고가 아니라 입력 잠금이다" } }
+  - { action: screenshot, name: "02-signer-locked" }
+
+  # 이행 내용 수정 → 저장
+  # ⚠ 접두어 '대통령 거부' 유지 필수 — 카드 특정에 쓰는 텍스트다
+  - { action: click, target: { ref: dialog_textarea, description: "이행내용 포커스" } }
+  - { action: fill, target: { ref: dialog_textarea, description: "이행 내용 수정" }, value: "대통령 거부 [E2E 수정본]" }
+  - { action: assert_value, target: { ref: dialog_textarea }, value: "대통령 거부 [E2E 수정본]" }
+  - { action: click, target: { css: ".p-dialog-footer button.btn_md.btn_primary", description: "[변경] 저장 → PUT /eas/workRequest/response" } }
+  # ⚠ **모달이 닫혔다는 것은 저장 성공의 증거가 아니다.** `fn_update` 는 API 응답을 기다리지 않고
+  #   `emits(...)` 직후 `close()` 를 호출한다 — 서버가 거부해도 닫힌다(2026-08-14 실측).
+  #   따라서 **성공 토스트와 카드 반영**으로만 판정한다.
+  - { action: wait_for, target: { ref: toast_success, description: "★ 저장 성공 토스트. 여기서 막히면 대상 선정 조건 ①②③ 중 하나를 어긴 것이다" } }
+  - { action: assert_not_visible, target: { css: ".dialog_main_area", description: "r1101 — 모달이 닫힌다(단, 이것만으로는 성공 판정 불가)" } }
+  - { action: wait_for, target: { css: ".right_top_area .commands .command:nth-of-type(2) .command_detail", text: "E2E 수정본", description: "★★ 수정 내용이 카드에 반영됨 — 저장이 실제로 됐다는 유일한 증거" } }
+  - { action: screenshot, name: "03-updated" }

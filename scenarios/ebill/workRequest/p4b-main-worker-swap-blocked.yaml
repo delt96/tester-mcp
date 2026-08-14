@@ -1,0 +1,60 @@
+id: p4b-main-worker-swap-blocked
+title: 주이행자가 이미 응답했으면 교체 불가 — 수정 모달에서 C 배지가 아예 렌더되지 않는다
+locale: ru
+login_as: gduser
+tags: [workRequest, negative]
+precondition: >
+  ★ **산출물 `TS-EBS-36` 의 음성 절차 "이미 응답한 주이행자를 다른 사람으로 교체 시도" 를 덮는다.**
+
+  근거(RequestModal.vue:56-72):
+    - 주이행자 교체는 기존 주이행자 응답 행의 `user_id` 만 덮어쓰는 방식이라
+      (`updateWorkResponseUserIdByRspnsId`) `rspns_cn`/`rspns_dtm` 이 새 사람에게 딸려간다.
+    - 그래서 **현재 주이행자가 응답을 마쳤으면 `mainWorkerSwapBlocked` 가 true** 가 되고,
+      `canPickMainWorker` 가 false 라 **C 배지 버튼이 렌더 자체가 안 된다.**
+    - 즉 차단 방식은 "눌러도 막힘"이 아니라 **"버튼이 없음"** 이다. 이 구분이 이 시나리오의 요지다.
+
+  대상: doc 5a57775a-575f-4de4-822e-1f5f4290372d "Маданият боюнча мыйзам долбоор" (gduser 기안 → 기안함).
+  - work_req 1592: **WS02**, reg_id=9=gduser, main_rspns_id=2030(user 14) — **2026-08-05 15:33 응답 완료**.
+    나머지 2031(user 11)·2032(user 12)는 미응답.
+    → 작성자라 수정 버튼은 뜨지만, 모달 안에 C 배지는 하나도 없어야 한다.
+
+  ★ **카드 순서는 `reg_dt desc` 다 — 최신이 1번**(WorkRequestMapper.xml `order by reg_dt desc`).
+    이 문서의 카드는 **3개**다(2026-08-14 실측, 처음 적을 때는 2개인 줄 알았다):
+      1번 **1594**(08-05 13:40, WS03, 'На исполнение')
+      2번 **1592**(08-05 11:26, WS02, 'На рассмотрение')  ← 검증 대상
+      3번 **1590**(08-05 09:39, WS03, 'Аткарууга')
+    ⚠ 카드는 앞으로도 늘 수 있다. 인덱스만 믿지 말고 `.command_detail` 텍스트로 반드시 확인할 것.
+
+  ⚠ 이 문서는 원래 `p4-edit-modal-main-worker.yaml` 의 양성 대상이었다. 2026-08-14 에 위 상태로 굳어
+    양성 검증이 불가능해졌고, 양성 경로는 doc fe8a9679(work_req 1484)로 옮겼다.
+
+  ⚠ **실행 전 Chrome 창을 넓혀야 한다(가로 2400px 이상).** 좁으면 `.update_button` 이 뷰포트 밖으로 나가
+    클릭이 엉뚱한 접기/펼치기 토글로 빠진다(2026-08-14 실측). 레이아웃 결함이 아니다.
+
+  ⚠ 비파괴 — 모달을 열고 취소로 닫기만 한다. DB 변경 없음.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/letter/draftsInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "기안함 좌측 목록" } }
+
+  # 기안함이 수백 건이라 목록 상단 가정은 못 쓴다. 검색으로 좁힌다.
+  # ⚠ **돋보기(통합검색) 대신 필터 패널을 쓴다.** 돋보기 버튼은 아이콘만 있어 접근성 이름이 없고,
+  #   좌표 클릭이 목록 재정렬에 밀려 이 시나리오가 2회 연속 NOT_TESTED 로 죽었다(2026-08-14).
+  #   자세한 근거는 `_fragments/list-filter-search.yaml` 주석에 있다.
+  - { use: list-filter-search, with: { subtitle: "Маданият" } }
+  - { action: click, target: { ref: list_item, text: "Маданият", description: "대상 문서 선택" } }
+  - { action: wait_for, target: { css: ".right_top_area .command", description: "이행요청 카드 렌더" } }
+  - { action: screenshot, name: "01-doc-commands" }
+
+  # 어느 카드인지 못박는다 — 카드가 3개다(reg_dt desc)
+  - { action: assert_visible, target: { css: ".right_top_area .commands .command:nth-of-type(2) .command_detail", text: "На рассмотрение", description: "★ 2번 카드가 work_req 1592 인지 확인(reg_dt desc). 1번은 1594('На исполнение'), 3번은 1590('Аткарууга')다" } }
+  - { action: click, target: { css: ".right_top_area .commands .command:nth-of-type(2) .update_button button", description: "1592 수정 모달 오픈 — 작성자이므로 버튼 자체는 뜬다" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "모달 오픈 확인(이행내용 textarea)" } }
+
+  # ★ 핵심: 이행자 행은 있는데 C 배지는 없어야 한다
+  - { action: assert_visible, target: { css: ".dialog_main_area .responder_row:nth-child(2)", description: "이행자 행 자체는 렌더된다 — 모달이 제대로 열렸다는 확인" } }
+  - { action: assert_not_visible, target: { css: ".dialog_main_area .main-worker-btn", description: "★★ 주이행자(2030)가 응답을 마쳤으므로 C 배지가 **하나도** 없어야 한다(mainWorkerSwapBlocked). 여기가 이 시나리오의 전부다" } }
+  - { action: screenshot, name: "02-no-c-badge-when-responded" }
+
+  # 저장하지 않고 닫는다
+  - { action: click, target: { css: ".p-dialog button.btn_md.btn_neutral", description: "취소(t10001)로 닫기 — DB 미변경" } }

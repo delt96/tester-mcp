@@ -1,0 +1,64 @@
+id: p5b-update-blocked-null-signer
+title: "[결함 의심] signer_id 가 NULL 인 이행요청은 수정 저장이 영구히 불가 — 입력은 잠겨 있고 저장은 거부된다"
+locale: ru
+login_as: gduser
+tags: [workRequest, negative, defect]
+precondition: >
+  ★ **이 시나리오는 결함 재현이 목적이다. 통과(PASS)가 곧 "막힌다는 것이 사실"이라는 뜻이다.**
+
+  발견 경위: 2026-08-14 `p5-update-work-request` 실행 중 저장 버튼이 **아무 반응이 없었다**.
+  코드를 보고 원인을 특정했다.
+
+  교착 구조 — 두 규칙이 맞물린다:
+    ① `signerLocked = (type==='updateWorkRequest' && workStatus !== 'WS00')` (RequestModal.vue:64-66)
+       → WS00 을 벗어난 요청은 **서명자 입력이 disabled** 다. 채울 수 없다.
+    ② `fn_update` 진입부 `if (!signerId.value) { toast.warn(t('11110')); return; }` (RequestModal.vue:215-218)
+       → 서명자가 없으면 **저장을 거부**한다.
+  ⇒ `signer_id` 가 NULL 이면서 WS00 이 아닌 요청은 **채울 수도 없고 저장할 수도 없다.**
+
+  영향 범위(2026-08-14 DB 실측): `eas_work_request` 중 `work_status <> 'WS00'` 인 **1,433건 가운데 1,314건**이
+  `signer_id IS NULL` 이다. 서명자 필드는 2026-08-01 Phase 1 에서 추가됐고, 그 이전 데이터에는 값이 없다.
+  → 즉 **기존 이행요청 대부분이 수정 불가 상태**로 보인다.
+
+  ⚠ **아직 결함으로 단정하지 않았다.** 확인하지 못한 것:
+    - 백엔드가 signerId 없이도 수정을 받아주는지(프론트 가드만의 문제인지)
+    - 레거시 데이터를 마이그레이션할 계획이 있는지
+    - 기획상 "서명자 없는 옛 요청은 수정 대상이 아니다"가 의도인지
+    이 시나리오가 증명하는 것은 **화면에서 저장이 안 된다는 사실**까지다.
+
+  대상: doc fe8a9679 'Проект Закона … Налоговый кодекс …' / work_req **1484**
+        (WS01, reg_id=9=gduser, **signer_id NULL**). 카드 2개 중 **1번**(reg_dt desc: 1484 > 1462).
+
+  ⚠ 비파괴 — 저장이 거부되므로 DB 는 바뀌지 않는다. 그것이 이 시나리오의 요지다.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/letter/draftsInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "기안함 좌측 목록" } }
+
+  # ⚠ 돋보기 대신 필터 패널 — 사유는 `_fragments/list-filter-search.yaml` 주석 참조.
+  - { use: list-filter-search, with: { subtitle: "Налоговый" } }
+  # ⚠ 부제목에 'Налоговый' 가 든 gduser 기안 문서는 2건이다. 대상만 'Проект Закона' 로 시작한다.
+  - { action: click, target: { ref: list_item, text: "Проект Закона", description: "대상 문서 선택" } }
+  - { action: wait_for, target: { css: ".right_top_area .command", description: "이행요청 카드 렌더" } }
+
+  - { action: assert_visible, target: { css: ".right_top_area .commands .command:nth-of-type(1) .command_detail", text: "위원회 회부", description: "★ 1번 카드가 work_req 1484 인지 확인(reg_dt desc). 2번은 1462('테스트')다" } }
+  - { action: click, target: { css: ".right_top_area .commands .command:nth-of-type(1) .update_button button", description: "[변경] 버튼 → 수정 모달" } }
+  - { action: wait_for, target: { ref: dialog_textarea, description: "모달 오픈 확인" } }
+
+  # ① 서명자 입력이 비어 있는 채로 잠겨 있다
+  - { action: assert_visible, target: { css: ".dialog_main_area .signer_area input:disabled", description: "★ 서명자 입력이 disabled — signerLocked(WS01). 값이 없는데도 채울 방법이 없다" } }
+  - { action: screenshot, name: "01-signer-empty-and-locked" }
+
+  # ② 내용만 바꾸고 저장을 시도한다
+  - { action: click, target: { ref: dialog_textarea, description: "이행내용 포커스" } }
+  - { action: fill, target: { ref: dialog_textarea, description: "내용 수정 시도" }, value: "위원회 회부 - 주이행자 지정 기능테스트 [저장 차단 확인]" }
+  - { action: assert_value, target: { ref: dialog_textarea }, value: "위원회 회부 - 주이행자 지정 기능테스트 [저장 차단 확인]" }
+  - { action: click, target: { css: ".p-dialog-footer button.btn_md.btn_primary", description: "[변경] 저장 시도 → fn_update 의 signerId 가드에 걸려야 한다" } }
+
+  # ★★ 여기가 핵심 — 경고 토스트가 뜨고 모달은 그대로 남는다
+  - { action: assert_visible, target: { css: ".p-toast-message-warn", description: "★★ 서명자 미지정 경고(11110 'Подписанты не назначены.'). 2026-08-14 p5 실행에서는 success 토스트만 확인해 이 경고를 놓쳤다" } }
+  - { action: assert_visible, target: { css: ".dialog_main_area", description: "★★ 모달이 닫히지 않는다 = 저장되지 않았다" } }
+  - { action: screenshot, name: "02-save-refused-warn-toast" }
+
+  # 닫는다 — 저장되지 않았으므로 DB 변경 없음
+  - { action: click, target: { css: ".p-dialog button.btn_md.btn_neutral", description: "취소로 닫기" } }
