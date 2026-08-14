@@ -1,0 +1,61 @@
+id: seed-00a-mp-register
+title: "[시딩] 의원 발의 ① 안건등록 — 안건명 kg/ru + 원문파일 kg/ru 저장까지"
+locale: kr
+login_as: mp1
+tags: [seed, e2e-fullflow]
+precondition: >
+  ★ **`00b` 와 짝이다.** 원래 한 파일이었는데 나눴다 — 실행할 때마다 의안이 하나씩 늘어
+  같은 이름 의안이 4건까지 쌓였고, 목록 필터로 특정이 안 되는 상태가 됐다(2026-08-12).
+  `seed-05` 1차가 엉뚱한 의안을 부의했던 것과 같은 구조라 재실행이 위험해졌다.
+
+    `00a` 안건등록 (이 파일)  — 돌릴 때마다 의안이 1건 늘어난다. **필요할 때만** 돌린다
+    `00b` 서명 → 게재 → 등록요청발송 — 기존 미처리 건을 소비한다. **반복 실행해도 안 늘어난다**
+
+  ★ 의안 진입로는 둘이고 이건 안 밟아본 쪽이다.
+    의원 발의    : step 0 `REQUEST_REGISTRATION` → 1000   ← 이 계열
+    외부수신문서 : 바로 1000                               ← `seed-01`
+  의원 발의가 주 경로다 — 2026-08-12 실측 `REQUEST_REGISTRATION` 7,899건 / 의안 7,893건.
+
+  ★ 계정은 `mp1`(의원 계정, 값은 `tester-mcp.secrets.yaml` 에 있다).
+    부서 계정으로는 의안제출 메뉴에 못 들어간다.
+  로그인 가능은 2026-08-12 실행으로 확인됐다.
+
+  ★ **step 0 태스크는 [등록요청발송]이 아니라 이 저장 시점에 생긴다**(실측).
+  저장 직후 `REQUEST_REGISTRATION` 이 `status=P` 로 만들어지고, 그걸 `C` 로 닫는 것이 `00b` 다.
+
+  필수값(ApplySave.vue:137-151): 안건명 kg/ru + **원문 파일 kg/ru 2개**.
+  `errors.file140` 은 키 이름일 뿐 실제로는 `110/lng_type_2`(원문 러시아어)다.
+
+  산출물: 미처리 의안 1건(step 0 `P`). `00b` 의 재료가 된다.
+on_failure: stop
+steps:
+
+  - { action: navigate, url: "/main/bill/apply" }
+  - { action: wait_for, target: { ref: content_title, description: "의안제출 목록" } }
+  - { action: screenshot, name: "00a-a-list" }
+  - { action: click, target: { css: "a.v_btn.btn_secondary.btn_sm", text: "안건등록", description: "[안건등록](10054) → ApplySave" } }
+  - { action: wait_for, target: { css: "textarea.form_control", description: "안건명 입력란 — 등록 폼 진입 신호" } }
+
+  # 표 행 순서(ApplySave.vue:174-193): 1 안건명(kg)* / 2 안건명(ru)* / 3 문서(kg) / 4 문서(ru) / 5 공동발의 / 6·7 비고
+  - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(1) textarea.form_control", description: "안건명(키르키즈어)(10067) 필수*" }, value: "E2E-SEED MP автотест мыйзам долбоору" }
+  - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(2) textarea.form_control", description: "안건명(러시아어)(10068) 필수*" }, value: "E2E-SEED MP автотест законопроект" }
+  # 문서 셀 안에는 원문·근거참조·비교표·기타 4묶음이 Divider 로 나뉘어 있고 **원문이 첫 묶음**이다
+  # (BillFilesInputRow.vue:47-50). file input 은 id 가 런타임 채번이라 위치로 잡는다.
+  # 클릭하면 네이티브 선택창이 열려 세션이 멈추므로 input 자체를 target 으로 준다.
+  - { action: upload, target: { css: ".v_table table tbody tr:nth-of-type(3) .bill_files_wrap .form_row:first-child input[type=file].form_file", description: "문서(키르키즈어) 원문(110/lng_type_1) 필수*" }, file: "documentSample.pdf" }
+  - { action: upload, target: { css: ".v_table table tbody tr:nth-of-type(4) .bill_files_wrap .form_row:first-child input[type=file].form_file", description: "문서(러시아어) 원문(110/lng_type_2) 필수*" }, file: "documentSample.pdf" }
+  - { action: screenshot, name: "00a-b-filled" }
+
+  - { action: click, target: { css: "button[type=submit].v_btn.btn_primary.btn_md", text: "저장", description: "[저장](10174) → 저장 확인 팝업" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "저장 확인 팝업(10155)" } }
+  - { action: click, target: { ref: confirm_accept, description: "Yes → POST /bill/apply" } }
+  - { action: wait_for, target: { ref: datatable, description: "목록으로 복귀" } }
+  - { action: screenshot, name: "00a-c-saved" }
+
+  # 결과 확인 — 목록에 나타나는지만 본다. 여기서는 사회토론번호·등록일자가 비어 있는 게 정상이다
+  # (게재 전이므로). step 0 태스크 생성은 DB(ebs_bp_tasks.task_code='REQUEST_REGISTRATION')로 확인한다.
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "안건명 검색칸(input_item 순서: 제출일자 / 안건상태 / 안건명)" }, value: "E2E-SEED MP" }
+  - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
+  - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED MP", description: "등록된 의안이 목록에 있다" } }
+  - { action: screenshot, name: "00a-d-listed" }

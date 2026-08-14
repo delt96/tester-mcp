@@ -10,10 +10,10 @@ precondition: >
   언어심사(langReviewMng)·전문심사(lgExntnMng) 상세는 법무실(lgReviewMng)과 구조가 다르다:
   **결과(진행/거절) 라디오가 없고** 바로 [의견서 작성](10826)으로 간다. 저장 스텝이 없다.
 
-  ★ 이 시나리오도 **의견서 [등록]에서 막힌다.** 의견서 등록에는 공문 파일(Расмий документ)이
-  필수인데(2026-08-12 사용자 확인) DSL 에 upload 액션이 없다. seed-02 와 같은 벽이다.
-  자동으로 검증되는 범위는 **[의견서 작성] 버튼 노출 + 모달 필수값 입력까지**이며,
-  등록·결재 블록은 사람이 이어받아야 한다.
+  의견서 등록에는 공문 파일(Расмий документ)이 **필수**다 — 없으면 오류 메시지 없이 조용히
+  등록되지 않는다. 2026-08-12 DSL 에 `upload` 액션이 추가되어 자동화된다.
+  `_fixtures/documentSample.pdf` 를 `#officialfile` 에 올리는 방식이며, seed-02 실행에서
+  실제로 통과해 의안이 1200 → 1300 으로 전진한 것을 DB(result_doc_id)로 확인했다.
 
   각 부서 흐름은 동일하다:
     부서원이 의견서 작성(수신자=소관위원회 부서장 cmtuser1 / 승인자=자기 부서장)
@@ -24,8 +24,9 @@ precondition: >
     부서장은 전체 ID로 좁힐 수 없으므로 **후보 선택은 반드시 text: "부서장"으로** 해야 한다.
     옵션 회색줄이 '직급 · 부서'라 여기서 갈린다(AutoCompleteUserInput.vue:78).
 
-  ⚠ 미검증: 의견서 모달 내부 셀렉터(언어 체크박스·제목·수신자·승인자)는 seed-02 에서 그대로
-  가져왔고 아직 한 번도 실행되지 않았다. 첫 실행 시 handoff_notes 로 실제 구조를 확인할 것.
+  2026-08-12 실행 결과 **98스텝 전부 PASS**. `ebs_bp_tasks` 로 확인:
+  13879(LANGUAGE_OPINION) 13:56:46, 13880(EXPERT_REVIEW_OPINION) 13:59:22 둘 다
+  status=C + result_doc_id 채워짐. 남은 1400 태스크는 13878(JURISDICTIONAL_COMMITTEE_REVIEW)뿐.
 on_failure: stop
 steps:
 
@@ -48,17 +49,26 @@ steps:
   - { action: screenshot, name: "04b-c-lang-opinion-modal" }
 
   # ── 3) 필수값 — 언어 / 제목 / 수신자(소관위원회 부서장) / 승인자(언어심사 부서장)
-  - { action: click, target: { css: ".p-dialog input[type=checkbox]", description: "문서 언어 체크박스(공식어) — 언어는 필수(EA-09)" } }
+  # ⚠ .p-dialog 의 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이다 — 언어가 아니다.
+  #   언어는 .language_area 안에 국가언어/공용어/외국어 3종이 있다(InsertLetter.vue:948-955).
+  - { action: click, target: { css: ".language_area .check_item input[type=checkbox]", description: "언어 체크박스 첫 번째(국가언어) — 언어는 필수(EA-09)" } }
   - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 언어심사 의견서" }
-  - { action: fill, target: { css: ".p-dialog .recipients .p-autocomplete-input, .p-dialog .recipient_area .p-autocomplete-input", description: "수신자 — 소관위원회 부서장" }, value: "cmtuser1" }
+  # 수신자 행은 [내부기관|정부기관] 탭 + autocomplete 구조다(AddRecipientComponent.vue:68-82).
+  # 기본이 내부기관이라 탭 전환 없이 바로 입력하면 된다.
+  - { action: fill, target: { css: ".p-dialog .recipient_area .p-autocomplete-input", description: "수신자(내부기관) — 소관위원회 부서장" }, value: "cmtuser1" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "cmtuser1(부서장) 선택 — cmtuser10(직원)과 갈라야 한다" } }
-  - { action: fill, target: { label: "승인자", css: ".p-dialog .p-autocomplete-input", description: "승인자 — 언어심사 부서장(LGGSPLZ)" }, value: "LGGSPLZ" }
+  # 승인자는 .approve 안에 있다(AddApproveComponent.vue:26-34). .p-dialog .p-autocomplete-input 만으로는
+  # 수신자와 구분되지 않는다 — 같은 AutoCompleteUserInput 이라 라벨 매칭도 불안정하다.
+  - { action: fill, target: { css: ".p-dialog .approve .p-autocomplete-input", description: "승인자 — 언어심사 부서장(LGGSPLZ)" }, value: "LGGSPLZ" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "LGGSPLZ(부서장) 선택 — LGGSPLZ2(직원)와 갈라야 한다" } }
+  # 공문파일(Расмий документ) 필수 — 없으면 [등록]이 오류 없이 조용히 실패한다.
+  # InsertLetter.vue:874가 type='official'로 렌더 → id=officialfile (accept=.pdf, 단일).
+  # label[for=officialfile] 은 누르면 네이티브 파일 선택창이 열려 세션이 멈추므로 input 자체를 target 으로.
+  - { action: upload, target: { css: "#officialfile", description: "공문파일 input" }, file: "documentSample.pdf" }
   - { action: screenshot, name: "04b-d-lang-opinion-filled" }
-  # ★ 공문 파일이 없으면 여기서 오류 없이 조용히 실패한다
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일 미첨부 시 조용히 실패(seed-02 와 동일 벽)" } }
+  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일이 첨부되어야 통과한다(seed-02 에서 검증된 패턴)" } }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "04b-e-lang-opinion-registered" }
 
@@ -93,16 +103,21 @@ steps:
   - { action: screenshot, name: "04b-j-exntn-opinion-modal" }
 
   # ── 7) 필수값 — 수신자는 동일하게 소관위원회 부서장, 승인자만 전문심사 부서장
-  - { action: click, target: { css: ".p-dialog input[type=checkbox]", description: "문서 언어 체크박스(공식어)" } }
+  # 언어심사 쪽과 동일하게 .language_area 로 스코프. .p-dialog 첫 체크박스는 #docModeOfficial 이라
+  # 그걸 누르면 공문파일 칸이 사라져 뒤의 upload 가 실패한다.
+  - { action: click, target: { css: ".language_area .check_item input[type=checkbox]", description: "언어 체크박스 첫 번째(국가언어) — 필수(EA-09)" } }
   - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 전문심사 의견서" }
-  - { action: fill, target: { css: ".p-dialog .recipients .p-autocomplete-input, .p-dialog .recipient_area .p-autocomplete-input", description: "수신자 — 소관위원회 부서장" }, value: "cmtuser1" }
+  # 수신자 행은 [내부기관|정부기관] 탭 + autocomplete 구조다(AddRecipientComponent.vue:68-82).
+  # 기본이 내부기관이라 탭 전환 없이 바로 입력하면 된다.
+  - { action: fill, target: { css: ".p-dialog .recipient_area .p-autocomplete-input", description: "수신자(내부기관) — 소관위원회 부서장" }, value: "cmtuser1" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "cmtuser1(부서장) 선택" } }
-  - { action: fill, target: { label: "승인자", css: ".p-dialog .p-autocomplete-input", description: "승인자 — 전문심사 부서장(lgexntnuser)" }, value: "lgexntnuser" }
+  - { action: fill, target: { css: ".p-dialog .approve .p-autocomplete-input", description: "승인자 — 전문심사 부서장(lgexntnuser)" }, value: "lgexntnuser" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "lgexntnuser(부서장) 선택 — lgexntnuser2(직원)와 갈라야 한다" } }
+  - { action: upload, target: { css: "#officialfile", description: "공문파일 input — 언어심사와 동일" }, file: "documentSample.pdf" }
   - { action: screenshot, name: "04b-k-exntn-opinion-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일 미첨부 시 조용히 실패" } }
+  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일이 첨부되어야 통과한다" } }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "04b-l-exntn-opinion-registered" }
 

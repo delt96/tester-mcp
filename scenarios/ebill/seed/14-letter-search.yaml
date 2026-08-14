@@ -1,0 +1,49 @@
+id: seed-14-letter-search
+title: "[시딩] 문서 검색 — 편지함 통합검색 + 필터"
+locale: kr
+login_as: gduser
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-33`(문서 검색)의 자동화다. 선행 시나리오가 필요 없다** —
+  편지함에 문서가 하나라도 있으면 된다. `seed-11` 을 여러 번 돌려 `gduser` 기안함에
+  `E2E-SEED 결재문서` 가 쌓여 있으므로 그걸 검색한다.
+
+  ★ 검색 UI 는 `LetterListComponent.vue` 하나로 **전 편지함 공통**이다(205-220행).
+  그래서 산출물이 나열한 6개 함(결재대기/이행대기/수신/처리완료/기안/반려)을 다 돌 필요가 없다 —
+  기안함 하나로 컴포넌트 동작을 확인하고, 다른 함은 같은 컴포넌트라는 사실로 갈음한다.
+  ⚠ 이건 **추론이지 실측이 아니다.** 함마다 searchType prop 이 다를 수 있으니
+  특정 함에서만 나는 문제는 이 시나리오로 못 잡는다.
+
+      .search_area .search_form
+        ├ button > i.ico_search        검색 실행 (integratedSearch)
+        ├ input.search_input           검색어. placeholder 는 t('10053')='조회'
+        └ button > i.pi-filter-fill    필터 패널 토글 (set_isSearchFilter)
+      .search_results .search_result   적용된 검색 조건 칩(삭제 버튼 포함)
+
+  ★ 검색어가 비면 `integratedSearch` 가 **아무 것도 하지 않고 리턴**한다(34행).
+  빈 검색으로 전체 조회가 되는 구조가 아니다.
+
+  ⚠ 조회 전용이라 **비가역 동작 없음.** 반복 실행해도 안전하다.
+on_failure: continue
+steps:
+
+  # ── 1) 기안함 진입
+  - { action: navigate, url: "/main/letter/draftsInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "기안함 목록(3분할 좌측)" } }
+  - { action: screenshot, name: "14-a-inbox" }
+
+  # ── 2) 통합검색
+  - { action: fill, target: { css: ".search_area .search_form input.search_input", description: "검색어 입력칸. placeholder 가 '조회'(10053)라 조회 버튼과 헷갈리기 쉽다" }, value: "E2E-SEED" }
+  - { action: click, target: { css: ".search_area .search_form button:first-of-type", description: "검색 실행 = 폼의 첫 버튼. :has(i.ico_search) 도 통하지만 executor 가 좌표를 잘못 잡은 사례가 있어(p4, 2026-08-14) 위치 기반이 안전하다" } }
+  - { action: wait_for, target: { css: ".search_results .search_result", description: "적용된 검색 조건 칩 — 검색이 실제로 걸렸다는 증거" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED", description: "필터된 목록에 검색어가 포함된 문서만 남아야 한다" } }
+  - { action: screenshot, name: "14-b-searched" }
+
+  # ── 3) 필터 패널
+  - { action: click, target: { css: ".search_area .search_form button:has(i.pi-filter-fill), .search_area .search_form button:has(i.pi-filter)", description: "필터 토글. 열림/닫힘에 따라 클래스가 pi-filter-fill ↔ pi-filter 로 바뀌므로 둘 다 잡는다" } }
+  - { action: screenshot, name: "14-c-filter-open" }
+
+  # ── 4) 검색 조건 해제 — 칩의 삭제 버튼
+  - { action: click, target: { css: ".search_results .search_result button", description: "칩 삭제(deleteSearchItem) → resetAndSearch 로 재조회" } }
+  - { action: assert_not_visible, target: { css: ".search_results .search_result", description: "칩이 사라지면 검색 조건이 해제된 것" } }
+  - { action: screenshot, name: "14-d-cleared" }

@@ -10,11 +10,21 @@ precondition: >
     MtngFromMapper.xml:  (bp_df_id='1' AND current_step_id IN ('1500'))
                       OR (bp_df_id='2' AND current_step_id IN ('1400'))
 
-  1500으로 올리려면 **위원회 의견서를 등록하고 부서장이 결재**해야 한다(seed-04 참조).
-  심사보고서 등록만으로는 올라가지 않는다.
+  1500으로 올리려면 **위원회 의견서를 등록하고 부서장이 결재**해야 한다 → `seed-04c`.
+  심사보고서 등록만으로는 올라가지 않는다. 언어·전문심사 의견서(seed-04b)도 마찬가지로
+  1400 → 1400 self-loop 라 전진시키지 못한다(`ebs_bp_step_transition` 2026-08-12 확인).
 
   이 시나리오는 **파일 업로드가 전혀 필요 없어** tester-mcp만으로 끝까지 돌릴 수 있다.
   의견서·톡돔·법률등록·정부이송 공문은 공문파일이 필수라 자동화가 불가능하다(README 참조).
+
+  ⚠ 2026-08-12 1차 실행은 PASS 로 보고됐으나 **엉뚱한 의안(6-6979/26 CLAUDE_E2E_20260812)을
+  부의했다.** 마커가 `E2E` 로 느슨해 다른 세션이 만든 `CLAUDE_E2E_*` 에도 걸렸고, 더 결정적으로
+  assert 는 마커로 하면서 실제 클릭은 `tr:first-child` 로 해 **단언한 행과 조작한 행이 달랐다.**
+  그래서 이 시나리오는 목록을 반드시 **검색으로 먼저 좁힌 뒤** 첫 행을 집는다. 마커도 `E2E-SEED`
+  로 좁혔다. `:first-child` 를 쓰려면 그 앞에 필터가 있어야 한다 — 이 파일의 핵심 규칙이다.
+
+  ⚠ 회기/차수는 유니크해야 한다. 997·998·999 는 이미 사용됐다(2026-08-12 `ebs_mtng` 확인).
+  재실행하려면 아래 값을 안 쓴 값으로 바꿔야 한다.
 
   산출물: 의안이 1500 → 1700(본회의심사) → 본회의검증 상태까지 전진한다.
 on_failure: stop
@@ -25,16 +35,24 @@ steps:
   - { action: wait_for, target: { css: "input[placeholder='회기']", description: "본회의부의예정 등록 폼" } }
   - { action: screenshot, name: "05a-plenary-create-form" }
   - { action: fill, target: { css: "input[placeholder='회기']", description: "회기(필수)" }, value: "7" }
-  - { action: fill, target: { css: "input[placeholder='차수']", description: "차수(필수)" }, value: "997" }
+  - { action: fill, target: { css: "input[placeholder='차수']", description: "차수(필수)" }, value: "996" }
 
   # ── 2) 안건추가 — 1500 상태 의안만 후보로 뜬다
   - { action: click, target: { css: "a, button", text: "안건추가", description: "[안건추가] → 안건 등록하기 모달" } }
   - { action: wait_for, target: { css: ".p-dialog .p-datatable-tbody tr", description: "안건 후보 그리드" } }
   - { action: screenshot, name: "05b-agenda-candidates" }
-  - { action: assert_visible, target: { css: ".p-dialog", text: "E2E", description: "E2E 마커 의안이 후보에 있어야 한다. 없으면 아직 1500이 아니다" } }
-  - { action: click, target: { css: ".p-dialog .p-datatable-tbody tr:first-child td:first-child .p-checkbox-box, .p-dialog .p-datatable-tbody tr:first-child input[type=checkbox]", description: "첫 행 체크" } }
+  # ★ 먼저 의안명으로 좁힌다. 이걸 빼면 아래 tr:first-child 가 남의 의안을 집는다(2026-08-12 실사고).
+  #   검색칸 라벨/placeholder 는 i18n 이라 텍스트로 잡으면 안 되고 위치로 잡는다
+  #   (mtngAgendaModal.vue:92-105 — input_item 순서: 의안종류 select / 의안번호 / 의안명).
+  - { action: fill, target: { css: ".p-dialog .board_search .form_row .input_item:nth-child(3) input.form_control", description: "의안명(searchBillNm) 검색칸" }, value: "E2E-SEED" }
+  - { action: click, target: { css: ".p-dialog .search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
+  - { action: wait_for, target: { css: ".p-dialog .p-datatable-tbody tr", description: "필터된 후보 그리드" } }
+  - { action: screenshot, name: "05b2-agenda-filtered" }
+  - { action: assert_visible, target: { css: ".p-dialog .p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 여야 한다 — 검색이 먹었는지 확인하고 나서 체크한다" } }
+  - { action: click, target: { css: ".p-dialog .p-datatable-tbody tr:first-child td:first-child .p-checkbox-box, .p-dialog .p-datatable-tbody tr:first-child input[type=checkbox]", description: "첫 행 체크 — 위 assert 로 E2E-SEED 임이 확인된 행" } }
   - { action: click, target: { css: ".p-dialog button", text: "확인", description: "[확인] — 모달 하단. 상단의 [안건 입력]은 자유안건 직접입력이라 다른 기능이다" } }
   - { action: wait_for, target: { css: ".p-datatable-tbody tr", description: "안건 그리드에 행이 추가됨" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody", text: "E2E-SEED", description: "추가된 안건이 E2E-SEED 인지 확인" } }
   - { action: screenshot, name: "05c-agenda-added" }
 
   # ── 3) 저장 → ConfirmPopup
@@ -46,7 +64,13 @@ steps:
 
   # ── 4) 상세 진입 → [안건부의하기]  ← 이게 1700 전이 트리거(PROPOSE_TO_PLENARY)
   #     저장만으로는 부의여부가 '부의예정'에 머문다
-  - { action: double_click, target: { ref: datatable_row, text: "E2E", description: "방금 만든 회의 행 더블클릭 → 상세(update?mtngId=…)" } }
+  # 목록도 회기/차수로 먼저 좁힌다 — 같은 날 만든 다른 회의가 섞이면 엉뚱한 걸 연다.
+  # mainMtngList.vue:85-107 input_item 순서: 개회일자 / 회기 / 차수.
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "회기 검색칸" }, value: "7" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "차수 검색칸" }, value: "996" }
+  - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
+  - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "방금 만든 회의 행 더블클릭 → 상세(update?mtngId=…)" } }
   - { action: wait_for, target: { css: "a, button", text: "안건부의하기", description: "[안건부의하기] 버튼 — 상세 진입 신호" } }
   - { action: assert_visible, target: { css: "body", text: "부의예정", description: "부의 전 상태" } }
   - { action: screenshot, name: "05e-before-submit" }
@@ -60,10 +84,28 @@ steps:
   - { action: navigate, url: "/main/mtng/mainMtngResult" }
   - { action: wait_for, target: { ref: datatable, description: "본회의결과입력 목록" } }
   - { action: screenshot, name: "05g-result-list" }
+  # ★ 여기도 필터 먼저. 이 화면은 결과 select 와 체크박스를 tr:first-child 로 집으므로
+  #   좁히지 않으면 남의 의안에 '가결'을 찍고 검증요청까지 보낸다(2026-08-12 실사고 지점).
+  #   mainMtngResultList.vue:216-226 — form_row 2번째의 input_item 순서: 의안번호 / 의안명.
+  - { action: fill, target: { css: ".board_search .form_row:nth-child(2) .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
+  - { action: wait_for, target: { ref: datatable, description: "필터된 결과입력 목록" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 조작한다" } }
+  - { action: screenshot, name: "05g2-result-filtered" }
   # 결과 셀렉트는 네이티브 select 다. 값: PL01=가결 / PL02=부결 / PL03=불성립
-  - { action: assert_visible, target: { ref: datatable_row, text: "E2E", description: "부의된 의안이 결과입력 목록에 나타나야 한다(안건상태 '본회의')" } }
-  - { action: click, target: { css: ".p-datatable-tbody tr:first-child select", description: "첫 행 결과 셀렉트" } }
-  - { action: click, target: { css: ".p-datatable-tbody tr:first-child select option[value='PL01']", description: "가결(PL01)" } }
+  # TODO(본회의결과입력 화면 개편 예정 — 2026-08-12 사용자 확인): 개편되면 아래 confirm 승낙
+  #   3스텝이 통째로 무의미해지거나 셀렉터가 깨진다. 개편 후 이 블록을 새 화면 기준으로 다시 짤 것.
+  #   현재 rslt_cd 저장 여부는 검증 대상에서 제외하기로 했으므로, 여기서 실패해도 단계 전이만
+  #   확인되면 시나리오 목적(1500→1700→1900)은 달성된 것으로 본다.
+  # ⚠ select 의 @change 가 fnConfirmSaveResult → confirm.require 로 **ConfirmPopup 을 띄운다**
+  #   (mainMtngResultList.vue:281, 77-83). 이걸 승낙해야 /bill/mtng/hallMtng/result 가 호출된다.
+  #   승낙 없이 다음 스텝으로 넘어가면 팝업이 그냥 닫히고 rslt_cd 가 **빈 채로 남는데**,
+  #   본회의검증요청은 rslt_cd 와 무관하게 단계를 전이시켜 시나리오는 통과해 버린다
+  #   (2026-08-12 실측: 13903 PLENARY_REVIEW 완료됐는데 ebs_mtng_agenda.rslt_cd 는 NULL).
+  - { action: fill, target: { css: ".p-datatable-tbody tr:first-child select.form_control", description: "첫 행 결과 셀렉트 — 네이티브 select 라 fill 로 값을 넣는다" }, value: "PL01" }
+  - { action: wait_for, target: { ref: confirm_popup, description: "결과 저장 확인 팝업(10155)" } }
+  - { action: click, target: { ref: confirm_accept, description: "Yes → fnSaveResult 실행" } }
+  - { action: assert_value, target: { css: ".p-datatable-tbody tr:first-child select.form_control", description: "저장 후에도 가결이 유지되는지 — 값이 빈 문자열로 돌아가면 저장 실패다" }, value: "PL01" }
   - { action: click, target: { css: ".p-datatable-tbody tr:first-child input[type=checkbox], .p-datatable-tbody tr:first-child .p-checkbox-box", description: "행 선택 체크박스 — 검증요청은 체크된 행만 처리한다" } }
   - { action: screenshot, name: "05h-result-selected" }
   - { action: click, target: { css: "a, button", text: "본회의검증요청", description: "[본회의검증요청]" } }
@@ -73,4 +115,4 @@ steps:
   # ── 6) 결과 확인 — 안건상태가 '본회의검증'으로 바뀐다
   - { action: wait_for, target: { ref: datatable, description: "목록 갱신" } }
   - { action: screenshot, name: "05i-verification-requested" }
-  - { action: assert_visible, target: { css: "body", text: "본회의검증", description: "안건상태 전환 확인 = step 1900(LEGAL_ACTION) task 생성됨" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "본회의검증", description: "안건상태 전환 확인 = step 1900(LEGAL_ACTION) task 생성됨. 필터가 걸린 상태라 이 행은 E2E-SEED 다" } }

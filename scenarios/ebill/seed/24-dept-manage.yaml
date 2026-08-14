@@ -1,0 +1,52 @@
+id: seed-24-dept-manage
+title: "[조회] 부서관리 — 부서 검색·선택 → 상세 → [부서원] 목록"
+locale: kr
+login_as: tester
+tags: [seed, admin, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-09`(부서관리) r841~r844 를 덮는다.**
+  시스템관리자(`admin`) 계정으로 `/main/system/dept` 에서 확인한다.
+
+  ★ **r845 '권한코드 선택 → 부서 권한 저장' 은 지금 화면에서 수행할 수 없다.**
+    부서 권한 select 는 `DeptList.vue` 템플릿에서 **주석 처리돼 있다**(150-170행 부근,
+    `<select @change="changeAuth" v-model="detail.deptCd">` 블록 전체가 `<!-- -->` 안에 있음).
+    `changeAuth()` 함수와 `PUT /hrmis/dept/deptCd` 호출부는 스크립트에 남아 있으나 **호출할 UI 가 없다.**
+    → 산출물 절차 r845 는 **현행 화면과 맞지 않는다.**
+    ※ 덕분에 이 시나리오는 **비파괴**가 됐다 — 저장 동작이 하나도 없다.
+
+  ★ 화면 구조:
+    · 좌측 — 부서명 검색(`.board_search`) + **PrimeVue Listbox** 부서 목록
+      ⚠ 표시 라벨이 언어에 따라 다르다(`lang == 'lng_type_2' ? title : titleKy`).
+        **라벨 텍스트에 의존하지 말고 첫 항목을 위치로 집는다.**
+    · 우측 — 부서 상세 표(부서코드 `detail.id` / 부서명 `detail.shortTitle`)
+      ⚠ 상세는 부서를 고른 뒤 `GET /hrmis/dept/{id}` 로 채워진다 → **`wait_for` 로 기다린다.**
+    · [부서원](10365) 버튼 → `DeptUserModal`(PrimeVue Dialog)
+      → `GET /hrmis/users?departmentId=` 로 이름·이메일·직위를 DataTable 로 표출
+
+  ⚠ **부서·부서원 데이터는 HRMIS 연동분**이라 우리가 만들 수 없다. 목록이 비면 데이터 문제이지
+    화면 결함이 아니다 — 다른 부서로 바꿔 재확인할 것.
+
+  ⚠ 비파괴 — 조회만 한다.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/system/dept" }
+  - { action: wait_for, target: { css: ".department_wrap", description: "부서관리 화면 로드" } }
+  - { action: wait_for, target: { css: ".p-listbox-option", description: "부서 목록(Listbox) — onMounted 의 GET /hrmis/dept 응답 뒤에 채워진다" } }
+  - { action: screenshot, name: "24-a-dept-list" }
+
+  # ── 부서 선택 (r843)
+  - { action: click, target: { css: ".p-listbox-option", description: "첫 부서 선택 → watch 가 fnDeptDetail() 호출" } }
+  # 상세는 API 응답 뒤에 채워지므로 assert 가 아니라 wait_for 로 잡는다
+  - { action: wait_for, target: { css: ".tab_cont .v_table table tbody tr", description: "★ 부서 상세 표 렌더(부서코드·부서명)" } }
+  - { action: wait_for, target: { css: "button.v_btn.btn_secondary.btn_sm", description: "★ [부서원](10365) 버튼 — `v-if=\"selectDept != null\"` 이라 부서를 골라야 나타난다" } }
+  - { action: screenshot, name: "24-b-dept-detail" }
+
+  # ── 부서원 목록 (r844)
+  - { action: click, target: { css: "button.v_btn.btn_secondary.btn_sm", description: "[부서원] → DeptUserModal 오픈" } }
+  - { action: wait_for, target: { css: ".p-dialog .p-datatable", description: "★ 부서원 DataTable(GET /hrmis/users?departmentId=)" } }
+  - { action: assert_visible, target: { css: ".p-dialog .total_num", description: "총 건수(10104) 표시 — 0건이어도 이 영역은 뜬다" } }
+  - { action: screenshot, name: "24-c-dept-users" }
+
+  # 닫는다
+  - { action: click, target: { css: ".p-dialog .p-dialog-close-button", description: "모달 닫기 — @hide 로 dialog=false" } }
+  - { action: assert_not_visible, target: { css: ".p-dialog .p-datatable", description: "모달이 닫혔다" } }

@@ -1,0 +1,50 @@
+id: seed-18-inbox-receive-dmt03
+title: "[시딩] 문서 접수(서명용) — 수신함 → 결재 (PIN 없는 환경)"
+locale: kr
+login_as: cmthead
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-31`(문서 접수-서명용)의 자동화다.**
+  `seed-11c`(DMT03 문서 생성) → `seed-12c`(결재) 를 거친 **서명용 문서가 수신함에 있어야** 한다.
+
+  ★ **서명용(DMT03)은 수신함에서 [결재]·[반려] 가 나온다**(Inbox.vue:552-575).
+  답변용(DMT01)의 [주 이행자 추가] 나 확인용(DMT02)의 [종료하기] 와 갈린다.
+  → 유형별 버튼 분기 3종(seed-16 답변용 / seed-17 확인용 / 이 파일 서명용)이 짝을 이룬다.
+
+      DMT01 답변용 → [주 이행자 추가](10678) · [반려](10269)
+      DMT02 확인용 → [종료하기](10497)
+      DMT03 서명용 → **[결재](10268) · [반려](10269)**
+
+  ★ **PIN 은 이 환경에서 뜨지 않는다** — `VITE_ENABLE_SIGN=false`(.env.local/staging/production).
+  운영에서는 켜져 있어 [결재] 다음에 PIN 입력이 들어간다(사용자 확인 2026-08-13).
+  → 산출물 `TS-EBS-31` 의 'PIN 코드 입력' 단계는 **운영 기준으로는 맞고, 이 환경에서는 생략**된다.
+  즉 이 시나리오가 PIN 단계를 안 밟는 것은 결함이 아니다.
+
+  ⚠ **비가역**: 결재하면 수신 문서가 처리 완료로 넘어간다.
+
+  산출물: `eas_received_info.rcv_status` 가 서명/처리 상태로 바뀌고 수신함 목록에서 빠진다.
+on_failure: stop
+steps:
+
+  # ── 1) 수신함에서 서명용 문서 열기
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 서명용", description: "결재를 마친 DMT03 문서가 있어야 한다. 없으면 seed-11c → seed-12c 를 먼저 돌릴 것" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서 서명용", description: "단언한 그 문서를 연다" } }
+  - { action: wait_for, target: { css: ".right_top_area", description: "상세 우측 액션 영역 로드" } }
+  - { action: screenshot, name: "18-a-detail" }
+
+  # ── 2) 유형별 버튼 분기 확인 — 이 케이스의 핵심
+  - { action: assert_visible, target: { css: ".right_top_area button.v_btn.btn_outline_neutral.btn_md", text: "결재", description: "DMT03 서명용은 [결재]가 나온다" } }
+  - { action: assert_visible, target: { css: ".right_top_area button.v_btn.btn_outline_error.btn_md", text: "반려", description: "서명용에는 [반려]도 함께 나온다 — 확인용(DMT02)과 갈리는 지점" } }
+
+  # ── 3) 결재
+  # ⚠ PIN 모달이 뜨지 않는 환경이라 클릭 한 번으로 끝난다. 운영에서는 여기서 PIN 입력이 추가된다.
+  - { action: click, target: { css: ".right_top_area button.v_btn.btn_outline_neutral.btn_md", text: "결재", description: "[결재](10268) → fnApproveAction. 전자서명 비활성이라 PIN 모달 없음" } }
+  - { action: screenshot, name: "18-b-approved" }
+
+  # ── 4) 수신함에서 빠졌는지
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: sidebar, description: "화면 재렌더" } }
+  - { action: assert_not_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 서명용", description: "처리한 문서는 수신함에서 빠져야 한다" } }
+  - { action: screenshot, name: "18-c-inbox-cleared" }

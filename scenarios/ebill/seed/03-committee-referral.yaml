@@ -28,9 +28,15 @@ steps:
 
   # ── 2) 소관위원회 지정 (필수)
   #     네이티브 select 가 아니라 PrimeVue Dropdown 이므로 form_input 이 아닌 click 으로 연다
-  - { action: click, target: { css: ".p-select, .p-dropdown", description: "소관위원회 드롭다운(필수*) — 라벨 '소관위원회' 우측 첫 드롭다운" } }
-  - { action: wait_for, target: { css: ".p-select-overlay, .p-dropdown-panel", description: "위원회 목록 오버레이" } }
-  - { action: click, target: { css: ".p-select-option, .p-dropdown-item", text: "위원회1", description: "위원회1(Комитет по международным делам…) 선택 — cmtuser1/cmtuser10 이 소속된 위원회라 이후 단계를 이어갈 수 있다" } }
+  #   PrimeVue 4.2 Select — 루트 .p-select, 오버레이는 body 직속 .p-select-overlay, 옵션 .p-select-option.
+  #   .p-dropdown-* 은 PrimeVue 3 잔재라 여기선 잡히지 않는다. 관련위원회는 MultiSelect(.p-multiselect)라
+  #   .p-select 에 걸리지 않으므로 첫 .p-select 가 소관위원회다(billMngCmtDtl.vue:427,436).
+  #   ⚠ 트리거 클릭은 열기/닫기 토글이다. 오버레이만 기다리면 옵션이 아직 안 그려진 채로 다음 스텝이
+  #     돌아 클릭이 헛돌고, 그 클릭이 다시 오버레이를 닫아 재시도가 계속 실패한다(2026-08-12 실측).
+  #     그래서 오버레이가 아니라 **옵션이 렌더될 때까지** 기다린다.
+  - { action: click, target: { css: ".p-select", description: "소관위원회 드롭다운(필수*)" } }
+  - { action: wait_for, target: { css: ".p-select-overlay .p-select-option", description: "위원회 옵션이 실제로 그려질 때까지" } }
+  - { action: click, target: { css: ".p-select-overlay .p-select-option", role: "option", text: "위원회1", description: "위원회1 선택. 옵션 텍스트는 'Комитет по международным делам… (위원회1)1  11111' 이라 한글 태그로 부분 매칭된다(kgst.com_cmt 실측). cmtuser1/cmtuser10 이 소속된 위원회라 이후 단계를 이어갈 수 있다" } }
   - { action: screenshot, name: "03c-committee-selected" }
 
   # ── 3) [위원회 회부 요청] → 이행요청 모달 (수행자 자동 채움 확인)

@@ -1,0 +1,78 @@
+id: seed-07-lawreg
+title: "[시딩] 정부이송작업 생성 — 법률 등록(법률명 kg/ru + 법률파일 kg/ru)"
+locale: kr
+login_as: lgactstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  의안이 **step 1900(법적행위)** 이고 `bill_kind='1'` 이어야 한다.
+  `btnGvrnTrsf = curBillStep=='LEGAL_ACTION' && billKind=='1'` (billMngDtl.vue:89) 이라
+  kind 가 1이 아니면 [정부이송작업] 자체가 안 뜨고 [검토완료](10172) 경로로 빠진다.
+  6-6977/26 은 kind='1' 임을 2026-08-12 확인했다.
+
+  ★ [정부이송작업](11072)은 **분기 버튼**이다(billMngDtl.vue:138 openGvrnWork):
+    /bill/gvrnTrsfWork/detail/{billId} 를 먼저 조회해서
+      work 있음 → gvrnTrsfWork 상세로 **이동**
+      work 없음 → **법률 등록 모달(LawRegModal)** 을 띄운다
+  즉 같은 버튼이 처음엔 모달을 열고 두 번째부터는 화면을 넘긴다. 이 시나리오는 그 둘을
+  모두 밟아 "모달로 만들고 → 다시 눌러 상세로 넘어간다"를 검증한다.
+
+  정부이송 전체는 5단계다: **법률 등록 → 서명자 지정 → 서명 → 공문 작성 → 공문 결재(자동 이송)**.
+  이 시나리오는 1단계까지만 한다. 3200 전이는 마지막 공문 결재에서 일어난다
+  (BillMngServiceImpl:498 `TRANSFER_TO_GOVERNMENT -> autoSendIfReady`).
+
+  파일 입력은 `input[type=file]` 의 id 가 `inputFile{컴포넌트uid}` 로 **런타임 채번**이라
+  (billFileInput.vue:175) id 로 못 잡는다. 모달 표 4행의 위치로 잡는다:
+    1행 법률명(kg) / 2행 법률명(ru) / 3행 법률파일(kg) / 4행 법률파일(ru)
+  각 파일 행은 `useBillFileInputs` 가 (fileKindCd, lngType) 조합마다 빈 행을 미리 만들어 두므로
+  [추가] 버튼을 누르지 않아도 input 이 이미 렌더돼 있다(useBillFileInputs.js:29-46).
+
+  ⚠ 언어별로 **정확히 1개씩** 붙어야 한다(lawRegModal.vue:61-68). 모자라면 저장이 안 되고
+  경고 토스트(11100 '언어별 법률 파일을 각각 1개씩 첨부해주세요')만 뜬다.
+  `reReg=false` 로 열리므로 저장 시 확인 팝업은 **없다**(lawRegModal.vue:74-88).
+
+  산출물: 정부이송작업(work)이 생성되고 gvrnTrsfWork 상세에 진입할 수 있게 된다.
+on_failure: stop
+steps:
+
+  # ── 1) 법적행위 상세로 (seed-06 과 동일 경로)
+  - { action: navigate, url: "/main/billMng/legalActMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "본회의검증(법적행위) 목록" } }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
+  - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 법적행위 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
+  - { action: screenshot, name: "07-a-detail" }
+
+  # ── 2) [정부이송작업] → work 가 없으므로 법률 등록 모달이 뜬다
+  - { action: click, target: { css: ".btn_group_fixed a.v_btn.btn_primary", text: "정부이송작업", description: "[정부이송작업](11072). work 미존재 → LawRegModal" } }
+  - { action: wait_for, target: { css: ".p-dialog .popup_tit", text: "법률 등록", description: "법률 등록 모달(11075). '법률 재등록'(11076)이 뜬다면 work 가 이미 있는 것" } }
+  - { action: screenshot, name: "07-b-lawreg-modal" }
+
+  # ── 3) 필수 4개 — 표 행 위치로 잡는다(라벨은 i18n 이라 텍스트로 잡지 않는다)
+  - { action: fill, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(1) input.form_control.full", description: "법률 명칭(키르기스어)(11081) 필수*" }, value: "E2E-SEED мыйзам аталышы" }
+  - { action: fill, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(2) input.form_control.full", description: "법률 명칭(러시아어)(11082) 필수*" }, value: "E2E-SEED наименование закона" }
+  # file input 은 클릭하면 네이티브 선택창이 열려 세션이 멈춘다 — input 자체를 target 으로 준다.
+  # 앞에 놓인 label.v_btn.btn_file(업로드 아이콘)을 누르면 안 된다.
+  - { action: upload, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(3) input[type=file].form_file", description: "법률 파일(키르기스어)(11083) 필수*" }, file: "documentSample.pdf" }
+  - { action: upload, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(4) input[type=file].form_file", description: "법률 파일(러시아어)(11084) 필수*" }, file: "documentSample.pdf" }
+  - { action: screenshot, name: "07-c-lawreg-filled" }
+
+  # ── 4) 저장 — reReg=false 라 확인 팝업 없이 바로 POST 된다
+  # [저장](10174)은 btn_outline_primary, [취소](10163)가 btn_primary 다 — 색이 반대라 헷갈린다.
+  - { action: click, target: { css: ".p-dialog .popup_footer button[type=submit].v_btn.btn_outline_primary", text: "저장", description: "[저장](10174). 파일이 언어별 1개씩 아니면 경고 토스트(11100)만 뜨고 안 닫힌다" } }
+  - { action: wait_for, target: { ref: datatable, description: "저장 후 목록으로 복귀(@saved=fnGoList)" } }
+  - { action: screenshot, name: "07-d-saved" }
+
+  # ── 5) 결과 확인 — 같은 버튼이 이번엔 상세로 넘어가야 한다(work 가 생겼으므로)
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
+  - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "다시 법적행위 상세로" } }
+  - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
+  - { action: click, target: { css: ".btn_group_fixed a.v_btn.btn_primary", text: "정부이송작업", description: "[정부이송작업] 재클릭 — 이번엔 work 가 있으니 gvrnTrsfWork 상세로 이동해야 한다" } }
+  - { action: wait_for, target: { css: ".gtw-billinfo_toggle", description: "정부이송작업 상세 진입 신호(billMngDtl.vue:166)" } }
+  - { action: screenshot, name: "07-e-gvrntrsf-detail" }
+  - { action: assert_visible, target: { css: ".p-dialog, body", text: "E2E-SEED мыйзам аталышы", description: "등록한 법률명(kg)이 상세에 보인다 = 저장 성공의 직접 증거" } }
+  - { action: assert_visible, target: { css: "button.v_btn", text: "서명자 지정", description: "[서명자 지정/변경](11078) — 다음 시나리오(서명 → 공문 → 3200)의 진입점" } }

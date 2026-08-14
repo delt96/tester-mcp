@@ -1,0 +1,98 @@
+id: seed-25-auth-menu-manage
+title: "[파괴적] 권한별메뉴관리 — 권한 등록 → 수정 → 메뉴 체크 → 저장"
+locale: ru
+login_as: tester
+tags: [seed, admin, destructive]
+precondition: >
+  ★ **산출물 `TS-EBS-17`(권한별메뉴관리) r906~r912 를 덮는다.**
+  시스템관리자(`admin`)로 `/main/system/auth/authMenu` 에서 확인한다.
+
+  ⚠⚠ **파괴적이다. 실행 전에 원복 스크립트가 준비돼 있어야 한다.**
+    `scenarios/ebill/_rollback/` (gitignore 됨):
+      1. `20260814_com_code_1043_restore.sql`   — 권한코드 16건 (com_code_detail grp_code='1043')
+      2. `20260814_com_dept_menu_restore.sql`   — 부서→메뉴 매핑 1,232행 (com_dept_menu)
+    **복구 순서는 1 → 2** 다(권한코드와 메뉴매핑이 짝이다).
+    ⚠ 두 스크립트는 내부에 `BEGIN`/`COMMIT` 이 있어 **바깥 트랜잭션으로 감싸도 격리되지 않는다.**
+      `psql -f` 로 그대로 실행할 것.
+
+  ★ **기존 권한은 건드리지 않는다.** 새 권한을 하나 만들어 그 위에서만 등록·수정·메뉴저장을 한다.
+    기존 부서의 메뉴 노출이 바뀌면 **다른 E2E 시나리오가 "메뉴가 없다"로 조용히 깨진다.**
+
+  ★ 화면 구조:
+    · 좌측 — 권한 검색 + `[등록](10746)`·`[수정](10744)`·`[삭제](10745)` 버튼 3개(이 순서)
+      + **PrimeVue Listbox** 권한 목록(`com_code_detail` grp_code=1043, 현재 16건)
+    · 우측 — `[저장](10174)`·`[전체메뉴선택](10426)` + **TreeTable** 메뉴 트리(체크박스)
+    · 등록 모달(`.auth_modal`) 필수값 3개: **권한명 KG · 권한명 RU · 상위 권한(MultiSelect)**
+      권한 ID 는 상위 권한 접두어 + 자동채번이라 **입력칸이 아니다**(disabled).
+      ⚠ 저장 시 `fnInheritMenus()` 가 **상위 권한의 메뉴를 새 권한으로 복사**한다
+        → `com_dept_menu` 에 행이 추가된다. 이것도 원복 대상이다.
+
+  ★ **r905(복합 권한 `-` 분해 판정)는 이 시나리오가 덮지 않는다.**
+    복합 권한 계정으로 로그인해 메뉴 노출을 보는 별도 절차이고, 권한 매핑을 바꿔야 재현된다.
+
+  ⚠ 저장은 `confirm.require` 확인 팝업(10155)을 거친다.
+
+  ★★ **`locale: ru` 여야 한다 — 한국어 화면에서는 새로 만든 권한의 이름이 빈 칸으로 보인다.**
+    등록 모달은 **KG(`codeNm1`)·RU(`codeNm2`) 두 개만 입력받고 `codeNm3`(한국어)는 `null` 로 저장**하고,
+    목록 갱신(`fnAfterSave`)은 한국어 화면에서 `codeNm3` 를 라벨로 쓴다 ⇒ 빈 항목이 된다.
+    **이건 결함이 아니다** — 운영에는 한국어가 없어 한국어 입력칸을 의도적으로 주석 처리해 둔 것이고,
+    테스트 서버에만 한국어가 살아 있어 드러난다(사용자 확인 2026-08-14).
+    2026-08-14 `locale: kr` 로 실행했다가 이것 때문에 FAIL 했다.
+    ⚠ **저장 실패는 조용하다.** `fnSave` 의 `.catch(({message}) => console.log(message))` 가 오류를 삼키고
+      토스트도 띄우지 않는다 → "모달은 닫혔는데 목록에 없다" 를 보면 **DB 부터 확인할 것.**
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/system/auth/authMenu" }
+  - { action: wait_for, target: { css: ".authority_wrap", description: "권한별메뉴관리 화면 로드" } }
+  - { action: wait_for, target: { css: ".auth_code_listbox .p-listbox-option", description: "권한 목록(Listbox) — com_code 1043" } }
+  - { action: screenshot, name: "25-a-auth-list" }
+
+  # ── r907 [등록] → 모달
+  - { action: click, target: { css: ".auth_list_header .btn_group button:nth-of-type(1)", description: "[등록](10746) — 버튼 3개 중 첫째. 둘째가 [수정], 셋째가 [삭제]다" } }
+  - { action: wait_for, target: { css: ".auth_modal .auth_form", description: "★ r907 — 권한 등록 모달 표출(예전 화면 내 입력에서 모달로 바뀐 부분)" } }
+  - { action: screenshot, name: "25-b-new-modal" }
+
+  # ── r908 모달 입력 → 저장
+  # ⚠ `.lang_row` 2개가 같은 field 안에 순서 고정으로 있다(1=KG, 2=RU).
+  - { action: click, target: { css: ".auth_modal .lang_row:nth-of-type(1) input.form_control", description: "권한명 KG 포커스" } }
+  - { action: fill, target: { css: ".auth_modal .lang_row:nth-of-type(1) input.form_control", description: "권한명(KG) 필수*" }, value: "E2E-TEST-AUTH" }
+  - { action: assert_value, target: { css: ".auth_modal .lang_row:nth-of-type(1) input.form_control" }, value: "E2E-TEST-AUTH" }
+  - { action: click, target: { css: ".auth_modal .lang_row:nth-of-type(2) input.form_control", description: "권한명 RU 포커스" } }
+  - { action: fill, target: { css: ".auth_modal .lang_row:nth-of-type(2) input.form_control", description: "권한명(RU) 필수*" }, value: "E2E-TEST-AUTH" }
+  - { action: assert_value, target: { css: ".auth_modal .lang_row:nth-of-type(2) input.form_control" }, value: "E2E-TEST-AUTH" }
+  # 상위 권한 — MultiSelect. 비우면 t10460 으로 저장이 막힌다.
+  - { action: click, target: { css: ".auth_modal .auth_multiselect", description: "상위 권한(10607) MultiSelect 열기 — 필수*" } }
+  - { action: wait_for, target: { css: ".p-multiselect-overlay .p-multiselect-option", description: "상위 권한 후보 목록(body 로 텔레포트된다)" } }
+  - { action: click, target: { css: ".p-multiselect-overlay .p-multiselect-option", description: "첫 상위 권한 선택 → onUpperChange 가 권한 ID 를 자동 채번한다" } }
+  - { action: click, target: { css: ".auth_modal .popup_tit", description: "모달 제목 클릭으로 오버레이 닫기 — 저장 버튼이 가려지는 것을 막는다" } }
+  - { action: screenshot, name: "25-c-new-filled" }
+  - { action: click, target: { css: ".auth_modal .popup_footer button.btn_primary", description: "[저장] → POST /admin/comCode + fnInheritMenus()" } }
+  - { action: assert_not_visible, target: { css: ".auth_modal .auth_form", description: "★ r908 — 저장되면 모달이 닫힌다" } }
+  - { action: wait_for, target: { css: ".auth_code_listbox .p-listbox-option", text: "E2E-TEST-AUTH", description: "★ 새 권한이 목록에 나타남" } }
+  - { action: screenshot, name: "25-d-created" }
+
+  # ── r909 등록된 항목 선택 → [수정]
+  - { action: click, target: { css: ".auth_code_listbox .p-listbox-option", text: "E2E-TEST-AUTH", description: "방금 만든 권한 선택" } }
+  - { action: click, target: { css: ".auth_list_header .btn_group button:nth-of-type(2)", description: "[수정](10744)" } }
+  - { action: wait_for, target: { css: ".auth_modal .auth_form", description: "★ r909 — 수정 모달 표출" } }
+  - { action: click, target: { css: ".auth_modal .lang_row:nth-of-type(2) input.form_control", description: "권한명 RU 포커스" } }
+  - { action: fill, target: { css: ".auth_modal .lang_row:nth-of-type(2) input.form_control", description: "값을 바꿔 저장되는지 본다" }, value: "E2E-TEST-AUTH-MOD" }
+  - { action: click, target: { css: ".auth_modal .popup_footer button.btn_primary", description: "[저장] → PUT /admin/comCode" } }
+  - { action: assert_not_visible, target: { css: ".auth_modal .auth_form", description: "수정 모달 닫힘" } }
+  - { action: wait_for, target: { css: ".auth_code_listbox .p-listbox-option", text: "E2E-TEST-AUTH-MOD", description: "★ r909 — 변경된 이름이 목록에 반영됨" } }
+  - { action: screenshot, name: "25-e-edited" }
+
+  # ── r910 권한 선택 → 메뉴 목록
+  - { action: click, target: { css: ".auth_code_listbox .p-listbox-option", text: "E2E-TEST-AUTH-MOD", description: "권한 선택 → GET /admin/authDept/{codeId}" } }
+  - { action: wait_for, target: { css: ".p-treetable-tbody > tr", description: "★ r910 — 선택 권한의 메뉴 트리 표출" } }
+  - { action: screenshot, name: "25-f-menu-tree" }
+
+  # ── r911 메뉴 체크박스 선택
+  - { action: click, target: { css: ".p-treetable-tbody > tr:nth-of-type(1) .p-checkbox", description: "★ r911 — 첫 메뉴 체크(토글)" } }
+  - { action: screenshot, name: "25-g-checked" }
+
+  # ── r912 저장 → 확인 팝업
+  - { action: click, target: { css: ".tit_header .btn_group button.btn_primary", description: "[저장](10174) → confirm.require(10155)" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "저장 확인 팝업(10155)" } }
+  - { action: click, target: { ref: confirm_accept, description: "확인 → fnSave() → POST /admin/authDept" } }
+  - { action: screenshot, name: "25-h-saved" }

@@ -1,0 +1,94 @@
+id: seed-15-doc-redraft
+title: "[시딩] 문서 재기안하기 — 반려함 → 재기안 → 승인자 재지정 → 재등록"
+locale: kr
+login_as: gduser
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-41`(문서 재기안하기)의 자동화다. `seed-13` 이 반려한 문서를 소비한다.**
+  기안자(`gduser`)의 반려함(`/main/letter/rejected`)에 `E2E-SEED 결재문서 답변용` 이 있어야 한다.
+  없으면 `seed-11` → `seed-13` 을 먼저 돌릴 것.
+
+  ★ 반려함 하단 버튼 두 개가 **같은 클래스**다(Rejected.vue:160-161):
+      [재 기안하기](10658) · [종료하기](10497) — 둘 다 `button.v_btn.btn_outline_neutral.btn_md`
+  → **텍스트로만 갈린다.** 라벨이 '재기안하기'가 아니라 **'재 기안하기'**(띄어쓰기 있음)인 점에 주의.
+
+  ★ 재기안하면 문서작성 화면으로 이동하며 **승인자를 제외한 데이터가 자동으로 채워진다**
+  (산출물 r1140). 그래서 이 시나리오는 승인자만 다시 지정하고 등록한다.
+  ⚠ 자동 채움 범위는 실행으로 확인한다 — 공문파일·수신자가 넘어오는지가 관건이다.
+  넘어오지 않으면 `resolver` 5개 필수값에 걸려 등록이 막히고, 그 자체가 발견이 된다.
+
+  ★ 목록 텍스트는 **화면에 보이는 전체 문자열**을 쓴다 — 부분일치는 executor 마다 판단이 갈린다
+  (`seed-13` 1차에서 'E2E-SEED 결재문서' 가 'E2E-SEED 결재문서 답변용' 과 불일치 처리됐다).
+
+  ⚠ **비가역**: 재등록하면 새 문서가 생성되어 승인자에게 다시 결재 요청이 간다.
+
+  산출물: `POST /eas/document/rewrite` → 새 문서 1건. 원본과의 연결 정보가 이관되는지는
+  산출물 r1144 의 주장인데, **연결 정보 확인은 이 시나리오에서 하지 않는다**(아래 참조).
+  ═══════════════════════════════════════════════════════════════════════════
+  ★ **2026-08-13 실측으로 확정된 재기안의 실제 동작** (2회 실행)
+
+  재기안 기능 자체는 **정상 동작한다.** 다만 공문(파일 첨부) 모드 문서를 재기안하면
+  **원본의 공문파일이 '첨부파일' 칸으로 들어가고 '공문파일' 칸은 빈 채로 열린다.**
+  그대로 [등록하기] 를 누르면 `resolver` 의 officialDocument 검증에 걸려
+  warn 토스트 **'공문을 첨부해주세요'** 가 뜬다(InsertLetter.vue:528-534).
+  → **재기안 화면에서 공문파일과 수신자를 다시 지정해야 한다.** 이 시나리오는 그렇게 한다.
+  복원되는 것: 부제목·특성·유형·언어 / 복원 안 되는 것: **공문파일(첨부칸으로 감) · 수신자 · 승인자**.
+  즉 r1140 의 '(승인자 외 데이터 자동 입력)' 은 부정확하다 — 승인자만 빠지는 게 아니다.
+
+  ⚠ 1차 실행에서는 '무반응' 으로 보였는데 오독이었다. 실제로는 warn 토스트가 뜬다.
+  같은 실행에서 백엔드에 `GET /formWithFields/detail/0 → 404` 가 찍혔는데
+  (getDocumentDetail 이 selectForm 을 복원하지 않아서 발생, InsertLetter.vue:499-511),
+  **이 404 는 등록을 막지 않는다** — 부수 오류다.
+
+  ⚠ 서식 기반 문서의 재기안에서도 같은 현상이 나는지는 확인하지 않았다.
+  ═══════════════════════════════════════════════════════════════════════════
+on_failure: stop
+steps:
+
+  # ── 1) 반려함에서 문서 열기
+  - { action: navigate, url: "/main/letter/rejected" }
+  - { action: wait_for, target: { ref: list_item, description: "반려함 목록" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "seed-13 이 반려한 문서가 있어야 한다" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "단언한 그 문서를 연다" } }
+  # ⚠ 클릭 직후 목표 버튼을 바로 기다리면 상세가 아직 안 뜬 순간에 걸린다(seed-13 1차 교훈).
+  - { action: wait_for, target: { css: "button.v_btn.btn_outline_neutral.btn_md", description: "상세 하단 버튼 영역 로드" } }
+  - { action: screenshot, name: "15-a-rejected-detail" }
+
+  # ── 2) 재기안
+  - { action: click, target: { css: "button.v_btn.btn_outline_neutral.btn_md", text: "재 기안하기", description: "[재 기안하기](10658) → rewrite(). 옆의 [종료하기](10497)와 클래스가 같아 텍스트로만 갈린다. 라벨에 띄어쓰기가 있다" } }
+  - { action: wait_for, target: { ref: official_doc_area, description: "문서작성 화면으로 이동 = 재기안 진입 성공" } }
+  - { action: screenshot, name: "15-b-rewrite-form" }
+
+  # ── 3) 자동 채움 확인 — 이게 이 케이스의 핵심 검증이다
+  - { action: assert_visible, target: { css: ".sub_title_area input", description: "부제목이 원본 값으로 복원돼 있어야 한다(산출물 r1140: 승인자 외 데이터 자동 입력)" } }
+  # ⚠ **공문파일은 '첨부파일' 칸으로 들어온다**(2026-08-13 실측). 공문 칸은 비어 있다.
+  - { action: assert_visible, target: { css: ".file_section .file_area", text: "documentSample.pdf", description: "원본 파일이 첨부파일 칸에 실려 온다 — 공문 칸이 아니다" } }
+  - { action: screenshot, name: "15-c-prefilled" }
+
+  # ── 3-2) 공문파일 재업로드 — 이걸 안 하면 '공문을 첨부해주세요' 로 막힌다
+  - { action: upload, target: { ref: official_file_input, description: "공문파일 재업로드. 재기안이 공문 칸을 복원해 주지 않아 필수" }, file: "documentSample.pdf" }
+  - { action: assert_visible, target: { ref: official_doc_area, text: "documentSample.pdf", description: "이제 공문 칸에 파일이 있어야 한다" } }
+  - { action: screenshot, name: "15-c2-official-reuploaded" }
+
+  # ── 3-3) 수신자 재지정 — 산출물 r1141 에 명시된 단계다
+  # ⚠ 재기안 폼은 수신자도 복원하지 않는다(2026-08-13 실측: '최소 한 명의 수신자를 선택해주세요').
+  #   r1140 의 '(승인자 외 데이터 자동 입력)' 을 곧이 믿고 이 단계를 빼면 등록이 막힌다.
+  - { action: click, target: { ref: recipient_ac_dropdown, description: "수신자 자동완성 드롭다운" } }
+  - { action: wait_for, target: { ref: user_ac_option, description: "사용자 목록 오버레이" } }
+  - { action: click, target: { ref: user_ac_option, description: "첫 수신자 선택" } }
+  - { action: screenshot, name: "15-c3-recipient" }
+
+  # ── 4) 승인자 재지정 (자동 채움에서 제외되는 항목)
+  - { action: click, target: { css: ".approve_section .p-autocomplete-dropdown", description: "승인자 자동완성 드롭다운" } }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "승인자 목록" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "첫 승인자 선택 — seed-11 과 같은 방식이라 cmtuser1 이 잡힐 것이다" } }
+  - { action: screenshot, name: "15-d-approver" }
+
+  # ── 5) 재등록
+  - { action: click, target: { css: "button.v_btn.btn_md.btn_primary", text: "등록하기", description: "[등록하기](10493) → POST /eas/document/rewrite" } }
+  - { action: wait_for, target: { ref: toast_success, description: "재등록 성공 토스트. warn 토스트면 자동 채움에서 빠진 필수값이 있는 것" } }
+  - { action: screenshot, name: "15-e-registered" }
+
+  # ⚠ 산출물 r1144("재기안 시 기존 문서의 연결 정보가 새 문서로 이관되며, 원본을 삭제해도 유실되지 않음")는
+  #   이 시나리오에서 검증하지 않는다. '원본 문서 삭제 후에도 유지'를 확인하려면 원본을 지워야 하는데
+  #   되돌릴 수 없고, 앞선 케이스들이 쓰는 데이터를 파괴한다. → 수동 검증 대상으로 남긴다.

@@ -1,0 +1,98 @@
+id: seed-22-doc-detail-tabs
+title: "[조회] 문서 상세 5개 탭 전환 — 공문·정보·열람자·히스토리·연결"
+locale: ru
+login_as: gduser
+tags: [seed, detail, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-34`(문서 상세 탭) 중 조회 절차를 덮는다** — r1068 · r1072~r1077.
+
+  ★ **탭은 아이콘만 있고 텍스트가 없다.** 라벨로 못 잡으므로 위치로 잡는다.
+    `.tab_area` 의 직계 `.tab` 5개가 **순서 고정**이다(LetterDetailComponent.vue:140-151):
+      (1) `pi-eye` 공문      → DocumentComponent  `.document_area`
+      (2) `pi-info-circle` 정보 → InfoComponent      `.document_info_area`
+      (3) `pi-users` 열람자   → PeopleComponent    `.people_list_area`   (GET /eas/document/user/{docId})
+      (4) `pi-history` 히스토리 → HistoryComponent   `.history_area`       (GET /eas/history/{docId})
+      (5) `pi-link` 연결      → LinkDocumentComponent `.link_wrap`        (GET /eas/linkDocument/{docId})
+    활성 탭에는 `tab_on` 클래스가 붙는다 — 전환됐는지는 **내용 영역과 `tab_on` 둘 다**로 본다.
+    ⚠ (1)만 `v-show` 이고 (2)~(5)는 `v-if` 라, 비활성 탭의 내용은 DOM 에서 사라진다.
+
+  대상: doc **2dc0bcd5** 'test05/18' (문서번호 **01-41/26**, DMT01, gduser 기안, **수신자 5명**).
+
+  ⚠ **2026-08-14 대상 교체.** 원래 대상이던 doc fe8a9679 는 열람자 탭이 **끝까지 비어 있었다**
+    (`wait_for` 로 폴링해도 `.people_list_area` 내부가 빈 채였다 — 레이스가 아니다).
+    DB 로는 그 문서의 열람자 union 쿼리가 6행을 반환했는데 화면에는 아무것도 안 나왔다.
+    `getDocumentUser` 는 각 user_id 를 **HRMIS 로 조회해 조립**하므로(OfficialDocumentServiceImpl:174-187)
+    HRMIS 에 없는 id 가 섞이면 결과가 비는 것으로 의심되나 **확인하지 못했다**
+    (`com_error_log` 에는 이 엔드포인트 오류 기록이 없다).
+    → **수신자가 확실히 있는 문서로 바꿔 '화면 문제인지 데이터 문제인지'를 가른다.**
+      여기서도 비면 화면 쪽을 의심하고, 채워지면 앞 문서의 데이터 문제다.
+    ★ **결과: 이 문서에서는 정상 표출됐다(2026-08-14 PASS).** → 앞 문서의 **데이터 문제**로 갈렸다.
+      화면 결함이 아니다. 원인(HRMIS 조회 실패 의심)은 여전히 미확정이다.
+
+  ⚠ **이 시나리오가 덮지 않는 것**(별도 판단 필요):
+    - r1069~r1071 첨부파일 클릭 → [내 문서함에 저장] → 폴더 선택: **첨부파일이 있는 문서가 필요**하고 저장이 파괴적이다.
+    - r1078~r1081 [연결하기] → 의안 검색 → 연결: **파괴적**이라 제외했다. 연결 탭 진입까지만 본다.
+
+  ⚠ 비파괴 — 탭 전환과 팝오버 열기만 한다. 다만 문서 열람 이력(히스토리)은 남을 수 있다.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/letter/draftsInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "기안함 좌측 목록" } }
+
+  # ⚠ 돋보기(통합검색) 버튼은 접근성 이름이 없어 좌표 클릭이 필터 팝업으로 샌다
+  #   — 2026-08-14 이 시나리오가 그것으로 NOT_TESTED 로 죽었다.
+  #   사유와 대안은 `_fragments/list-filter-search.yaml` 주석 참조.
+  # 문서번호로 좁힌다 — 부제목 'test05/18' 보다 확실하다.
+  - { use: list-filter-search-by-no, with: { letterno: "01-41/26" } }
+  - { action: click, target: { ref: list_item, text: "01-41/26", description: "대상 문서 선택 → 상세 표출" } }
+  - { action: wait_for, target: { css: ".tab_area .tab", description: "상세 탭 영역 렌더" } }
+
+  # ── (1) 눈 아이콘 — 공문 뷰어 (r1068)
+  - { action: click, target: { css: ".tab_area .tab:nth-of-type(1)", description: "눈 아이콘(pi-eye) — 공문 탭" } }
+  - { action: assert_visible, target: { css: ".tab_area .tab:nth-of-type(1).tab_on", description: "★ 첫 탭 활성화" } }
+  - { action: assert_visible, target: { css: ".tab_main .document_area", description: "★ 공문 뷰어 영역(DocumentComponent)" } }
+  - { action: screenshot, name: "22-a-tab-document" }
+
+  # ── (2) 정보 아이콘 (r1072)
+  - { action: click, target: { css: ".tab_area .tab:nth-of-type(2)", description: "정보 아이콘(pi-info-circle)" } }
+  - { action: assert_visible, target: { css: ".tab_area .tab:nth-of-type(2).tab_on", description: "★ 둘째 탭 활성화" } }
+  - { action: assert_visible, target: { css: ".tab_main .document_info_area", description: "★ 문서 상세 정보(InfoComponent)" } }
+  - { action: screenshot, name: "22-b-tab-info" }
+
+  # ── (3) 사람 아이콘 — 열람 가능 사용자 (r1073~r1075)
+  - { action: click, target: { css: ".tab_area .tab:nth-of-type(3)", description: "사람 아이콘(pi-users)" } }
+  - { action: assert_visible, target: { css: ".tab_area .tab:nth-of-type(3).tab_on", description: "★ 셋째 탭 활성화" } }
+  # ⚠ **`assert_visible` 로 잡으면 안 된다.** `.people_list_area` 는 컴포넌트 루트라 **즉시 렌더**되고,
+  #   내용은 `onMounted` 의 API 응답 뒤에 채워진다(`groupedPeoples` 는 그 전까지 `[]`).
+  #   2026-08-14 실행에서 컨테이너만 잡히고 내부가 비어 PARTIAL 로 끝났다 — 데이터는 DB 에 6명 있었다.
+  #   → 데이터 의존 단언은 전부 **`wait_for`(폴링)** 로 한다.
+  - { action: wait_for, target: { css: ".tab_main .people_list_area", description: "★ 열람 가능 사용자 목록(GET /eas/document/user/{docId})" } }
+  - { action: wait_for, target: { css: ".people_list_area .user_department_title_area .title", description: "★ 소속명 그룹 헤더 — 여기까지 와야 API 응답이 반영된 것이다" } }
+  - { action: screenshot, name: "22-c-tab-users" }
+
+  # r1074 — 사람 이름 클릭 → 사용자 정보 팝오버
+  - { action: wait_for, target: { css: ".people_list_area .users_area .user", description: "사용자 행 렌더 대기" } }
+  - { action: click, target: { css: ".people_list_area .users_area .user", description: "첫 사용자 클릭 → UserPopover 토글" } }
+  - { action: wait_for, target: { css: ".p-popover .user_area", description: "★ 사용자 정보 팝오버(이름·소속·직위). PrimeVue Popover 라 body 로 텔레포트된다 — .tab_main 안에서 찾으면 못 찾는다" } }
+  - { action: screenshot, name: "22-d-user-popover" }
+
+  # r1075 — 소속명 옆 접기/펼치기
+  - { action: click, target: { css: ".people_list_area .user_department_title_area i.pi-chevron-up", description: "접기 아이콘 — 펼쳐진 상태에서는 chevron-up 이 보인다" } }
+  - { action: assert_not_visible, target: { css: ".people_list_area .users_area", description: "★ 접히면 사용자 목록이 v-if 로 DOM 에서 사라진다" } }
+  - { action: click, target: { css: ".people_list_area .user_department_title_area i.pi-chevron-down", description: "다시 펼치기" } }
+  - { action: assert_visible, target: { css: ".people_list_area .users_area", description: "★ 다시 펼쳐짐" } }
+  - { action: screenshot, name: "22-e-dept-collapse-toggle" }
+
+  # ── (4) 히스토리 아이콘 (r1076)
+  - { action: click, target: { css: ".tab_area .tab:nth-of-type(4)", description: "히스토리 아이콘(pi-history)" } }
+  - { action: assert_visible, target: { css: ".tab_area .tab:nth-of-type(4).tab_on", description: "★ 넷째 탭 활성화" } }
+  - { action: wait_for, target: { css: ".tab_main .history_area", description: "★ 문서 히스토리(GET /eas/history/{docId})" } }
+  - { action: wait_for, target: { css: ".history_area .history", description: "이력 행이 최소 1건 — 날짜별로 묶이고 각 행에 시각+행위가 표시된다" } }
+  - { action: screenshot, name: "22-f-tab-history" }
+
+  # ── (5) 연결 아이콘 (r1077) — 진입까지만
+  - { action: click, target: { css: ".tab_area .tab:nth-of-type(5)", description: "연결 아이콘(pi-link)" } }
+  - { action: assert_visible, target: { css: ".tab_area .tab:nth-of-type(5).tab_on", description: "★ 다섯째 탭 활성화" } }
+  - { action: wait_for, target: { css: ".tab_main .link_wrap .link_panel", description: "★ 연결 문서 패널(GET /eas/linkDocument/{docId})" } }
+  - { action: assert_visible, target: { css: ".link_panel .add_btn", description: "[연결하기](10467) 버튼 — 누르지 않는다(파괴적)" } }
+  - { action: screenshot, name: "22-g-tab-link" }

@@ -1,0 +1,69 @@
+id: seed-29-bill-register-etc-kind
+title: "[시딩] 의안접수 등록 — 안건종류 '기타주제'(billKind=2)"
+locale: kr
+login_as: gduser
+tags: [seed, bill, destructive]
+precondition: >
+  ★ **산출물 `TS-EBS-05-001`(기타주제의안 등록)의 r572~r576 을 덮는다.**
+    앞쪽 r568~r571(외부수신함 → [등록하기] → 공문 첨부 → 등록)은 **`seed-23` 이 이미 실측했다**
+    (`TS-EBS-45` 외부문서 오프라인 수신 등록과 같은 화면·같은 폼이다).
+    그래서 이 시나리오는 **의안접수 등록 구간만** 다룬다.
+
+  ★ **안건종류(com_code 1046)가 필수값을 가른다** — 이게 이 케이스의 핵심이다:
+      `1` 의안(Законопроект) / **`2` 기타주제(Прочее)** / `3` 법정(Постановление)
+    `billMngSave.vue` 의 `resolver()` 는 **`billKind === '2'` 이면 아래를 전부 건너뛴다**:
+      · 원문 파일 KG(`file110`) · 원문 파일 RU(`file140`) · 공문(`file300`) · 제안자 목록(`proposerList`)
+    ⇒ **기타주제는 필수값이 3개뿐이다: 접수일자 · 안건명(KG) · 안건명(RU).**
+    ⚠ `TS-EBS-06-001`(법정, `billKind='3'`)은 **이 면제가 없어** 원문 파일 2종 + 공문이 필요하다.
+      두 케이스를 같은 절차로 보면 안 된다.
+
+  ★ 접수일자(`rcpDt`)는 `dayjs().format('YYYY-MM-DD')` 로 **오늘 날짜가 기본 입력돼 있다**
+    (billMngSave.vue:37). DatePicker 를 건드릴 필요가 없다.
+
+  ★ 화면 이동:
+    · 의안접수 목록 `/main/billMng/gdMng/billMngRc`
+    · `[등록]`(t10103)은 목록 우측 상단의 **`a.v_btn.btn_secondary.btn_sm`** 이다(button 이 아니라 a 태그).
+    · 등록 화면 `/main/billMng/gdMng/billMngRc/save`
+    · 저장은 `[저장](10174)` → `fnConfirm` → 확인 팝업 → `fnSave`
+
+  ⚠ **파괴적 — 의안이 1건 새로 생성된다.**
+    다만 **기존 의안을 건드리지 않고 추가만** 하므로 다른 시나리오를 깨뜨리지 않는다.
+    (단계를 되돌리는 전이가 아니라서 `TS-EBS-04-017` 류와 위험도가 다르다.)
+    산출물: `ebs_master` 1행 + `ebs_bp_instance`/`ebs_bp_tasks` 가 생성된다.
+on_failure: stop
+steps:
+  # ── r572 의안접수 목록
+  - { action: navigate, url: "/main/billMng/gdMng/billMngRc" }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "의안접수 목록" } }
+  - { action: screenshot, name: "29-a-reception-list" }
+
+  # ── r573 [등록] → 등록 화면
+  - { action: click, target: { css: ".btn_wrap a.v_btn.btn_secondary.btn_sm", description: "[등록](10103) — button 이 아니라 a 태그다" } }
+  - { action: wait_for, target: { css: "select.form_control", description: "등록 화면 로드 — 안건종류 select" } }
+  - { action: screenshot, name: "29-b-save-form" }
+
+  # ── r574 안건종류 '기타주제'
+  # ⚠ 안건종류 select 는 화면의 첫 select 다. `billKind='2'` 를 고르면 제안종류 select 가 v-if 로 사라진다.
+  - { action: fill, target: { css: "select.form_control", description: "★ r574 — 안건종류(10109) '기타주제'(code 2). 이 선택이 필수값을 줄인다" }, value: "2" }
+  - { action: screenshot, name: "29-c-kind-selected" }
+
+  # ── r575 안건명 KG / RU
+  # ⚠ **`textarea.form_control` 만으로는 안 된다** — 화면에 4개가 있다(안건명 KG/RU + 기타 KG/RU).
+  #   기타 쪽은 `form_control full` 이라 클래스로도 완전히 갈리지 않는다.
+  #   `tbody` 의 `tr` 순서로 잡는다. 직접 진입하면 `v-if="extDoc"` 행이 렌더되지 않으므로:
+  #     tr(1) 안건종류 · **tr(2) 안건명 KG** · **tr(3) 안건명 RU** · 그 뒤 파일행들
+  #   ⚠ 외부수신함에서 넘어오면 extDoc 행이 생겨 **인덱스가 하나씩 밀린다.** 이 시나리오는 직접 진입 전용이다.
+  - { action: click, target: { css: ".v_table tbody tr:nth-of-type(2) textarea.form_control", description: "안건명(KG, 10067) 포커스" } }
+  - { action: fill, target: { css: ".v_table tbody tr:nth-of-type(2) textarea.form_control", description: "안건명 KG 필수*" }, value: "E2E-SEED 기타주제 의안 KG" }
+  - { action: assert_value, target: { css: ".v_table tbody tr:nth-of-type(2) textarea.form_control" }, value: "E2E-SEED 기타주제 의안 KG" }
+  - { action: click, target: { css: ".v_table tbody tr:nth-of-type(3) textarea.form_control", description: "안건명(RU, 10068) 포커스" } }
+  - { action: fill, target: { css: ".v_table tbody tr:nth-of-type(3) textarea.form_control", description: "안건명 RU 필수*" }, value: "E2E-SEED 기타주제 의안 RU" }
+  - { action: assert_value, target: { css: ".v_table tbody tr:nth-of-type(3) textarea.form_control" }, value: "E2E-SEED 기타주제 의안 RU" }
+  - { action: screenshot, name: "29-d-names" }
+
+  # ── r576 저장 → 확인 팝업 → 목록 복귀
+  - { action: click, target: { css: ".btn_group_fixed button.btn_primary", description: "[저장](10174) → fnConfirm 이 확인 팝업을 띄운다" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "저장 확인 팝업" } }
+  - { action: click, target: { ref: confirm_accept, description: "확인 → fnSave()" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "★ r576 — 저장 후 의안접수 목록으로 복귀" } }
+  - { action: screenshot, name: "29-e-saved" }

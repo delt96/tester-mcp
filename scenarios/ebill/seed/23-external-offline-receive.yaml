@@ -1,0 +1,71 @@
+id: seed-23-external-offline-receive
+title: "[시딩] 외부문서 오프라인 수신 등록 — '기타(DMT05)' 유형은 이 경로에서만 고를 수 있다"
+locale: kr
+login_as: gduser
+tags: [seed, external]
+precondition: >
+  ★ **산출물 `TS-EBS-45`(외부 문서 오프라인 수신) r1183 · r1186~r1191 을 덮는다.**
+  행정부서 계정(`gduser`)이 종이로 받은 외부문서를 직접 등록하는 경로다(`POST /eas/offlineDocument`).
+
+  ★ **필수값은 5개다** — 폼 자체 4개(ExternalDocFormInc.vue:72-88 `validate`) + 화면 고유 1개:
+      ① 유형(type)    — 라디오. `id` 가 `uid + '_dmt05'` 처럼 **런타임 생성**이라 못 쓴다. **`value` 속성으로 잡는다.**
+      ② 언어(language) — 체크박스. 역시 `value` 속성(DML01)으로 잡는다.
+      ③ 부제목(subTitle)
+      ④ 수신자 1명 이상 — ⚠ **빈 수신자 행이 남아 있어도 안 된다**(t11001).
+         `recipients = ref([{}])` 로 빈 행이 하나 이미 있으므로 **[수신자 추가]를 누르지 말고** 그 행을 채운다.
+      ⑤ **공문 파일** — 이건 폼이 아니라 이 화면이 따로 검사한다(InsertExternal.vue:143-151, 미첨부 시 t10775).
+         └ 산출물 r1186 '공문 문서 파일 첨부'에 해당한다. 즉 **첨부는 선택이 아니라 필수**다.
+
+  ★ **'기타'(DMT05) 는 이 화면에서만 선택할 수 있다** — `:show-dmt05="!props.externalId"` 라
+    **신규 오프라인 등록일 때만** 라디오가 렌더된다(외부수신함 상세로 들어오면 안 보인다).
+    산출물 r1188 의 서술("기타 문서유형은 오프라인 등록에서만 선택할 수 있음")과 일치한다.
+    이 시나리오는 그 DMT05 를 고른다 — 다른 경로로는 만들 수 없는 데이터를 남기는 것이 시딩 목적이다.
+
+  ⚠ 공문 파일은 **PDF만** 허용된다(t10896).
+  ⚠ 산출물 r1186·r1187 은 드래그앤드롭이지만 **DSL 에 `drag` 액션이 없어** `upload` 로 파일 input 에 직접 넣는다.
+    파일 input 은 `id="{type}file"` 규칙이라 `#officialfile` · `#attachfile` 이다(AddDragAndDropFileComponent.vue:130-133).
+
+  ⚠ **이 시나리오가 덮지 않는 것**:
+    - r1184 수신함에서 '기타' 문서의 답변·종료 처리 — 등록 이후 별도 계정·화면이 필요하다.
+    - r1185 [의안등록 접수] 버튼 — 외부수신함 **목록**에서 누르는 것이고 의안등록 대기함으로 넘어가는 파괴적 절차다.
+
+  ⚠ **비가역** — 외부문서 1건이 실제로 생성된다.
+on_failure: stop
+steps:
+  # ── 1) 외부수신함 → 등록 화면 (r1182~r1183)
+  - { action: navigate, url: "/main/letter/external/insert" }
+  - { action: wait_for, target: { css: ".ext_doc_form", description: "외부문서 공통 폼(ExternalDocFormInc) 로드" } }
+  - { action: screenshot, name: "23-a-blank-form" }
+
+  # ── 2) 공문 파일 (r1186) — 이 화면의 고유 필수값
+  - { action: upload, target: { ref: official_file_input, description: "공문 문서 파일(10271) 필수* — 미첨부 시 t10775 로 등록이 막힌다" }, file: "documentSample.pdf" }
+
+  # ── 3) 추가 첨부파일 (r1187) — 선택
+  - { action: upload, target: { css: "#attachfile", description: "추가 첨부파일(10257) — 선택값" }, file: "documentSample.pdf" }
+  - { action: screenshot, name: "23-b-files" }
+
+  # ── 4) 특성·유형·언어 (r1188)
+  # ⚠ 라디오/체크박스 id 가 런타임 생성(`uid + '_dmt05'`)이라 **id 로 잡으면 안 된다.** value 속성으로 잡는다.
+  - { action: click, target: { css: ".ext_doc_form .type_area input[type=radio][value='DMT05']", description: "★ 유형(10237) 필수* — 기타(DMT05). 오프라인 등록에서만 뜨는 선택지다" } }
+  - { action: click, target: { css: ".ext_doc_form .language_area input[type=checkbox][value='DML01']", description: "언어(10238) 필수* — DML01 국가언어" } }
+  - { action: click, target: { css: ".ext_doc_form .feature_area .check_item input[type=checkbox]", description: "특성(10239) 관리대상 — 선택값" } }
+
+  # ── 5) 부제목 (r1189)
+  - { action: click, target: { css: ".ext_doc_form .sub_title_area input.form_control.full", description: "부제목 포커스" } }
+  - { action: fill, target: { css: ".ext_doc_form .sub_title_area input.form_control.full", description: "부제목(10249) 필수*" }, value: "E2E-SEED 외부문서 오프라인 수신" }
+  - { action: assert_value, target: { css: ".ext_doc_form .sub_title_area input.form_control.full" }, value: "E2E-SEED 외부문서 오프라인 수신" }
+
+  # ── 6) 수신자 (r1190)
+  # ⚠ **[수신자 추가]를 누르지 말 것.** 폼이 열릴 때 빈 수신자 행이 이미 하나 있다.
+  #   추가로 누르면 빈 카드가 남아 t11001 '지정되지 않은 수신자가 있습니다' 로 등록이 막힌다
+  #   — seed-21(시민민원)에서 실제로 겪은 함정이다.
+  - { action: wait_for, target: { ref: recipient_ac_dropdown, description: "기본으로 있는 첫 수신자 행의 자동완성" } }
+  - { action: click, target: { ref: recipient_ac_dropdown, description: "수신자 드롭다운 열기" } }
+  - { action: wait_for, target: { ref: user_ac_option, description: "사용자 목록 오버레이(body 직속)" } }
+  - { action: click, target: { ref: user_ac_option, description: "첫 수신자 선택" } }
+  - { action: screenshot, name: "23-c-filled" }
+
+  # ── 7) 등록 (r1191)
+  - { action: click, target: { css: "button.v_btn.btn_md.btn_outline_primary", text: "등록하기", description: "[등록하기](10493) → POST /eas/offlineDocument" } }
+  - { action: wait_for, target: { ref: toast_success, description: "★ 저장 성공 토스트. 여기서 실패하면 못 채운 필수값이 있는 것이다" } }
+  - { action: screenshot, name: "23-d-registered" }

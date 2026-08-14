@@ -1,0 +1,93 @@
+id: seed-11b-approval-doc-register-dmt02
+title: "[시딩] 결재 문서 등록 (DMT02 확인용) — TS-EBS-30(문서 접수-확인용) 의 입력 문서 생성"
+locale: kr
+login_as: gduser
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-26`(결재 문서 등록)의 자동화이자 전자문서 계열의 시작점이다.**
+  `27`(문서 결재) · `28`(결재 반려) · `29`(문서 접수-답변용) · `32`(수신 문서 반려) ·
+  `35`(결재자 상세) · `39`(이행요청 답변) · `41`(재기안)이 전부 "특정 상태의 문서가
+  편지함에 있어야" 시작된다. 이 시나리오가 그 문서를 만든다.
+
+  ★ **`11-approval-doc-register.yaml` 의 유형만 바꾼 변형이다.** 유형 = `DMT02`(확인용) →
+  `TS-EBS-30(문서 접수-확인용)` 의 입력이 된다. 나머지 절차·셀렉터는 원본과 동일하므로,
+  화면이 바뀌면 **원본과 이 파일을 함께** 고쳐야 한다.
+  (`com_code` 1022: DMT01 답변용 → `TS-EBS-29` / DMT02 확인용 → `30` / DMT03 서명용 → `31`)
+
+  ★ **문서작성의 기본 모드는 '공문(파일 첨부)' 이다** — `docMode = ref('official')`
+  (InsertLetter.vue:66). 서식(웹에디터) 경로는 파일 첨부가 기본이 되면서 사실상 쓰지 않는다
+  (사용자 확인 2026-08-13).
+  → **산출물 `TS-EBS-26` 의 "서식 목록에서 서식을 선택" · "웹 에디터에 문서 내용 작성" 단계는
+    현행과 다르다.** 1차 실행에서 서식 306 을 골랐다가 그 서식이 요구하는 동적 필수 필드
+    (`content*` 리치에디터, `date*`)에 걸려 `content을(를) 입력해주세요` 로 막혔다.
+
+  ★ **필수값은 5개다**(InsertLetter.vue:523-551 `resolver`, docMode='official' 기준):
+      공문파일 · 유형(types) · 언어(language) · 부제목(subTitle) · 수신자 1명 이상
+  승인자는 **필수가 아니다** — `VITE_ENABLE_SIGN === 'true'` 이고 (billId 이거나 외부수신자)일
+  때만 요구된다(553-560행). 이 환경은 false 라 검증에 안 걸리지만, `27`(문서 결재)이
+  결재대기함에서 이 문서를 집어야 하므로 **일부러 승인자를 넣는다.**
+
+  ⚠ **서식 모드를 쓰면 CKEditor 본문이 필요한데 iframe 이라 DSL 로 입력할 수 없다**
+  (`letter/temp-save-restore.yaml` 에 같은 제약이 기록돼 있다).
+  기본 모드(공문)에서는 본문 자체가 없으므로 이 제약을 우회한다.
+
+  ★ 이 시나리오에서 **뺀 단계와 이유**(전부 산출물 `TS-EBS-26` 에는 있다):
+    · 서식 선택 · 웹 에디터 본문 — 현행 기본 모드가 아니다(위 참조). 서식 경로가 필요하면
+      `letter/temp-save-restore.yaml` 을 볼 것
+    · 임시저장 → 불러오기 → 복원 — `letter/temp-save-restore.yaml` 이 이미 덮는다(중복)
+    · 첨부파일 **드래그앤드롭** — `drag` 액션이 DSL 에 없다. `upload` 로 대체한다
+    · **미리보기 / 첨부파일 미리보기 확대** — PDF iframe 이라 내용을 단언할 수 없다 → 수동 검증
+    · 부재 중 사용자 선택 시도 — `letter/recipient-absence-badge.yaml` 이 이미 덮는다
+
+  ⚠ **비가역**: 실제 문서가 생성되어 승인자의 결재대기함으로 간다. 되돌리려면 반려·삭제해야 한다.
+
+  산출물: `eas_document` 1건(doc_type_cd `DMT02`) + `eas_received_info` 1건 + `eas_approval` 1건.
+  등록 후 DB 로 수신자·승인자가 누구인지 확인해 `27`~`32` 의 로그인 계정을 정한다.
+on_failure: stop
+steps:
+
+  # ── 1) 문서작성 화면
+  - { action: navigate, url: "/main/letter/insert" }
+  - { action: wait_for, target: { ref: official_doc_area, description: "공문파일 영역 — 기본 모드가 official 이라 처음부터 렌더된다" } }
+  - { action: screenshot, name: "11-a-blank" }
+
+  # ── 2) 공문파일 (필수 1/5)
+  # ⚠ 서식 select 를 건드리지 않는다. 기본 모드가 공문이고, 서식을 고르면 그 서식이 요구하는
+  #   동적 필수 필드(리치에디터 등)까지 채워야 해서 자동화가 막힌다(2026-08-13 1차 실행에서 확인).
+  - { action: upload, target: { ref: official_file_input, description: "공문파일(10775) 필수* — docMode='official' 의 필수값" }, file: "documentSample.pdf" }
+  - { action: assert_visible, target: { ref: official_doc_area, text: "documentSample.pdf", description: "공문 영역에 파일명이 떠야 한다. 아래 첨부파일 영역과 헷갈리지 말 것" } }
+
+  # ── 3) 유형·언어 (필수 2·3/5)
+  # ⚠ 유형은 **라디오**(:id="type.codeId", InsertLetter.vue:931), 특성은 체크박스(#DMA01~03),
+  #   언어도 체크박스(:id="lan.codeId"). 세 묶음이 나란히 있어 위치로 찍으면 엉뚱한 걸 누른다.
+  - { action: click, target: { css: "#DMT02", description: "유형(10768) 필수* — DMT02 확인용. TS-EBS-30(문서 접수-확인용) 가 이 문서를 받는다" } }
+  - { action: click, target: { css: "#DML01", description: "언어(11153) 필수* — DML01 국가언어" } }
+  - { action: click, target: { css: "#DMA03", description: "특성 — DMA03 의안여부. 필수는 아니지만 과거 문서와 맞춘다" } }
+
+  # ── 4) 부제목 (필수 4/5)
+  - { action: fill, target: { css: ".sub_title_area input", description: "부제목(10488) 필수*" }, value: "E2E-SEED 결재문서 확인용" }
+
+  # ── 5) 수신자 (필수 5/5)
+  # ⚠ 자동완성은 **HRMIS 표시명**으로 검색된다 — 로그인 ID 로는 0건이다.
+  #   그래서 드롭다운 버튼으로 목록을 열어 첫 항목을 고른다(temp-save-restore 에서 검증된 방식).
+  #   누가 뽑혔는지는 등록 후 eas_received_info 로 확인한다.
+  - { action: click, target: { ref: recipient_ac_dropdown, description: "수신자 자동완성 드롭다운" } }
+  - { action: wait_for, target: { ref: user_ac_option, description: "사용자 목록 오버레이(body 직속, appendTo='body')" } }
+  - { action: click, target: { ref: user_ac_option, description: "첫 수신자 선택" } }
+  - { action: screenshot, name: "11-b-recipient" }
+
+  # ── 6) 승인자 — 필수는 아니지만 27(문서 결재)의 입력이 된다
+  - { action: click, target: { css: ".approve_section .p-autocomplete-dropdown", description: "승인자 자동완성 드롭다운" } }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "승인자 목록" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "첫 승인자 선택" } }
+
+  # ── 7) 첨부파일 — 드래그앤드롭 대신 upload
+  # AddDragAndDropFileComponent type="attach" → input id = type+'file' = attachfile
+  - { action: upload, target: { css: "#attachfile", description: "첨부파일(10257) — 산출물은 드래그앤드롭이지만 DSL 에 drag 가 없어 파일 input 으로 대체" }, file: "documentSample.pdf" }
+  - { action: assert_visible, target: { css: ".file_section .file_area", text: "documentSample.pdf", description: "첨부 영역에 파일명이 떠야 한다. 공문 영역과 헷갈리지 않도록 file_section 으로 한정" } }
+  - { action: screenshot, name: "11-c-filled" }
+
+  # ── 8) 등록
+  - { action: click, target: { css: "button.v_btn.btn_md.btn_primary", text: "등록하기", description: "[등록하기](10493) → register(). 검증 실패 시 warn 토스트만 뜨고 화면은 그대로다" } }
+  - { action: wait_for, target: { ref: toast_success, description: "등록 성공 토스트. warn 토스트가 뜨면 필수값이 빠진 것" } }
+  - { action: screenshot, name: "11-d-registered" }

@@ -1,0 +1,72 @@
+id: seed-33-bill-detail-search
+title: "[조회] 의안검색 — 기본조건 → +상세조건 펼침 → 조회 → 상세(정부이송 정보)"
+locale: kr
+login_as: gduser
+tags: [seed, bill, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-24`(의안검색) r965~r971 을 덮는다.**
+    r972(엑셀 다운로드)는 DSL 에 `download` 액션이 없어 **버튼 존재만** 확인한다.
+
+  ★ **`+상세조건` 토글에는 id 가 있다 — `#btnDtlCond`.** 이 화면에서 유일하게 안정적인 앵커다.
+    누르면 `isDivShowDtlCond` 가 뒤집혀 `v-show` 로 감춰둔 `.form_row` **2줄**이 나타난다
+    (3번째 줄: 제안자·제안종류 / 4번째 줄: 제안일·제출일·공개일 DatePicker).
+    ⚠ `v-show` 라 **DOM 에는 처음부터 있다.** `assert_visible` 로는 잡히지만
+      `wait_for` 로 '생겨나기'를 기다리면 즉시 통과해 버려 증거가 되지 않는다.
+
+  ★ **검색 조건은 `@change`/`@keyup.enter` 로도 즉시 조회된다.**
+    select 를 바꾸면 그 순간 `fnGetAgendaList` 가 돈다 — [조회]를 누르기 전에 목록이 바뀐다.
+    그래서 이 시나리오는 **input 만 채우고** select 는 건드리지 않는다(단계 순서를 지키기 위해서다).
+
+  ★ 상세 진입은 **더블클릭**이다(`@row-dblclick="fnGoDetail"`).
+
+  ★ **r971 '[정부이송 정보] 탭(아코디언)을 클릭' 은 현행 화면과 다르다.**
+    상세는 `BillAllInfoInc :open="['0','1','2','3']"` 로 **네 아코디언이 처음부터 전부 펼쳐져 있다**
+    (billDetailSearchDetail.vue:27). 눌러서 펼칠 것이 없다.
+    정부이송은 **III 번 패널**(`AccordionPanel value="2"`, 헤더 `"III." + t('10047')`)이다.
+    ⇒ 클릭이 아니라 **표출 확인**으로 검증한다. 값이 비어 있는 것은 정상이다
+      ("이송 업무가 진행 중일 때는 값이 비어 있다가 이송 완료 시점에 채워짐" — 산출물 서술과 일치).
+
+  ★ 상세의 [목록]은 **`<button>`** 이다(게시판 3종의 `<a>` 와 다르다) → `btn_outline_md`.
+
+  ⚠ 비파괴 — 조회만 한다.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/billMng/billSearch/billDetailSearchList" }
+  - { action: wait_for, target: { ref: datatable, description: "★ r965 — 의안검색 목록 화면" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "총건수 표시" } }
+  - { action: assert_visible, target: { ref: datatable_row, description: "의안 행 존재" } }
+  - { action: assert_visible, target: { css: ".board_info .right button.v_btn.btn_outline_secondary.btn_sm", description: "[엑셀 다운로드](10055) 버튼 존재. ⚠ r972 는 클릭하지 않는다" } }
+  - { action: screenshot, name: "33-a-search-list" }
+
+  # ── r966 기본 검색조건 입력 (의안번호 칸. select 는 건드리지 않는다 — @change 로 즉시 조회된다)
+  - { action: click, target: { css: ".board_search .form_row:nth-of-type(1) .input_item:nth-of-type(1) input.form_control", description: "의안번호(10292) 입력칸 포커스" } }
+  - { action: assert_value, target: { css: ".board_search .form_row:nth-of-type(1) .input_item:nth-of-type(1) input.form_control" }, value: "" }
+
+  # ── r967 +상세조건 펼치기
+  - { action: assert_not_visible, target: { css: ".board_search .form_row:nth-of-type(3)", description: "펼치기 전에는 상세조건 줄이 감춰져 있다(v-show=false)" } }
+  - { action: click, target: { css: "#btnDtlCond", description: "★ r967 — [+상세조건](10900) 토글" } }
+  - { action: assert_visible, target: { css: ".board_search .form_row:nth-of-type(3)", description: "★ r967 — 상세조건 영역(제안자·제안종류)이 펼쳐진다" } }
+  - { action: assert_visible, target: { css: ".board_search .form_row:nth-of-type(4)", description: "★ r967 — 상세조건 둘째 줄(제안일·제출일·공개일)도 펼쳐진다" } }
+  - { action: screenshot, name: "33-b-detail-cond-open" }
+
+  # ── r968 상세검색 조건 입력 (제안자명 — 빈 문자열로 두면 전체 조회라 0건이 되지 않는다)
+  - { action: click, target: { css: ".board_search .form_row:nth-of-type(3) .input_item:nth-of-type(1) input.form_control", description: "★ r968 — 제안자(10121) 입력칸" } }
+  - { action: assert_value, target: { css: ".board_search .form_row:nth-of-type(3) .input_item:nth-of-type(1) input.form_control" }, value: "" }
+
+  # ── r969 조회
+  - { action: click, target: { ref: board_search_btn, description: "★ r969 — [조회](10053) → fnGetAgendaList" } }
+  - { action: wait_for, target: { ref: datatable_row, description: "★ r969 — 검색 조건에 맞는 의안 목록 표시" } }
+  - { action: screenshot, name: "33-c-searched" }
+
+  # ── r970 행 더블클릭 → 상세
+  - { action: double_click, target: { ref: datatable_row, description: "★ r970 — 의안 행 더블클릭(@row-dblclick=fnGoDetail)" } }
+  - { action: wait_for, target: { css: ".content_section .p-accordion", description: "★ r970 — 의안 상세(billAllInfoInc) 표출" } }
+  - { action: screenshot, name: "33-d-bill-detail" }
+
+  # ── r971 정부이송 정보 — 클릭이 아니라 표출 확인 (open=['0','1','2','3'] 이라 이미 펼쳐져 있다)
+  - { action: assert_visible, target: { css: ".content_section .p-accordionpanel:nth-of-type(3)", description: "★ r971 — III. 정부이송(10047) 패널이 표출된다. ⚠ 이미 펼쳐져 있어 '클릭해 펼친다'는 절차는 현행과 다르다" } }
+  - { action: screenshot, name: "33-e-govtransfer-panel" }
+
+  # ── 목록 복귀
+  - { action: click, target: { ref: btn_outline_md, description: "[목록](10084). 의안 상세는 button 태그다" } }
+  - { action: wait_for, target: { ref: datatable, description: "의안검색 목록으로 복귀" } }

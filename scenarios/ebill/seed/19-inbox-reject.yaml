@@ -1,0 +1,54 @@
+id: seed-19-inbox-reject
+title: "[시딩] 수신 문서 반려 — 수신함에서 반려 (결재대기함 반려와 다른 화면)"
+locale: kr
+login_as: cmthead
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-32`(수신 문서 반려)의 자동화다.**
+  `seed-11`(DMT01 생성) → `seed-12`(결재) 를 거친 **답변용 문서가 수신함에 있어야** 한다.
+  결재를 마쳐야 `rcv_status` RS00 → RS01 로 바뀌어 수신함에 나타난다.
+
+  ⚠ **`TS-EBS-28`(결재 문서 반려)과 헷갈리지 말 것 — 다른 화면, 다른 API 다.**
+
+      TS-EBS-28  결재대기함(/main/letter/approvalInbox)  →  PUT /eas/approval/reject
+                 승인자가 결재를 거부한다. eas_approval.apvl_status_cd → AS05
+      TS-EBS-32  수신함(/main/letter/inbox)              →  수신자가 받은 문서를 되돌린다
+                 eas_received_info.rcv_status → RS04(반려)
+
+  두 화면 모두 [반려] 버튼이 `button.v_btn.btn_outline_error.btn_md` 라 **클래스가 같다.**
+  구분은 **어느 화면에 있느냐**로만 된다.
+
+  ★ 수신함 [반려]는 **답변용(DMT01)·서명용(DMT03)에만** 나온다.
+  확인용(DMT02)에는 [종료하기]뿐이다(seed-17 실측).
+
+  ★ 반려 모달 셀렉터는 `_selectors.yaml` 의 `reject_modal_textarea` / `reject_modal_submit`
+  (seed-13 에서 검증됨). 결재대기함 반려와 같은 모달을 쓴다.
+
+  ⚠ **비가역**: 반려하면 문서가 반려 상태로 넘어가고 수신함에서 빠진다.
+
+  산출물: `eas_received_info.rcv_status` → `RS04`(반려), 반려 사유 저장.
+on_failure: stop
+steps:
+
+  # ── 1) 수신함에서 문서 열기
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "결재를 마친 DMT01 문서가 있어야 한다. 없으면 seed-11 → seed-12 를 먼저 돌릴 것" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "단언한 그 문서를 연다" } }
+  - { action: wait_for, target: { css: ".right_top_area", description: "상세 우측 액션 영역 로드" } }
+  - { action: screenshot, name: "19-a-detail" }
+
+  # ── 2) 반려 — 수신함 화면의 반려다(결재대기함이 아님)
+  - { action: assert_visible, target: { css: ".right_top_area button.v_btn.btn_outline_error.btn_md", text: "반려", description: "DMT01 답변용에는 [반려]가 있다. 확인용(DMT02)에는 없다" } }
+  - { action: click, target: { css: ".right_top_area button.v_btn.btn_outline_error.btn_md", text: "반려", description: "[반려](10269) → set_isRejectModal. 결재대기함의 반려와 같은 모달을 쓴다" } }
+  - { action: wait_for, target: { ref: reject_modal_textarea, description: "반려 사유 입력 모달" } }
+  - { action: fill, target: { ref: reject_modal_textarea, description: "반려 사유" }, value: "E2E-SEED 수신 반려 사유 — 자동화 검증" }
+  - { action: screenshot, name: "19-b-reason" }
+  - { action: click, target: { ref: reject_modal_submit, description: "모달의 [반려] 확정" } }
+  - { action: screenshot, name: "19-c-rejected" }
+
+  # ── 3) 수신함에서 빠졌는지
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: sidebar, description: "화면 재렌더" } }
+  - { action: assert_not_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "반려한 문서는 수신함에서 빠져야 한다" } }
+  - { action: screenshot, name: "19-d-inbox-cleared" }

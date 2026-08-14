@@ -1,0 +1,87 @@
+id: seed-31-notice-boards
+title: "[조회] 게시판 3종 — 공지사항 · 자료실 · FAQ 목록→검색→상세→목록복귀"
+locale: kr
+login_as: gduser
+tags: [seed, board, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-20`(공지사항 r935~r939) · `TS-EBS-21`(자료실 r942~r945·r947) ·
+    `TS-EBS-22`(FAQ r950~r954) 를 한 번에 덮는다.**
+    세 화면은 `Board.vue` / `DataRoom.vue` / `Faq.vue` 로 파일만 다르고 **템플릿이 사실상 동일**하다
+    (검색 3칸: 제목·등록자·부서 / 조회·초기화 / DataTable + `@row-dblclick`).
+    그래서 한 시나리오에서 세 번 반복한다.
+
+  ★ **메뉴 경로가 `/main` 아래가 아니다** — `/notice/board` · `/notice/dataRoom` · `/notice/faq`.
+    (`router/index.js:138-143`, `com_menu` 50·51·52). 다른 화면 감각으로 `/main/notice/...` 를
+    치면 안 된다.
+
+  ★ 데이터 가용성(2026-08-14 실측, `kgst.com_board`):
+    · `NOTI`(공지사항) **6건** · `DATA`(자료실) **19건** · `FAQ` **1건**
+    셋 다 행이 있으므로 더블클릭 대상이 존재한다.
+    ⚠ FAQ 는 1건뿐이라 검색어를 넣으면 0건이 되기 쉽다 — **검색은 빈 조건으로 [조회]만 누른다.**
+
+  ★ **상세 진입은 클릭이 아니라 더블클릭**이다(`@row-dblclick="fnDetail"`). 한 번 클릭은 아무 일도 없다.
+
+  ★ **[목록](10084)은 `<button>` 이 아니라 `<a>` 다** (`.btn_group_fixed a.v_btn.btn_outline_primary.btn_md`).
+    `btn_outline_md`(=button…) 알리아스로는 못 잡는다 → `detail_list_link` 를 쓴다.
+
+  ★ **엑셀 다운로드(r940·r948·r955)와 자료실 첨부 다운로드(r946)는 검증하지 않는다** —
+    DSL 에 `download` 액션이 없다. 버튼 존재만 확인하고 클릭하지 않는다.
+
+  ⚠ 비파괴 — 조회만 한다. 다만 상세 진입은 **조회수(`notiInqCnt`)를 1 올린다.**
+    되돌릴 수는 없지만 다른 시나리오를 깨뜨리지 않는다.
+on_failure: stop
+steps:
+  # ══════════ TS-EBS-20 공지사항 (r935~r939) ══════════
+  - { action: navigate, url: "/notice/board" }
+  - { action: wait_for, target: { ref: datatable, description: "★ r935 — 공지사항 목록 화면" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "총건수(Total) 표시" } }
+  - { action: assert_visible, target: { ref: datatable_row, description: "공지 행 존재(NOTI 6건)" } }
+  - { action: screenshot, name: "31-a-notice-list" }
+
+  # r936·r937 — 검색 조건 입력 후 조회. 0건이 되지 않도록 빈 조건으로 조회만 건다.
+  - { action: click, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control", description: "제목(10049) 검색칸 포커스" } }
+  - { action: assert_value, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control" }, value: "" }
+  - { action: click, target: { ref: board_search_btn, description: "★ r937 — [조회](10053)" } }
+  - { action: wait_for, target: { ref: datatable_row, description: "검색 결과 목록 재표출" } }
+
+  # r938 — 행 더블클릭 → 상세
+  - { action: double_click, target: { ref: datatable_row, description: "★ r938 — 첫 행 더블클릭(@row-dblclick=fnDetail)" } }
+  - { action: wait_for, target: { css: ".board_content", description: "★ 공지사항 상세 — 내용(10256) 영역" } }
+  - { action: screenshot, name: "31-b-notice-detail" }
+
+  # r939 — [목록] 복귀
+  - { action: click, target: { ref: detail_list_link, description: "★ r939 — [목록](10084). <a> 태그다" } }
+  - { action: wait_for, target: { ref: datatable, description: "공지사항 목록으로 복귀" } }
+
+  # ══════════ TS-EBS-21 자료실 (r942~r945·r947) ══════════
+  - { action: navigate, url: "/notice/dataRoom" }
+  - { action: wait_for, target: { ref: datatable, description: "★ r942 — 자료실 목록 화면" } }
+  - { action: assert_visible, target: { ref: datatable_row, description: "자료 행 존재(DATA 19건)" } }
+  - { action: screenshot, name: "31-c-dataroom-list" }
+
+  - { action: click, target: { ref: board_search_btn, description: "★ r944 — [조회]" } }
+  - { action: wait_for, target: { ref: datatable_row, description: "검색 결과 목록 재표출" } }
+
+  - { action: double_click, target: { ref: datatable_row, description: "★ r945 — 첫 행 더블클릭 → 상세" } }
+  - { action: wait_for, target: { css: ".board_content", description: "★ 자료실 상세 — 내용 영역" } }
+  # r946 첨부파일 다운로드는 클릭하지 않는다. 첨부 영역이 있는지만 본다.
+  - { action: screenshot, name: "31-d-dataroom-detail" }
+
+  - { action: click, target: { ref: detail_list_link, description: "★ r947 — [목록]" } }
+  - { action: wait_for, target: { ref: datatable, description: "자료실 목록으로 복귀" } }
+
+  # ══════════ TS-EBS-22 FAQ (r950~r954) ══════════
+  - { action: navigate, url: "/notice/faq" }
+  - { action: wait_for, target: { ref: datatable, description: "★ r950 — FAQ 목록 화면" } }
+  - { action: assert_visible, target: { ref: datatable_row, description: "FAQ 행 존재(1건)" } }
+  - { action: screenshot, name: "31-e-faq-list" }
+
+  - { action: click, target: { ref: board_search_btn, description: "★ r952 — [조회]" } }
+  - { action: wait_for, target: { ref: datatable_row, description: "검색 결과 목록 재표출" } }
+
+  - { action: double_click, target: { ref: datatable_row, description: "★ r953 — 행 더블클릭 → 상세" } }
+  - { action: wait_for, target: { css: ".board_content", description: "★ FAQ 상세 — 내용 영역" } }
+  - { action: screenshot, name: "31-f-faq-detail" }
+
+  - { action: click, target: { ref: detail_list_link, description: "★ r954 — [목록]" } }
+  - { action: wait_for, target: { ref: datatable, description: "FAQ 목록으로 복귀" } }

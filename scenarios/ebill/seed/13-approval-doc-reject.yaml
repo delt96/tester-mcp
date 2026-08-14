@@ -1,0 +1,60 @@
+id: seed-13-approval-doc-reject
+title: "[시딩] 결재 문서 반려 — 결재대기함에서 반려 (기안자 반려함으로 이동)"
+locale: kr
+login_as: cmthead
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-28`(결재 문서 반려)의 자동화다. `seed-11` 이 만든 문서를 소비한다.**
+
+  ⚠ **`27`(결재)과 `28`(반려)은 같은 문서를 배타적으로 쓴다.** `seed-12` 가 이미 결재해 버렸으므로
+  이 시나리오 직전에 **`seed-11` 을 한 번 더 실행**해 결재대기 문서를 새로 만들어야 한다.
+  안 그러면 결재대기함이 비어 첫 단언에서 멈춘다(그게 맞는 동작이다).
+
+  ⚠ **목록 텍스트 매칭은 부분일치를 믿지 말 것.** `seed-12` 는 'E2E-SEED 결재문서' 로 통과했는데
+  `seed-13` 1차는 같은 문자열이 'E2E-SEED 결재문서 답변용' 과 **불일치**로 처리돼 멈췄다.
+  executor 마다 판단이 갈리므로 **화면에 보이는 전체 문자열**을 그대로 쓴다.
+
+  ★ 반려 컨트롤(ApprovalInbox.vue:308):
+      [반려](10269) = `button.v_btn.btn_outline_error.btn_md`  ← **error 색**이라 [결재](btn_primary)와 구분된다
+      → 반려 모달에서 사유 입력 후 확정 → `PUT /eas/approval/reject`
+
+  ★ 산출물이 요구하지 않지만 함께 확인하는 것: 반려된 문서가 **기안자의 반려함**
+  (`/main/letter/rejected`)으로 가는지. 이게 `TS-EBS-41`(문서 재기안하기)의 입력이 된다.
+
+  ⚠ **비가역**: 반려하면 문서가 반려 상태로 넘어간다. 되돌리려면 기안자가 재기안해야 한다.
+
+  산출물: `eas_approval.apvl_status_cd` → 반려 상태, 문서가 기안자 반려함에 노출.
+on_failure: stop
+steps:
+
+  # ── 1) 결재대기함에서 대상 문서 열기
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "결재대기 문서가 있어야 한다. 없으면 seed-11 을 먼저 돌릴 것" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "단언한 그 문서를 연다" } }
+  # ⚠ 클릭 직후 곧바로 [반려] 를 기다리면 상세가 아직 '데이터가 없습니다' 인 순간에 걸린다
+  #   (2026-08-13 1차 실행: executor 가 2초 만에 포기). 먼저 상세 영역이 뜨는지 보고 나서 버튼을 찾는다.
+  - { action: wait_for, target: { ref: btn_primary_md, description: "상세 하단 액션 영역 — seed-12 에서 이 앵커로 통과했다" } }
+  - { action: wait_for, target: { css: "button.v_btn.btn_outline_error.btn_md", description: "[반려] 버튼 노출 = 상세 로드 완료" } }
+  - { action: screenshot, name: "13-a-detail" }
+
+  # ── 2) 반려
+  - { action: click, target: { css: "button.v_btn.btn_outline_error.btn_md", text: "반려", description: "[반려](10269) → set_isRejectModal(true). btn_outline_error 라 [결재](btn_primary)와 안 겹친다" } }
+  - { action: wait_for, target: { ref: reject_modal_textarea, description: "반려 사유 입력 모달" } }
+  - { action: fill, target: { ref: reject_modal_textarea, description: "반려 사유" }, value: "E2E-SEED 반려 사유 — 자동화 검증" }
+  - { action: screenshot, name: "13-b-reason" }
+  - { action: click, target: { ref: reject_modal_submit, description: "모달의 [반려] 확정 → PUT /eas/approval/reject" } }
+  - { action: screenshot, name: "13-c-rejected" }
+
+  # ── 3) 결재대기함에서 빠졌는지
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: sidebar, description: "화면 재렌더" } }
+  - { action: assert_not_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "반려한 문서는 결재대기함에서 빠져야 한다" } }
+  - { action: screenshot, name: "13-d-inbox-cleared" }
+
+  # ── 4) 기안자 반려함에 들어왔는지 (TS-EBS-41 의 입력)
+  - { use: switch-account, with: { account: gduser } }
+  - { action: navigate, url: "/main/letter/rejected" }
+  - { action: wait_for, target: { ref: list_item, description: "반려함 목록" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 답변용", description: "기안자 반려함에 나타나야 한다 = 반려가 실제로 처리됐다는 증거" } }
+  - { action: screenshot, name: "13-e-drafter-rejected-box" }

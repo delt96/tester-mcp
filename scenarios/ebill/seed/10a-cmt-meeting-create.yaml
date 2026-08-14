@@ -1,0 +1,101 @@
+id: seed-10a-cmt-meeting-create
+title: "[시딩] 위원회 회의 ① 등록 → 안건 추가 → 결재선 지정 → 승인 요청"
+locale: kr
+login_as: cmtstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  ★ **`TS-EBS-01-010`(위원회 회의 등록)의 자동화다.** 전 구간 시딩(`00a`~`09`)에서 유일하게
+  건너뛴 구간이 "소관위원회가 회의를 만들고 승인을 받고 결과를 입력하는 것" 이다(사용자 확인 2026-08-13).
+
+  계정은 산출물과 일치한다 — `cmtstaff`=`cmtuser10`(소관위원회 직원, 회의 등록 주체),
+  `cmthead`=`cmtuser1`(소관위원회 부서장, 서명자). 산출물 `r119`~`r140` 과 같은 배역이다.
+
+  ★ **산출물의 `r119`~`r124`(수신함 → 이행요청 → 주이행자 지정)는 이 시나리오에 넣지 않았다.**
+  그 구간은 `seed-04`(부서별 이행요청 + [C] 주이행자)가 이미 덮는다. 여기서는 회의 자체만 본다.
+
+  ★ **참석예정자(`r128`~`r129`)는 넣지 않는다.** 등록 폼에서 참석자는 필수가 아니고
+  (`resolver` 는 `dueDate` 만 본다, cmtMtngCreate.vue:124-130), 결과등록 화면은
+  **참석자마다 출결을 필수로 요구**하므로(cmtMtngResult.vue:263) 참석자를 넣으면
+  `10b` 의 필수 입력이 참석자 수만큼 늘어난다. 참석자 경로는 별도 시나리오로 분리한다.
+  → **참석예정자 추가는 미검증으로 남는다.** 다만 사양은 확인돼 있다(사용자 2026-08-13 + 코드 대조):
+    · 참석예정자는 **같은 위원회 소속만** 고를 수 있다
+    · 출석여부(`com_code` 1017) `Y` 출석 / `N` 미출석 — **본인 부서 참석자는 `Y` 가 기본값**으로 채워진다
+      (cmtMtngResult.vue:72-73)
+    · `N` 을 고르면 사유(`com_code` 1047)가 필수 — `BIZ_TRIP` 출장 / `VACATION` 휴가 / `ETC` 기타
+    · `ETC` 일 때만 기타사유 입력칸이 열린다(cmtMtngResult.vue:235-236)
+  나중에 이 경로를 시나리오로 만들 때 위 값을 그대로 쓰면 된다.
+
+  안건은 **step 1400(위원회 심사)** 에 있는 의안을 쓴다. 2026-08-13 기준 `6-6982/26`
+  (`E2E-02 본회의 부의취소 테스트`)와 `6-6983/26` 이 1400 에 있다. 앞의 것을 쓴다.
+  ⚠ 안건 추가는 의안 단계를 바꾸지 않는다(1400 self-loop 구간). 회의에 얹기만 한다.
+
+  ⚠ **비가역**: 회의가 실제로 생성되고 승인 요청까지 나간다. 되돌리려면 결재선을 취소해야
+  초안으로 돌아온다(`mtngApvl/01` 참조). 회의 자체는 남는다.
+
+  ★ **날짜 입력**: `DatePickerComp` 는 locale 별 포맷이 다르다(`utils/pvLocale.js`:
+  kr=`yy-mm-dd`, ru/kg=`dd-mm-yy`). 이 시나리오는 `locale: kr` 이므로 `2026-08-20` 형식.
+  `seed-09` 에서 검증된 방식이다.
+
+  산출물: 회의상태 **'임시저장'(statCd 3, DRAFT)** → 서명자 1명 지정 → **'결재대기'**.
+  `10b` 가 이어받아 승인하고 결과를 등록한다.
+on_failure: stop
+steps:
+
+  # ── 1) 위원회회의관리 → 회의등록
+  - { action: navigate, url: "/main/mtng/cmtMtng" }
+  - { action: wait_for, target: { ref: content_title, description: "위원회회의관리 목록" } }
+  - { action: screenshot, name: "10a-a-list" }
+  # [회의등록]은 <a class="v_btn btn_secondary btn_sm">(cmtMtngList.vue:161) — 조회 버튼(btn_primary)과 다른 클래스다
+  - { action: click, target: { css: "a.v_btn.btn_secondary.btn_sm", description: "[회의등록](10193) → fnGoSave → /main/mtng/cmtMtng/create" } }
+  - { action: wait_for, target: { ref: content_title, description: "회의 등록 화면" } }
+  - { action: screenshot, name: "10a-b-create-form" }
+
+  # ── 2) 회의일시 — 날짜·시·분 **셋 다** 필수다
+  # ⚠ 2026-08-13 1차 실행 실패로 확정: `mtngData = ref({})` 로 시작해 dueHour/dueMin 이 undefined 이고
+  #   resolver 가 셋 다 검사한다(cmtMtngCreate.vue:127).
+  #       if (!dueDate || !dueHour || !dueMin) errors.dueDate = ...
+  #   화면에는 회의일시(10186)에만 * 가 붙어 있어 날짜만 채우면 되는 것처럼 보이지만,
+  #   시/분을 비우면 **날짜 필드 아래에 '필수값입니다'** 가 뜬다 — 오류 위치가 원인과 다르다.
+  # 옵션 값은 padStart(2,'0') 문자열이다: time=['00'..'23'], min=['00','10','20','30','40','50'].
+  - { action: fill, target: { css: ".datepicker-comp input", description: "회의일시(10186) 날짜 — locale kr 이라 yy-mm-dd" }, value: "2026-08-20" }
+  - { action: fill, target: { css: ".input_group select.form_control:nth-of-type(1)", description: "회의 시(dueHour) 필수* — 네이티브 select, 값은 '00'~'23'" }, value: "14" }
+  - { action: fill, target: { css: ".input_group select.form_control:nth-of-type(2)", description: "회의 분(dueMin) 필수* — 값은 '00','10','20','30','40','50'" }, value: "30" }
+  - { action: fill, target: { css: "textarea.form_control.full", description: "비고(10111) — 선택. E2E 표식을 남겨 나중에 식별한다" }, value: "E2E-SEED 위원회 회의" }
+
+  # ── 3) 안건 추가
+  # ⚠ 안건추가는 <a class="v_btn btn_primary btn_sm">(10197), 저장은 <button type=submit ... btn_md> 다.
+  #   둘 다 btn_primary 라 태그와 크기(btn_sm/btn_md)로 갈린다.
+  - { action: click, target: { css: "a.v_btn.btn_primary.btn_sm", description: "[안건추가](10197) → mtngAgendaModal" } }
+  - { action: wait_for, target: { css: ".p-dialog .popup_tit", description: "'안건 등록하기'(10200) 모달" } }
+  - { action: screenshot, name: "10a-c-agenda-modal" }
+  # ⚠ 모달 검색칸 순서: 의안종류(select) / 의안번호(10292) / **의안명(10293)**  — mtngAgendaModal.vue:93-104
+  - { action: fill, target: { css: ".p-dialog .input_item:nth-child(3) input.form_control", description: "의안명(10293) 검색칸 — 3번째 input_item" }, value: "E2E-02" }
+  - { action: click, target: { css: ".p-dialog .search_btn button.v_btn.btn_primary.btn_md", description: "[조회](10053) — 라벨은 '조회'다" } }
+  - { action: wait_for, target: { css: ".p-dialog .p-datatable-tbody tr", description: "필터된 안건 목록" } }
+  # ★ 단언한 행과 조작한 행을 일치시킨다(seed-05 1차 사고 규칙)
+  - { action: assert_visible, target: { css: ".p-dialog .p-datatable-tbody tr:first-child", text: "E2E-02", description: "첫 행이 E2E-02 인지 확인하고 나서 체크한다" } }
+  - { action: click, target: { css: ".p-dialog .p-datatable-tbody tr:first-child .p-checkbox", description: "selectionMode='multiple' 체크박스(mtngAgendaModal.vue:115)" } }
+  - { action: screenshot, name: "10a-d-agenda-selected" }
+  - { action: click, target: { css: ".p-dialog .popup_footer button.v_btn.btn_primary.btn_md", description: "[확인](10089) → fnSendList. 옆의 [취소](10163)는 btn_outline_neutral 이라 안 겹친다" } }
+  - { action: assert_visible, target: { css: ".v_table .p-datatable-tbody tr", text: "E2E-02", description: "본 화면 안건 목록에 추가됨" } }
+  - { action: screenshot, name: "10a-e-agenda-added" }
+
+  # ── 4) 저장 → 임시저장 상태
+  - { action: click, target: { css: "button[type=submit].v_btn.btn_primary.btn_md", description: "[저장](10174) → 회의 생성. 안건추가(a.btn_sm)와 태그·크기로 구분된다" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "저장 확인 팝업" } }
+  - { action: click, target: { ref: confirm_accept, description: "예 → POST 회의 등록" } }
+  - { action: wait_for, target: { ref: datatable, description: "목록으로 복귀" } }
+  - { action: screenshot, name: "10a-f-saved" }
+
+  # ── 5) 목록에서 생성 확인 — 여기까지가 이 시나리오다
+  # ⚠ 목록 날짜 표기는 **dd/MM/yyyy** 다(입력은 yy-mm-dd, 표시는 20/08/2026).
+  #   입력 포맷으로 단언하면 안 된다 — 2026-08-13 1차 실행에서 확인.
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "20/08/2026", description: "첫 행이 방금 만든 회의(회의일시 20/08/2026)" } }
+  - { action: screenshot, name: "10a-g-created" }
+
+  # ⚠ **상세 진입은 이 시나리오에서 하지 않는다.** 2026-08-13 2차 실행에서 목록 첫 행
+  #   double_click 뒤 `mtapv_section` 을 못 찾아 groping(computer 43회)으로 죽었다.
+  #   회의는 정상 생성됐다(DB: mtng_id 894, stat_cd '3', due_dtm 202608201430) —
+  #   즉 등록은 성공했고 **목록→상세 이동만 불안정**하다.
+  #   `mtngApvl` 스위트가 전부 `detail?mtngId=NNN` 으로 직접 진입하는 것도 같은 이유로 보인다.
+  #   → 결재선·승인·결과등록은 `10b` 가 mtngId 를 받아 URL 로 직접 들어가서 이어간다.

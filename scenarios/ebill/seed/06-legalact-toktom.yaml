@@ -1,0 +1,102 @@
+id: seed-06-legalact-toktom
+title: "[시딩] 법적행위(1900) — 톡돔 작성 → 부서장 결재 (정부이송 전 단계)"
+locale: kr
+login_as: lgactstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  의안이 **step 1900(법적행위)** 이어야 한다 → `seed-05` 의 [본회의검증요청]이 만든 LEGAL_ACTION
+  태스크가 status=P 로 있어야 한다.
+
+  ★ 이 화면은 앞 단계들과 **접근 방식이 다르다.** 위원회·언어·전문심사는 [C] 주 이행자로
+  지정돼야 버튼이 나왔지만, 법적행위는 그런 이행요청 단계가 없다.
+  billMngDtl.vue:82 주석에 이유가 적혀 있다 — 문서상 역할이 아니라 **의안의 step 으로 게이트**하고,
+  접근 통제는 메뉴 리다이렉트 + API 의 `@PreAuthorize('LGACT')` 가 맡는다. 그래서 LGACT 권한
+  계정이면 바로 [톡돔 작성]이 보인다. seed-04 같은 사전 배정 시나리오가 필요 없다.
+
+  ⚠ `t('10833')` 은 '이행문서 작성'이 아니라 **'톡돔 작성'** 이다. 화면에는 톡돔 관련 버튼이
+  둘이라 헷갈린다 — `10833`(톡돔 작성)은 첫 문서를 만들 때, `11156`(톡돔 추가하기)은
+  result_doc_id 가 이미 있을 때 나온다(billMngDtl.vue:84). 지금은 result_doc_id 가 비어 있어
+  전자만 보인다.
+
+  결재해도 **의안 단계는 안 올라간다.** `1900 --PLENARY_VERIFICATION--> 1900` self-loop 이고
+  (`ebs_bp_step_transition` id 20), 백엔드도 mirror 만 한다:
+    BillMngServiceImpl:501  // Mirror only: completing the LEGAL_ACTION task here would consume the task
+  단계를 3200 으로 올리는 건 [정부이송작업](11072) 이다 → 별도 시나리오.
+  seed-04b 와 같은 구조이니 "PASS 인데 왜 1900 그대로냐"로 오해하지 말 것.
+
+  수신자·승인자는 과거 실데이터에서 뽑았다(2026-08-12 DB 확인):
+    eas_received_info — LEGAL_ACTION 결과문서 3건 중 2건이 수신자 gduser1(Жалпы бөлүм)
+    eas_approval      — 승인자 legalactuser(법적행위 부서장)
+
+  산출물: LEGAL_ACTION 태스크에 result_doc_id 가 채워지고 [톡돔 추가하기]가 열린다.
+on_failure: stop
+steps:
+
+  # ── 1) 법적행위 부서원(legalactuser2) — 대상 의안 찾기
+  # 목록 기본 상태필터가 searchStatCd='ST130'(billMngList.vue:24)인데 step 1900 의 stat_cd 가
+  # 정확히 ST130 이라(ebs_bp_step) 필터를 건드리지 않아도 우리 의안이 나온다.
+  - { action: navigate, url: "/main/billMng/legalActMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "본회의검증(법적행위) 목록" } }
+  - { action: screenshot, name: "06-a-legalact-list" }
+  # ★ 의안명으로 먼저 좁힌다 — seed-05 1차가 필터 없이 첫 행을 집어 남의 의안을 부의했다(§2-2).
+  #   input_item 순서: 의안번호 / 의안명 / 상태 (billMngList.vue:139-153). 라벨은 i18n 이라 위치로 잡는다.
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
+  - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
+  - { action: screenshot, name: "06-b-filtered" }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 법적행위 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
+  - { action: screenshot, name: "06-c-detail" }
+
+  # ── 2) 톡돔 작성 — billType=PLENARY_VERIFICATION 으로 InsertLetter 모달이 열린다
+  # ⚠ '톡돔 작성'(10833)과 '톡돔 추가하기'(11156)는 다른 버튼이다. 전자만 눌러야 하며
+  #   text 는 부분일치라 '톡돔' 만 쓰면 둘 다 걸린다 — 전체 문자열로 지정한다.
+  - { action: assert_visible, target: { css: ".btn_group_fixed button.v_btn.btn_primary", text: "톡돔 작성", description: "[톡돔 작성](10833). 없으면 result_doc_id 가 이미 있거나 LGACT 권한이 아니다" } }
+  - { action: click, target: { css: ".btn_group_fixed button.v_btn.btn_primary", text: "톡돔 작성", description: "[톡돔 작성] → 문서 작성 모달" } }
+  - { action: wait_for, target: { css: ".p-dialog", description: "톡돔 작성 모달" } }
+  - { action: screenshot, name: "06-d-toktom-modal" }
+
+  # ── 3) 필수값 — 앞 단계 의견서 모달과 같은 InsertLetter 컴포넌트라 셀렉터가 동일하다
+  # ⚠ .p-dialog 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 언어가 아니다.
+  #   그걸 누르면 공문파일 칸이 사라져 뒤의 upload 가 통째로 실패한다.
+  - { action: click, target: { css: ".language_area .check_item input[type=checkbox]", description: "언어 체크박스 첫 번째(국가언어) — 필수(EA-09)" } }
+  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 톡돔" }
+  - { action: fill, target: { css: ".p-dialog .recipient_area .p-autocomplete-input", description: "수신자(내부기관) — 총무국 gduser1" }, value: "gduser1" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "gduser1 선택 — 후보가 1건이라 text 지정 불필요" } }
+  # 승인자 legalactuser 는 후보가 2건(부서장·직원)이라 text:"부서장" 으로 좁힌다(README 계정표).
+  - { action: fill, target: { css: ".p-dialog .approve .p-autocomplete-input", description: "승인자 — 법적행위 부서장(legalactuser)" }, value: "legalactuser" }
+  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "legalactuser(부서장) 선택 — 접두어를 공유하는 legalactuser2(직원)와 갈라야 한다" } }
+  - { action: upload, target: { css: "#officialfile", description: "공문파일 input(README: 톡돔 작성 = 공문파일 1개)" }, file: "documentSample.pdf" }
+  - { action: screenshot, name: "06-e-toktom-filled" }
+  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일이 있어야 통과한다(seed-02/04b/04c 에서 검증된 패턴)" } }
+  - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
+  - { action: screenshot, name: "06-f-toktom-registered" }
+
+  # ── 4) 법적행위 부서장(legalactuser) — 결재
+  - { use: switch-account, with: { account: lgactuser } }
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 톡돔", description: "톡돔 문서" } }
+  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역" } }
+  - { action: screenshot, name: "06-g-approval-detail" }
+  # 개발환경은 esign 미접근이라 PIN 없이 즉시 승인된다(2026-08-12 사용자 확인)
+  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] → mirrorLegalActStampedFile. 단계는 1900 그대로다(self-loop)" } }
+  - { action: screenshot, name: "06-h-approved" }
+
+  # ── 5) 결과 확인 — [톡돔 추가하기]가 열렸으면 result_doc_id 가 채워진 것이다
+  # btnAddToktom = !isEmpty(task.resultDocId) && !isResultDocRejected (billMngDtl.vue:84)
+  # 즉 이 버튼의 등장 자체가 result_doc_id 가 생겼다는 화면상 증거다.
+  - { use: switch-account, with: { account: lgactstaff } }
+  - { action: navigate, url: "/main/billMng/legalActMng/billMng" }
+  - { action: wait_for, target: { ref: datatable, description: "법적행위 목록" } }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
+  - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "다시 상세로" } }
+  - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
+  - { action: screenshot, name: "06-i-after-approval" }
+  - { action: assert_visible, target: { css: ".btn_group_fixed button.v_btn.btn_primary", text: "톡돔 추가하기", description: "[톡돔 추가하기](11156) 노출 = result_doc_id 채워짐. 안 보이면 결재가 실제로는 안 걸린 것" } }
+  - { action: assert_visible, target: { css: ".btn_group_fixed a.v_btn.btn_primary", text: "정부이송작업", description: "[정부이송작업](11072) — 다음 시나리오(3200 전이)의 진입점이 열려 있는지" } }

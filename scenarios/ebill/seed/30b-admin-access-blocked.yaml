@@ -1,0 +1,35 @@
+id: seed-30b-admin-access-blocked
+title: "[음성] 일반 권한 계정으로 관리자 접속이력 화면 직접 접근"
+locale: kr
+login_as: gduser
+tags: [seed, admin, readonly, negative]
+precondition: >
+  ★ **산출물 `TS-EBS-10` r847 · `TS-EBS-11` r851 을 덮는다.**
+    "일반 권한(비 system) 계정으로 관리자 메뉴에 직접 접근 → 접근이 차단되고 오류 화면이 표시됨"
+
+  ★ **막는 주체는 라우터가 아니라 API 다.** `router/index.js` 에는 권한 가드가 없어
+    **URL 로 들어가면 화면 자체는 그려진다.** 차단은 `/api/admin/acsHist` 응답에서 일어나고,
+    `fnLoadData` 의 `.catch` 가 `list.value = []` 로 비운다(AcsHistView.vue:55-57).
+    ⇒ 관찰 대상은 "오류 페이지로 튕기는가"가 아니라 **"이력 데이터가 새지 않는가"** 다.
+    그래서 이 시나리오의 핵심 단언은 **데이터 행이 없다**는 음성 단언이다.
+
+  ★ **이 단언이 FAIL 하면 그것이 곧 결함이다** — 일반 사용자에게 전 사용자 접속 이력이
+    노출된다는 뜻이 된다. PASS 는 "차단이 실제로 걸린다"는 증거다.
+
+  ⚠ 산출물 서술의 "오류 화면이 표시됨" 부분은 이 시나리오로 **확정할 수 없다.**
+    화면이 그려지되 목록만 비는 형태일 수 있어, 스크린샷으로 실제 표출을 남긴다.
+
+  ⚠ 비파괴 — 조회만 한다.
+on_failure: continue
+steps:
+  - { action: navigate, url: "/main/system/acsHist" }
+  # 화면이 그려지든 오류로 튕기든 이 대기는 지나가야 한다. content_inner 는 레이아웃 공통.
+  - { action: wait_for, target: { css: ".content_inner", description: "라우팅 결과 화면(오류 화면일 수도 있다)" } }
+  - { action: screenshot, name: "30b-a-acshist-as-gduser" }
+  # ★ 핵심 — 일반 사용자에게 접속 이력 행이 보이면 안 된다
+  - { action: assert_not_visible, target: { ref: datatable_row, description: "★ r847 — 접속이력 데이터 행이 노출되지 않는다" } }
+
+  - { action: navigate, url: "/main/system/billAcsHist" }
+  - { action: wait_for, target: { css: ".content_inner", description: "의안접속이력 라우팅 결과" } }
+  - { action: screenshot, name: "30b-b-billacshist-as-gduser" }
+  - { action: assert_not_visible, target: { ref: datatable_row, description: "★ r851 — 의안접속이력 데이터 행이 노출되지 않는다" } }

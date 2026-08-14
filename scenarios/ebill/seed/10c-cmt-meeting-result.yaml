@@ -1,0 +1,77 @@
+id: seed-10c-cmt-meeting-result
+title: "[시딩] 위원회 회의 ③ 결과보고 등록 (예정 → 완료)"
+locale: kr
+login_as: cmtstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  ★ **`TS-EBS-01-011`(위원회 회의 결과 등록)의 자동화다.** `10a` → `10b` 를 거친
+  **statCd '1'(예정)** 회의를 소비한다. 현재 값 **894** 는 2026-08-13 산출물이다
+  (`10b` 승인 후 stat_cd '3' → '1', req_id 46 APPROVED 확인).
+  ⚠ 재실행 시 아래 `mtngId=894` 를 새 회의 번호로 바꿀 것 — 시나리오 `vars:` 는 치환되지 않는다
+  (2026-08-13 실측, `10b` 참조).
+
+  ★ **필수값이 화면 표시보다 많다.** `resolver`(cmtMtngResult.vue:248-266) 는 셋을 본다:
+
+    ① 회의일시 — `openDate` · `openHour` · `openMin` · `closeHour` · `closeMin` **5개 전부**
+       (`mtngData = ref({})` 로 시작해 시/분이 undefined 다. `10a` 에서 겪은 것과 같은 구조)
+       ⚠ 다섯 중 하나만 비어도 오류는 **날짜 필드 아래 하나로** 뜬다(`errors.date`) — 원인과 표시 위치가 다르다.
+    ② **안건마다 `rsltCd`** — 안건이 N건이면 N개를 다 골라야 한다(`errors[agenda.billNo]`)
+    ③ 참석자 중 `atdtDivCd === 'N'`(결석)인 사람의 `absRsnCd`
+       → `10a` 에서 참석자를 넣지 않았으므로 이 루프는 비어 있다. **참석자 출결은 미검증으로 남는다.**
+
+  회의결과보고서 첨부는 `resolver` 가 보지 않는다 — **선택 항목**이다.
+  그래도 산출물 `r145` 에 있으므로 함께 올려 검증한다.
+
+  회의 결과 코드(`com_code_detail` grp_code 1008, 2026-08-13 실측):
+      CM01 가결 / CM02 부결 / CM03 안건에서 제외됨   → 산출물 `r145` 와 같이 **가결(CM01)** 을 쓴다.
+
+  ⚠ 산출물 `r145` 는 "결과는 선택 후 **확인 팝업을 거쳐** 저장"이라고 적고 있으나,
+  위원회 결과 화면의 결과 select 에는 `@change` 가 없다(cmtMtngResult.vue 안건 Column).
+  확인 팝업은 **[결과보고저장]** 을 눌렀을 때 한 번 뜬다(`t('10219')` 결과보고를 저장하시겠습니까?).
+  → 이 차이는 실행으로 확정한다.
+
+  ⚠ **비가역**: 저장하면 회의가 완료 상태가 되고 되돌리는 기능이 화면에 없다.
+
+  ★ 목록을 거치지 않고 **상세 → [결과보고]** 로 들어간다. `10a` 에서 목록 첫 행 double_click 이
+  groping 으로 죽은 전례가 있어 목록 경유를 피한다. 대신 [결과보고] 버튼 노출은 여기서 검증된다.
+on_failure: stop
+steps:
+
+  # ── 1) 회의 상세 → [결과보고]
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=894" }
+  - { action: wait_for, target: { ref: content_title, description: "위원회 회의 상세" } }
+  - { action: screenshot, name: "10c-a-detail" }
+  # ⚠ 하단 btn_group_fixed 에 [수정](10157)·[회의취소](10545)·[결과보고](10218)가 **전부 같은
+  #   a.v_btn.btn_primary.btn_md** 다(cmtMtngDetail.vue:314-316). 텍스트로만 갈린다.
+  - { action: click, target: { css: ".btn_group_fixed a.v_btn.btn_primary.btn_md", text: "결과보고", description: "[결과보고](10218) — authBtnReport 가 true 여야 보인다. 없으면 회의가 '예정' 상태가 아닌 것" } }
+  - { action: wait_for, target: { ref: content_title, description: "회의 결과 입력 화면" } }
+  - { action: screenshot, name: "10c-b-result-form" }
+
+  # ── 2) 회의일시 5종 — 화면에는 * 가 하나지만 다섯이 다 필요하다
+  - { action: fill, target: { css: ".datepicker-comp input", description: "회의일자(openDate) — locale kr 이라 yy-mm-dd" }, value: "2026-08-20" }
+  - { action: fill, target: { css: ".input_group select.form_control:nth-of-type(1)", description: "개회 시(openHour) 필수*" }, value: "14" }
+  - { action: fill, target: { css: ".input_group select.form_control:nth-of-type(2)", description: "개회 분(openMin) 필수*" }, value: "30" }
+  - { action: fill, target: { css: ".input_group select.form_control:nth-of-type(3)", description: "폐회 시(closeHour) 필수*" }, value: "16" }
+  - { action: fill, target: { css: ".input_group select.form_control:nth-of-type(4)", description: "폐회 분(closeMin) 필수*" }, value: "00" }
+  - { action: screenshot, name: "10c-c-datetime" }
+
+  # ── 3) 안건 결과 — 안건마다 필수
+  # ★ 조작 전에 그 행이 맞는지 단언한다(seed-05 1차 사고 규칙).
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "6-6982/26", description: "10a 가 넣은 안건이 실려 있는지 — 다른 안건에 결과를 찍으면 안 된다" } }
+  - { action: fill, target: { css: ".p-datatable-tbody tr:first-child select.form_control", description: "안건 결과(10223) 필수* — 네이티브 select. CM01=가결" }, value: "CM01" }
+  - { action: assert_value, target: { css: ".p-datatable-tbody tr:first-child select.form_control", description: "결과가 실제로 들어갔는지 — select 는 눈으로 안 보이면 놓치기 쉽다" }, value: "CM01" }
+  - { action: screenshot, name: "10c-d-agenda-result" }
+
+  # ── 4) 회의결과보고서 첨부 + 비고 (둘 다 선택 항목)
+  # billFileInput.vue:185 — input id 가 런타임 생성(inputFileId)이라 id 로 못 잡는다. 클래스로 잡는다.
+  - { action: upload, target: { css: "input[type=file].form_file", description: "회의결과보고서(10222) — 선택 항목이지만 산출물 r145 에 있어 함께 검증" }, file: "documentSample.pdf" }
+  - { action: fill, target: { css: "textarea.form_control.full", description: "비고(10111)" }, value: "E2E-SEED 수정 의결" }
+  - { action: screenshot, name: "10c-e-filled" }
+
+  # ── 5) 저장
+  # [결과보고저장]은 btn_group_fixed 의 유일한 button[type=submit] 이다(옆의 [목록]은 btn_outline_primary).
+  - { action: click, target: { css: ".btn_group_fixed button[type=submit].v_btn.btn_primary.btn_md", description: "[결과보고저장](10220) → fnSave → confirm(10219)" } }
+  - { action: wait_for, target: { ref: confirm_popup, description: "'결과보고를 저장하시겠습니까?'(10219)" } }
+  - { action: click, target: { ref: confirm_accept, description: "예 → 결과 저장" } }
+  - { action: wait_for, target: { ref: datatable, description: "목록으로 복귀(산출물 r146)" } }
+  - { action: screenshot, name: "10c-f-saved" }

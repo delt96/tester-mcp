@@ -1,0 +1,83 @@
+id: seed-10b-cmt-meeting-approve
+title: "[시딩] 위원회 회의 ② 결재선 지정 → 승인 요청 → 부서장 승인 (임시저장 → 예정)"
+locale: kr
+login_as: cmtstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  ★ **`10a` 가 만든 회의를 소비한다.** `10a` 실행 후 DB 에서 `mtng_id` 를 확인해
+  이 파일의 `vars.mtng_id` 를 바꿔 넣어야 한다. 확인 쿼리:
+
+      select mtng_id, stat_cd, due_dtm from kgst.ebs_mtng
+      where rmk like 'E2E-SEED%' order by reg_dt desc limit 1;
+
+  현재 값 **894** 는 2026-08-13 `10a` 실행 산출물이다(stat_cd '3', due_dtm 202608201430).
+  ⚠ 시나리오 파일의 `vars:` 는 치환되지 않는다 — `vars` 는 `-c` 로 넘기는 config 에서만 온다
+  (2026-08-13 실측: `{{vars.mtng_id}}` 가 그대로 남아 executor 가 URL 을 못 만들고 중단).
+  그래서 `mtngApvl` 스위트와 같이 **URL 에 직접 박는다.** 재실행 시 아래 3곳의 `mtngId=894` 를 함께 바꿀 것.
+
+  ★ **왜 URL 로 직접 들어가나** — `10a` 2차 실행에서 목록 첫 행 double_click 뒤
+  결재선 섹션을 못 찾아 groping 으로 죽었다. 회의는 정상 생성됐으므로 등록이 아니라
+  **목록→상세 이동이 불안정**한 것이다. `mtngApvl` 스위트 10개가 전부
+  `detail?mtngId=NNN` 으로 직접 진입하는 것과 같은 선택이다.
+
+  결재선 섹션은 `v-if="editable || data !== null"` 이고 `editable = statCd == '3'`
+  (cmtMtngDetail.vue:307, MtngApprovalLineSection.vue:199). 즉 **임시저장 상태에서만
+  서명자 지정·승인 요청 버튼이 뜬다.** 이미 승인된 회의로 돌리면 버튼이 없다.
+
+  ★ 배역은 산출물 `TS-EBS-01-010` 과 같다 — `cmtstaff`(cmtuser10)가 요청하고
+  `cmthead`(cmtuser1)가 승인한다.
+
+  ⚠ **비가역**: 최종 승인 시 `changeMtngStatusAsScheduled` 로 회의가 statCd '1'(예정)이 되고
+  **위원회 구성원에게 알림이 발송된다**(mtngApvl/02 실측). 되돌리는 기능은 화면에 없다.
+
+  ⚠ 전자서명 PIN 모달은 이 환경에서 뜨지 않는다 — `VITE_ENABLE_SIGN=false`
+  (.env.local/staging/production). 운영은 켜져 있어 PIN 단계가 추가된다(사용자 확인 2026-08-13).
+  그래서 승인은 `confirm_accept` 하나로 끝난다(mtngApvl/10 에서 별도 검증됨).
+
+  산출물: 회의 **statCd '3'(임시저장) → '1'(예정)**. `10c` 가 결과보고를 이어받는다.
+on_failure: stop
+steps:
+
+  # ── 1) 회의 상세 직접 진입 → 초안 상태 확인
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=894" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "결재선 섹션 — 여기서 멈추면 회의가 이미 초안이 아니거나 mtng_id 가 틀린 것" } }
+  - { action: assert_visible, target: { ref: mtapv_empty, description: "서명자 없음 빈 상태 = 아직 결재선 미지정" } }
+  - { action: assert_visible, target: { ref: mtapv_assign_btn, description: "[서명자 지정/변경] 노출 = editable(statCd '3')" } }
+  - { action: screenshot, name: "10b-a-draft" }
+
+  # ── 2) 서명자 지정 — 소관위원회 부서장(cmtuser1)
+  # mtngApvl/01·02 에서 검증된 경로. 탭이 제거돼 검색 입력이 모달 오픈 앵커다.
+  - { action: click, target: { ref: mtapv_assign_btn } }
+  - { action: wait_for, target: { ref: mapvl_search_input, description: "서명자 지정 모달" } }
+  - { action: fill, target: { ref: mapvl_search_input }, value: "cmtuser1" }
+  - { action: wait_for, target: { ref: mapvl_user_row, description: "검색 결과(디바운스 350ms)" } }
+  - { action: click, target: { ref: mapvl_user_row_first, description: "소관위원회 부서장 선택" } }
+  - { action: assert_visible, target: { ref: mapvl_chip_num, text: "1", description: "선택 칩 순번 1" } }
+  - { action: screenshot, name: "10b-b-signer-picked" }
+  - { action: click, target: { ref: mapvl_save_btn, description: "[저장] → PUT /bill/mtng/apvl/signers. ⚠ 이 모달은 저장이 btn_outline_primary, 취소가 btn_primary 로 색이 뒤집혀 있다" } }
+  - { action: wait_for, target: { ref: mtapv_chip, description: "섹션에 서명자 칩 반영" } }
+  - { action: screenshot, name: "10b-c-signer-assigned" }
+
+  # ── 3) 승인 요청
+  - { action: click, target: { ref: mtapv_request_btn, description: "[승인 요청] — 확인 단계 없이 즉시 전환(mtngApvl/01 실측)" } }
+  - { action: wait_for, target: { ref: mtapv_badge, description: "요청 후 상태 배지" } }
+  - { action: assert_visible, target: { ref: mtapv_chip_turn, description: "1번 서명자 SENT 하이라이트 = 요청 전달됨" } }
+  - { action: screenshot, name: "10b-d-requested" }
+
+  # ── 4) 부서장으로 전환해 승인
+  - { use: switch-account, with: { account: cmthead } }
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=894" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "승인자 화면" } }
+  - { action: assert_visible, target: { ref: mtapv_approve_btn, description: "본인이 현재 결재자 → [승인] 노출. 없으면 서명자 지정이 다른 계정으로 들어간 것" } }
+  - { action: screenshot, name: "10b-e-approver-view" }
+  - { action: click, target: { ref: mtapv_approve_btn, description: "[승인] → useConfirm 팝업" } }
+  - { action: wait_for, target: { ref: confirm_popup } }
+  - { action: click, target: { ref: confirm_accept, description: "승인 확정 → POST /bill/mtng/apvl/approve (pinCode null — PIN 모달 없음)" } }
+  - { action: wait_for, target: { ref: mtapv_badge_approved, description: "전체 상태 배지 = 승인 완료" } }
+  - { action: screenshot, name: "10b-f-approved" }
+
+  # ── 5) 재진입해 상태 유지 확인
+  - { action: navigate, url: "/main/mtng/cmtMtng/detail?mtngId=894" }
+  - { action: wait_for, target: { ref: mtapv_section, description: "재진입 — statCd '1'(예정) 이 되어도 섹션은 결과를 계속 보여준다" } }
+  - { action: assert_visible, target: { ref: mtapv_badge_approved, description: "재조회에서도 APPROVED 유지 = 승인이 저장됐다" } }
+  - { action: screenshot, name: "10b-g-reentered" }

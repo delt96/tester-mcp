@@ -1,0 +1,48 @@
+id: seed-20-approver-detail
+title: "[시딩] 결재자 상세 확인 — 결재 목록 접기/펼치기 + 상태 아이콘 팝오버"
+locale: kr
+login_as: cmthead
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-35`(결재자 상세 확인)의 자동화다.**
+  `cmtuser1` 의 결재대기함에 문서가 1건 이상 있으면 된다. `seed-11` 을 여러 번 돌려
+  `E2E-SEED 결재문서 답변용` 이 쌓여 있다.
+
+  ⚠ **조회 전용이다 — 결재/반려를 누르지 않는다.** 비가역 동작이 없어 반복 실행해도 안전하다.
+  대신 **결재대기함의 문서를 소비하지 않으므로** 다른 시나리오와 순서를 다툴 필요가 없다.
+
+  ★ 화면 구조(ApprovalListComponent.vue:47-73):
+      결재 목록 헤더 `t('10270')` + 접기/펼치기 버튼
+        → `button > i.pi-chevron-up`(펼침) / `i.pi-chevron-down`(접힘)
+        ⚠ **아이콘 클래스가 상태에 따라 바뀐다.** 접힘/펼침을 클래스로 판정할 수 있다.
+      `.approvals`(v-show=isFolding) > `.approval` 각 결재자 행
+        → 좌측 상태 아이콘이 `ApplovaledInfoDetailPopover` 다.
+          클릭 대상은 `div @click="toggle"` 안의 `i.pi`(19행) — 별도 클래스가 없어
+          **`.approval` 안의 첫 요소로 잡는다.**
+      팝오버는 PrimeVue `Popover` 라 `.p-popover` 로 뜬다.
+
+  ⚠ 결재 목록은 기본이 **펼침**인지 접힘인지 화면마다 다를 수 있어, 토글을 두 번 눌러
+  **접힘 → 펼침 왕복**을 확인한다. 한 방향만 보면 초기 상태에 따라 결과가 갈린다.
+on_failure: continue
+steps:
+
+  # ── 1) 결재대기함에서 문서 열기
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서", description: "결재대기 문서를 연다(조회만 하므로 어느 건이든 무방)" } }
+  - { action: wait_for, target: { css: ".approvals", description: "결재 목록 영역 로드" } }
+  - { action: screenshot, name: "20-a-detail" }
+
+  # ── 2) 결재 목록 접기 → 펼치기 왕복
+  - { action: assert_visible, target: { css: ".approvals .approval", description: "펼쳐진 상태에서 결재자 행이 보인다" } }
+  - { action: click, target: { css: ".section_header button:has(i.pi-chevron-up), div:has(> button > i.pi-chevron-up) > button", description: "접기 — 아이콘이 chevron-up 이면 현재 펼침 상태다" } }
+  - { action: screenshot, name: "20-b-folded" }
+  - { action: click, target: { css: "button:has(i.pi-chevron-down)", description: "다시 펼치기 — 접힌 상태에서는 아이콘이 chevron-down 으로 바뀐다" } }
+  - { action: assert_visible, target: { css: ".approvals .approval", description: "다시 펼쳐져 결재자 행이 보인다" } }
+  - { action: screenshot, name: "20-c-unfolded" }
+
+  # ── 3) 상태 아이콘 클릭 → 팝오버
+  - { action: click, target: { css: ".approvals .approval i.pi", description: "결재자 좌측 상태 아이콘(ApplovaledInfoDetailPopover) → toggle" } }
+  - { action: wait_for, target: { css: ".p-popover", description: "결재 상태 상세 팝오버(PrimeVue Popover)" } }
+  - { action: assert_visible, target: { css: ".p-popover .received_main_area", description: "팝오버 본문 — 수신/열람/결재 시각이 표시되는 영역" } }
+  - { action: screenshot, name: "20-d-popover" }

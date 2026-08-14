@@ -1,0 +1,74 @@
+id: seed-30-access-history
+title: "[조회] 시스템접속이력 · 의안접속이력 — 진입·검색·초기화·정렬 미제공"
+locale: kr
+login_as: tester
+tags: [seed, admin, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-10`(시스템접속이력) r848 과 `TS-EBS-11`(의안접속이력) r852~r854 를 덮는다.**
+    r847·r851(일반 권한 차단)은 계정이 달라 **`seed-30b` 로 분리**했다.
+
+  ★ **엑셀 다운로드(r849·r855)는 이 시나리오로 검증할 수 없다.**
+    · tester-mcp DSL 에 `download` 액션이 없다.
+    · `fnExcelDownload` 는 서버 파일이 아니라 **브라우저에서 xlsx 를 조립해 내려받는다**
+      (`store.fnExcelDownload`) — 클릭해도 화면에 남는 증거가 없다.
+    → 버튼 존재만 확인하고 **클릭하지 않는다.** 다운로드 자체는 수동 확인 대상이다.
+    다만 "현재 페이지가 아닌 검색 결과 전체"라는 서술은 **코드로 확인된다** —
+    `fnExcelDownload` 가 `page: 0, size: 999999` 로 다시 조회한다(AcsHistView.vue:88-89).
+
+  ★ **조회 기간 기본값이 '오늘'이다** (`stDt = edDt = dayjs()`, AcsHistView.vue:20-21).
+    `onMounted` 가 곧바로 `fnSearch()` 를 호출하므로 첫 화면은 **오늘 이력만** 보여준다.
+    2026-08-14 기준 `com_acs_hist` 오늘 6,601건 · `ebs_acs_hist` 오늘 11건이라 목록이 채워진다.
+    ⚠ 오늘 접속이 없는 날에 돌리면 빈 목록이 뜬다 — **그건 결함이 아니다.**
+
+  ★ **`[초기화]` 는 처음 상태로 되돌리지 않는다.** `fnReset` 이 `stDt` 를 **1개월 전**으로 놓는다
+    (AcsHistView.vue:112). 초기 진입값(오늘)과 다르다 — 의도된 것인지 확인된 바 없어 사실만 적는다.
+
+  ★ 화면 구조(두 화면이 동일하다):
+    · `.board_search .form_row` 안에 `.input_item` 3개 — (1) 사용자명 (2) URL (3) 기간 DatePicker
+    · 조회 `.search_btn button.btn_primary` · 초기화 `.search_btn button.btn_outline_primary`
+    · 총건수 `.board_info .total_num .text_primary`
+
+  ⚠ 비파괴 — 조회만 한다. 저장·삭제 동작이 없다.
+on_failure: stop
+steps:
+  # ══════════ TS-EBS-10 시스템접속이력 (r848) ══════════
+  - { action: navigate, url: "/main/system/acsHist" }
+  - { action: wait_for, target: { ref: datatable, description: "★ r848 — 시스템접속이력 목록 화면(onMounted 가 fnSearch 를 즉시 호출)" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "총건수(10104) 표시" } }
+  - { action: assert_visible, target: { ref: datatable_row, description: "오늘자 접속 이력 행이 있다(2026-08-14 기준 6,601건)" } }
+  - { action: screenshot, name: "30-a-acshist-list" }
+
+  # 정렬 UI 가 없다는 것을 음성 단언으로 잡는다.
+  # Column 에 sortable 이 없으므로 PrimeVue 가 정렬 아이콘을 렌더하지 않는다.
+  - { action: assert_not_visible, target: { css: ".v_table.table_list .p-datatable-thead .p-datatable-sort-icon", description: "★ 정렬 변경 기능 미제공 — 헤더에 정렬 아이콘이 없다" } }
+
+  # 엑셀 다운로드 버튼 — 존재만 확인하고 누르지 않는다(위 precondition 참조)
+  - { action: assert_visible, target: { css: ".board_info .right button.v_btn.btn_outline_secondary.btn_sm", description: "[엑셀 다운로드](10055) 버튼 존재. ⚠ 클릭하지 않는다" } }
+
+  # 검색 — 사용자명으로 좁힌다
+  - { action: click, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control", description: "사용자명(10152) 입력칸 포커스" } }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control" }, value: "admin" }
+  - { action: assert_value, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control" }, value: "admin" }
+  - { action: click, target: { ref: board_search_btn, description: "[조회](10053) → fnSearch" } }
+  - { action: wait_for, target: { ref: board_total_num, description: "검색 결과 총건수 갱신" } }
+  - { action: screenshot, name: "30-b-acshist-searched" }
+
+  # 초기화 — 입력칸이 비워지는지
+  - { action: click, target: { ref: board_search_reset, description: "[초기화] → fnReset" } }
+  - { action: assert_value, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control", description: "★ 사용자명이 비워진다" }, value: "" }
+  - { action: screenshot, name: "30-c-acshist-reset" }
+
+  # ══════════ TS-EBS-11 의안접속이력 (r852~r854) ══════════
+  - { action: navigate, url: "/main/system/billAcsHist" }
+  - { action: wait_for, target: { ref: datatable, description: "★ r852 — 의안접속이력 목록 화면" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "총건수 표시" } }
+  - { action: screenshot, name: "30-d-billacshist-list" }
+
+  # r853 검색 조건 입력 → r854 조회
+  - { action: click, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control", description: "사용자명(10377) 입력칸 포커스" } }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control" }, value: "a" }
+  - { action: assert_value, target: { css: ".board_search .form_row .input_item:nth-of-type(1) input.form_control" }, value: "a" }
+  - { action: click, target: { ref: board_search_btn, description: "★ r854 — [조회] → fnSearch" } }
+  - { action: wait_for, target: { ref: board_total_num, description: "검색 결과 총건수 갱신" } }
+  - { action: assert_not_visible, target: { css: ".v_table.table_list .p-datatable-thead .p-datatable-sort-icon", description: "★ r854 — '정렬 변경 기능은 제공되지 않음' 이 맞다" } }
+  - { action: screenshot, name: "30-e-billacshist-searched" }

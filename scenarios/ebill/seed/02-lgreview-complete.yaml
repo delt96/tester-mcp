@@ -7,13 +7,13 @@ precondition: >
   seed-01 이 만든 'E2E-SEED' 의안이 법률검토 목록에 있고, 이 계정(LGRVuser2)이 그 의안의
   **주 이행자**로 지정돼 있어야 한다. 주 이행자가 아니면 [의견서 작성] 버튼이 나오지 않는다.
 
-  ★ 이 시나리오는 **블록 4(의견서 등록)에서 반드시 막힌다.** 의견서 등록에는 공문 파일
-  (Расмий документ)이 **필수**이고(2026-08-12 사용자 확인), 파일이 없으면 오류 메시지 없이
-  조용히 등록되지 않는다. tester-mcp DSL 에는 upload 액션이 없어 우회 경로가 없다.
+  의견서 등록에는 공문 파일(Расмий документ)이 **필수**다 — 없으면 오류 메시지 없이 조용히
+  등록되지 않는다. 2026-08-12 `upload` 액션이 추가되어 전 구간 자동화된다.
 
-  따라서 자동으로 검증되는 범위는 **블록 1~3(목록 → 토글 → 상세 → 검토결과 저장 →
-  [의견서 작성] 버튼 노출 확인)까지**다. 블록 4~6은 사람이 이어받아야 하며, 자동 실행 시
-  블록 4에서 FAIL/NOT_TESTED 로 끝나는 것이 정상이다 — 버그로 읽지 말 것.
+  2026-08-12 실행 결과 **57스텝 전부 PASS**, 의안이 1200 → 1300 으로 전진한 것을
+  `ebs_bp_tasks`(13876 status=C + result_doc_id 채워짐, 13877 step 1300 생성)로 확인했다.
+  단, executor 가 최종 보고 JSON 에 `"index": 35-36` 같은 범위 표기를 넣어 파싱에 실패하는
+  바람에 결과 라벨은 NOT_TESTED 로 기록됐다 — 라벨만 보고 실패로 읽지 말 것.
 
   개발환경 전제(2026-08-12 사용자 확인): esign 서버에 접근할 수 없어 **[결재]를 누르면
   PIN 입력 없이 자동 승인**된다. 서명자를 본인으로 지정한 건도 자동 패스된다.
@@ -48,16 +48,20 @@ steps:
   - { action: screenshot, name: "02c-opinion-modal" }
 
   # ── 4) 의견서 필수값 — 언어/제목/수신자(GD)/승인자(부서장)
-  - { action: click, target: { css: ".p-dialog input[type=checkbox]", description: "문서 언어 체크박스(공식어) — 언어는 필수(EA-09)" } }
+  # ⚠ .p-dialog 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 언어가 아니다.
+  #   언어는 .language_area 안 3종(국가언어/공용어/외국어) — InsertLetter.vue:948-955
+  - { action: click, target: { css: ".language_area .check_item input[type=checkbox]", description: "언어 체크박스 첫 번째(국가언어) — 필수(EA-09)" } }
   - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 법무실 검토 의견서" }
-  - { action: fill, target: { css: ".p-dialog .recipients .p-autocomplete-input, .p-dialog .recipient_area .p-autocomplete-input", description: "수신자 — GD부서" }, value: "gduser1" }
+  - { action: fill, target: { css: ".p-dialog .recipient_area .p-autocomplete-input", description: "수신자(내부기관) — GD부서" }, value: "gduser1" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "gduser1 선택" } }
-  # ⚠ "LGRVuser" 검색은 LGRVuser1(부서장)·LGRVuser2(직원) 2건을 띄운다 — :first-child 로는 못 가른다.
-  #   승인자는 부서장이어야 결재대기함으로 넘어가므로 전체 ID(LGRVuser1)로 좁히고 text 로 확인한다.
-  - { action: fill, target: { label: "승인자", css: ".p-dialog .p-autocomplete-input", description: "승인자(Бекитүүчү) — 법률검토 부서장" }, value: "LGRVuser1" }
+  # ⚠ 검색어는 로그인 ID가 아니라 **HRMIS 표시명** 기준이다(/hrmis/autocomplete).
+  #   로그인 ID LGRVuser1 로 치면 0건 — 표시명이 'LGRVuser L (법률검토 부서장)' 이기 때문이다.
+  #   'LGRVuser' 는 3건(부서장·직원·직원2)이 뜨므로 text:"부서장"으로 특정한다.
+  # 승인자는 .approve 안(AddApproveComponent.vue) — 수신자와 같은 컴포넌트라 css 로 갈라야 한다
+  - { action: fill, target: { css: ".p-dialog .approve .p-autocomplete-input", description: "승인자(Бекитүүчү) — 법률검토 부서장" }, value: "LGRVuser" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "부서장(LGRVuser1) 선택 — 옵션 회색줄 '직급 · 부서'로 직원과 구분된다" } }
+  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "후보 중 'LGRVuser L (법률검토 부서장)' 선택. 검색어를 로그인 ID(LGRVuser1)로 바꾸면 0건이 되므로 건드리지 말 것 — 옵션 회색줄 '직급 · 부서'로 직원과 구분된다" } }
   # ── 5) 공문파일(Расмий документ) — 없으면 [등록]이 오류 없이 조용히 실패한다
   # InsertLetter.vue:874가 type='official'로 렌더 → id=officialfile (accept=.pdf, 단일).
   # fileAttachYn 기본값 true → docMode='official'이라 이 칸은 모달을 열면 바로 보인다.

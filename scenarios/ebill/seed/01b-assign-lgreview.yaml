@@ -34,8 +34,13 @@ steps:
   # ── 2) 이행요청 모달 — 이행자 + [C] 주이행자 + 서명자(본인)
   #   2026-08-12 1차 실행에서 자체 셀렉터가 DOM 과 안 맞아 executor 가 좌표 클릭으로 떨어졌고,
   #   서명자 입력란을 못 찾아 groping 으로 끝났다. RequestModal.vue 근거가 있는 fragment 로 교체.
+  # ⚠ signer 는 로그인 ID(LGRVuser1)가 아니라 **HRMIS 표시명** 기준이다. autocomplete 는
+  #   /hrmis/autocomplete 를 검색하는데(AutoCompleteUserInput.vue:69) 부서장의 표시명은
+  #   'LGRVuser L (법률검토 부서장)' 이라 'LGRVuser1' 로 치면 0건이 나온다(2026-08-12 API 직접 확인).
+  #   'LGRVuser' 로 검색하면 부서장·직원·직원2 3건이 뜨고, fragment 가 text:"부서장"으로 특정한다.
+  #   posTitle 은 러시아어(Заведующий отделом)라 안 걸리고 fullName 의 한글 주석이 매칭된다.
   - use: assign-main-executor
-    with: { executor: "LGRVuser2", signer: "LGRVuser1", content: "E2E-SEED 법률검토 요청" }
+    with: { executor: "LGRVuser2", signer: "LGRVuser", content: "E2E-SEED 법률검토 요청" }
   - { action: screenshot, name: "01b-d-workrequest-filled" }
 
   # ── 3) 결과 확인 — 본인 서명이므로 '발송' 상태여야 한다

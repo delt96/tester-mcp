@@ -1,0 +1,52 @@
+id: seed-28-external-receive-list
+title: "[조회] 외부수신함 — 상태 필터·상태 컬럼·완료행 회색·상세 진입"
+locale: kr
+login_as: gduser
+tags: [seed, external, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-43`(외부 문서 수신)의 r1165~r1168 을 덮는다.**
+    r1169~r1172(속성·부제목 수정 → 수신자 지정 → 등록하기)는 **수신 대기(`in`) 상태 문서가 필요**한데
+    현재 DB 에 그런 문서가 하나도 없어(아래) 이번 범위에서 제외했다.
+
+  ★ **"SED Gateway 라 자동화 불가" 는 과한 판단이었다**(2026-08-14 정정).
+    게이트웨이가 필요한 것은 **새 문서의 유입**이지, 이미 들어와 있는 문서의 목록·필터·상세는
+    우리 DB 만으로 동작한다.
+
+  ★ **현재 데이터 상태(2026-08-14 실측)** — `kgst.documents` 286건:
+      `closing` 217 · `closed` 69 · **`in` 0건**
+    화면 기본 필터는 `DEFAULT_STATUS='in'`(ExternalReceive.vue:21) 이므로
+    **처음 들어가면 목록이 비어 있는 것이 정상이다.** 결함으로 오인하지 말 것.
+    → 이 시나리오는 **상태 필터를 바꿔** 데이터를 띄운 뒤 확인한다.
+
+  ★ 화면 구조(`ExternalReceive.vue`):
+    · 컬럼 — (참조아이콘) · 등록일`registrationDate` · **등록번호`registrationNumber`** ·
+      제목`title`(없으면 `description`) · 기한`docDeadline` · **상태`status`**
+      ⚠ 산출물 `TS-EBS-42` r1159 는 **발신함** 컬럼에 '상태'가 있다고 적었는데,
+        상태 컬럼은 **수신함에만** 있다(`ExternalSend.vue` 에는 없음). 두 화면을 섞은 서술로 보인다.
+    · 완료된 행은 `fn_rowClass` 가 `row-closed` 를 붙여 회색으로 보인다(status='closed')
+    · 상태 필터는 `select.form_control`(t10056)이고 `@change` 로 즉시 재검색한다
+    · `[등록하기]`(10493)는 오프라인 수신 등록으로 간다 → `seed-23` 이 덮는다
+
+  ⚠ 비파괴 — 조회만 한다. 다만 문서 상세 진입으로 열람 이력이 남을 수 있다.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/letter/external/receive" }
+  - { action: wait_for, target: { css: ".board_search.type2", description: "외부수신함 검색폼" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "목록 그리드" } }
+  - { action: assert_visible, target: { css: ".board_info .total_num .text_primary", description: "★ r1166 — Total 건수. 기본 필터가 'in' 이라 0 으로 시작하는 것이 정상이다" } }
+  - { action: screenshot, name: "28-a-default-filter-empty" }
+
+  # ── 상태 필터를 바꿔 데이터를 띄운다
+  # ⚠ 상태 select 는 `@change` 로 바로 재검색한다 — 별도 [검색] 클릭이 필요 없다.
+  - { action: fill, target: { css: ".board_search.type2 select.form_control", description: "상태(10056) 필터를 '완료'(closed)로 — 현재 69건 있다" }, value: "closed" }
+  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "★ 행이 채워진다" } }
+  - { action: screenshot, name: "28-b-status-closed" }
+
+  # ── r1166 상태 컬럼 + 완료행 회색
+  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr.row-closed", description: "★ r1166 — 완료(closed) 행에 `row-closed` 가 붙어 회색으로 표시된다" } }
+  - { action: screenshot, name: "28-c-row-closed" }
+
+  # ── r1167 문서 클릭 → 상세
+  - { action: click, target: { css: ".p-datatable-tbody > tr:nth-of-type(1)", description: "★ r1167 — 첫 문서 클릭 → fn_detail" } }
+  - { action: wait_for, target: { css: ".main_area", description: "외부수신문서 상세 화면" } }
+  - { action: screenshot, name: "28-d-detail" }

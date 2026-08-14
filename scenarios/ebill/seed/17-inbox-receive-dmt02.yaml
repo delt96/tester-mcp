@@ -1,0 +1,57 @@
+id: seed-17-inbox-receive-dmt02
+title: "[시딩] 문서 접수(확인용) — 수신함 → 숨기기/해제 → 종료하기"
+locale: kr
+login_as: cmthead
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-30`(문서 접수-확인용)의 자동화다.**
+  `seed-11b`(DMT02 문서 생성) → `seed-12b`(결재) 를 거친 **확인용 문서가 수신함에 있어야** 한다.
+  결재를 거쳐야 `rcv_status` 가 RS00 → RS01 로 바뀌어 수신함에 나타난다(seed-16 에서 확인).
+
+  ★ **확인용(DMT02)은 버튼이 [종료하기] 하나뿐이다**(Inbox.vue:552-575).
+  답변용(DMT01)의 [주 이행자 추가]·[반려] 나 서명용(DMT03)의 [결재]·[반려] 가 없다.
+  → **유형별 버튼 분기를 확인하는 것이 이 케이스의 핵심**이다. seed-16(답변용)과 짝을 이룬다.
+
+  ★ 숨기기 토글(산출물 r1044~r1045)은 `letter/inbox-hide-toggle.yaml` 이 **이미 전부 덮는다**
+  (숨기기 → 목록 제외 → 숨김 필터로 조회 → 숨김 해제, locale ru / tester 계정).
+  여기서는 **같은 문서에 대해 숨기기·해제가 동작하는지만** 최소로 확인하고 넘어간다.
+  중복 검증이 목적이 아니라, 확인용 문서에서도 토글이 나오는지를 보려는 것이다.
+      셀렉터: `.document_title .hide_toggle_btn` (숨기기/해제 공용, 텍스트만 바뀜)
+
+  ⚠ **비가역**: [종료하기]를 누르면 문서가 종료된다.
+
+  산출물: 확인용 문서가 종료 상태로 바뀐다. 숨김 상태는 사용자별이며 해제까지 수행해 원복한다.
+on_failure: stop
+steps:
+
+  # ── 1) 수신함에서 확인용 문서 열기
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 확인용", description: "결재를 마친 DMT02 문서가 있어야 한다. 없으면 seed-11b → seed-12b 를 먼저 돌릴 것" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서 확인용", description: "단언한 그 문서를 연다" } }
+  - { action: wait_for, target: { css: ".right_top_area", description: "상세 우측 액션 영역 로드" } }
+  - { action: screenshot, name: "17-a-detail" }
+
+  # ── 2) 유형별 버튼 분기 확인 — 이 케이스의 핵심
+  - { action: assert_visible, target: { css: ".right_top_area button.v_btn.btn_outline_neutral.btn_md", text: "종료하기", description: "DMT02 확인용은 [종료하기]가 나온다" } }
+  - { action: assert_not_visible, target: { css: ".right_top_area button.v_btn.btn_outline_error.btn_md", description: "확인용에는 [반려]가 없다 — 답변용(DMT01)·서명용(DMT03)과 갈리는 지점" } }
+
+  # ── 3) 숨기기 → 해제 (최소 확인, 상세 검증은 letter/inbox-hide-toggle.yaml)
+  - { action: assert_visible, target: { css: ".document_title .hide_toggle_btn", description: "제목 옆 숨기기 토글 — 확인용 문서에도 나오는지" } }
+  - { action: click, target: { css: ".document_title .hide_toggle_btn", description: "숨기기" } }
+  - { action: screenshot, name: "17-b-hidden" }
+  - { action: assert_not_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 확인용", description: "숨기면 목록에서 빠진다" } }
+  # 숨김 필터로 되찾아 해제 — 다음 케이스가 이 문서를 못 찾는 일이 없도록 반드시 원복한다
+  - { action: click, target: { css: ".search_form button:last-of-type", description: "검색창 우측 필터 토글(깔때기)" } }
+  - { action: wait_for, target: { css: "#showHidden", description: "'숨긴 문서 보기' 체크박스" } }
+  - { action: click, target: { css: "#showHidden", description: "숨긴 문서 보기 체크" } }
+  - { action: click, target: { css: ".search_footer .btn_primary", description: "필터 검색(10053)" } }
+  - { action: wait_for, target: { ref: list_item, text: "E2E-SEED 결재문서 확인용", description: "숨긴 문서 목록에 다시 나타남" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서 확인용", description: "숨긴 문서 열기" } }
+  - { action: wait_for, target: { css: ".document_title .hide_toggle_btn", description: "이제 라벨이 '해제'로 바뀐 같은 버튼" } }
+  - { action: click, target: { css: ".document_title .hide_toggle_btn", description: "숨김 해제 — 원복" } }
+  - { action: screenshot, name: "17-c-restored" }
+
+  # ── 4) 종료
+  - { action: click, target: { css: ".right_top_area button.v_btn.btn_outline_neutral.btn_md", text: "종료하기", description: "[종료하기](10497) → fn_end" } }
+  - { action: screenshot, name: "17-d-ended" }

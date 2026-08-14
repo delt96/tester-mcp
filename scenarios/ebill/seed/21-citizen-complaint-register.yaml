@@ -1,0 +1,88 @@
+id: seed-21-citizen-complaint-register
+title: "[시딩] 시민민원 오프라인 등록 — 필수값 미입력 차단 확인 후 정상 등록"
+locale: kr
+login_as: gduser
+tags: [seed, e2e-letter]
+precondition: >
+  ★ **`TS-EBS-46`(시민민원 오프라인 등록)의 자동화다. 선행 시나리오가 필요 없다.**
+  행정부서 계정(`gduser`)으로 시민민원함에서 직접 등록한다.
+
+  ★ **필수값이 11개다**(InsertCitizenComplaint.vue:113-139 `resolver`). 산출물이 나열한 것보다 많다:
+      ① 유형(type) — 라디오 `#radio2`(값 DMT04). 선택지가 '시민 민원' 하나뿐이다
+      ② 언어(language) — 체크박스, `:id="lan.codeId"` 라 `#DML01`
+      ③ 부제목(subTitle)
+      ④ 수신자 1명 이상 — ⚠ **빈 수신자 행이 남아 있어도 안 된다**(t11001 '지정되지 않은 수신자가 있습니다').
+         폼에는 처음부터 빈 행이 하나 있으므로 **[수신자 추가]를 누르지 말고 그 행을 채운다.**
+      ⑤ 민원 종류(addInfo.cmpType) — select. **com_code 1045 의 IS01~IS16** 이다
+         (IS01 건설 관련 문제 / IS02 개인 면담 / IS03 물질적 지원 / IS04 경제 / IS05 국경 / IS06 주거 …).
+         ⚠ 컴포넌트 상단의 proposal/application/complaint 배열은 **민원 빈도(frequency)** 용이라 헷갈리지 말 것
+           — 2026-08-14 1차 실행에서 이 값을 넣었다가 옵션 불일치로 멈췄다.
+      ⑥~⑪ 민원인 정보 6종: **간략한 내용(cnDetail) · 민원자(sender) · 나라 · 지역 · 도시 · 주소**
+  → 산출물 r1205 의 "민원인 정보(이름*, 나라*, 지역*, 도시*, 주소*)"는 맞지만
+    **'간략한 내용'과 '민원 종류'도 필수**라는 점이 빠져 있다.
+  전화번호·이메일·민원 빈도는 **선택**이다(resolver 대상 아님) — 이 부분은 산출물과 일치한다.
+
+  ★ 민원 정보 필드에 고유 id 가 없다(전부 `form_control`). **`.v_box` 직계 `.form_row` 인덱스로 잡는다**
+    — 라벨로 잡으려 한 1차 시도는 자동화 도구가 좌표 클릭으로 헛돌다 중단됐다(NOT_TESTED).
+  ⚠ 버튼은 여전히 텍스트로 구분하므로 `locale: kr` 을 못박는다.
+  ⚠ `languageType` 은 localStorage 공유라 다른 locale 시나리오와 **병렬 실행하면 안 된다.**
+
+  ★ **음성 케이스를 먼저 한다**(산출물 r1206 "필수 항목을 비운 채 [등록하기] 클릭").
+  빈 폼으로 등록을 눌러 `.text_invalid` 안내가 뜨는지 확인한 뒤 채운다.
+  오류 표시는 `.text_invalid`(문구) + 입력칸의 `.is_invalid`(테두리) 두 가지다.
+  코드상 `.text_invalid` 는 **필수값 11개와 1:1로 11개**다(InsertCitizenComplaint 4 + CitizenComplaintComp 7).
+  ⚠ 실행 관측치는 7개(1차)·10개(3차)로 **매번 달랐다.** 화면 밖 항목을 못 세는 것으로 보이므로
+    **개수를 단언하는 단언문은 쓰지 말고** `assert_visible` 로 존재만 본다.
+
+  ★ 2026-08-14 3차 실행 **PASS** — 저장 토스트 + 시민민원함 목록 반영까지 확인.
+
+  ⚠ 민원 파일(t10867)은 **PDF만 허용**된다(10896 경고). 첨부는 선택이라 이 시나리오에서는 올리지 않는다.
+
+  ⚠ **비가역**: 등록하면 시민민원 문서가 생성된다.
+
+  산출물: `eas_document`(doc_type_cd DMT04) + 시민민원 부가정보 저장.
+on_failure: stop
+steps:
+
+  # ── 1) 시민민원함 → 등록 화면
+  - { action: navigate, url: "/main/letter/citizenComplaint/insert" }
+  - { action: wait_for, target: { css: "button.v_btn.btn_md.btn_outline_primary", description: "[등록하기] 버튼 — 폼 로드 완료 신호" } }
+  - { action: screenshot, name: "21-a-blank-form" }
+
+  # ── 2) 음성 케이스 — 빈 폼으로 등록 시도
+  - { action: click, target: { css: "button.v_btn.btn_md.btn_outline_primary", text: "등록하기", description: "[등록하기](10493) — 아무것도 안 채운 상태" } }
+  - { action: assert_visible, target: { css: ".text_invalid", description: "필수값 안내(10460 '필수값입니다.')가 떠야 한다. 이게 없으면 검증이 통과해 버린 것" } }
+  - { action: screenshot, name: "21-b-validation-errors" }
+
+  # ── 3) 문서 공통 필수값
+  - { action: click, target: { css: "#radio2", description: "유형(10237) 필수* — DMT04 시민 민원. 선택지가 이것뿐이다" } }
+  - { action: click, target: { css: "#DML01", description: "언어(10238) 필수* — DML01 국가언어" } }
+  - { action: fill, target: { css: "input.form_control.full", description: "부제목(10249) 필수*" }, value: "E2E-SEED 시민민원 등록" }
+  # ⚠ **[수신자 추가]를 누르면 안 된다.** 폼이 열릴 때 이미 빈 수신자 행이 하나 있다.
+  #   추가로 누르면 빈 카드가 하나 더 생기고, resolver 가 '지정되지 않은 수신자가 있습니다'(t11001)로 막는다
+  #   — 2026-08-14 실측. 여러 명을 넣을 때만 [수신자 추가]가 필요하다.
+  - { action: wait_for, target: { ref: recipient_ac_dropdown, description: "기본으로 있는 첫 수신자 행의 자동완성" } }
+  - { action: click, target: { ref: recipient_ac_dropdown, description: "수신자 드롭다운 열기" } }
+  - { action: wait_for, target: { ref: user_ac_option, description: "사용자 목록" } }
+  - { action: click, target: { ref: user_ac_option, description: "첫 수신자 선택" } }
+  - { action: screenshot, name: "21-c-doc-fields" }
+
+  # ── 4) 민원 정보 — 위치 셀렉터로 잡는다
+  # ⚠ 이 영역(CitizenComplaintComp.vue)의 입력칸에는 **고유 id 가 하나도 없다**. 전부 `form_control` 이다.
+  #   2026-08-14 1차에는 라벨로 잡으려 했는데, 자동화 도구가 좌표 클릭으로 헛돌다 중단됐다(NOT_TESTED).
+  #   `.v_box` 의 **직계 `.form_row` 9개가 순서 고정**이므로 그 인덱스로 잡는 것이 정확하다:
+  #     1 제목 / 2 유형라디오 / 3 종류 / 4 간략한내용 / 5 민원자 / 6 나라·지역 / 7 도시·주소 / 8 전화·이메일 / 9 빈도
+  #   ⚠ 3번과 9번이 **둘 다 `select.form_control`** 이다. 인덱스 없이 잡으면 민원 빈도가 걸린다.
+  - { action: fill, target: { css: ".complainant_info .v_box > .form_row:nth-of-type(3) select.form_control", description: "민원 종류(10857) 필수* — com_code 1045, IS01~IS16. IS01=건설 관련 문제" }, value: "IS01" }
+  - { action: fill, target: { css: ".complainant_info textarea.form_control", description: "간략한 내용(10804) 필수* — 이 영역의 유일한 textarea 라 인덱스가 필요 없다. 산출물에 필수 표시가 빠져 있다" }, value: "E2E-SEED 자동화 검증용 민원 내용" }
+  - { action: fill, target: { css: ".complainant_info .v_box > .form_row:nth-of-type(5) input[type=text]", description: "민원자(10858) 필수* — 산출물의 '이름'" }, value: "E2E 민원인" }
+  - { action: fill, target: { css: ".complainant_info .v_box > .form_row:nth-of-type(6) .input_item:nth-child(1) input", description: "나라(10860) 필수*" }, value: "Кыргызстан" }
+  - { action: fill, target: { css: ".complainant_info .v_box > .form_row:nth-of-type(6) .input_item:nth-child(2) input", description: "지역(10861) 필수*" }, value: "Чуй" }
+  - { action: fill, target: { css: ".complainant_info .v_box > .form_row:nth-of-type(7) .input_item:nth-child(1) input", description: "도시(10862) 필수*" }, value: "Бишкек" }
+  - { action: fill, target: { css: ".complainant_info .v_box > .form_row:nth-of-type(7) .input_item:nth-child(2) input", description: "주소(10381) 필수*" }, value: "Чуй проспекти 1" }
+  - { action: screenshot, name: "21-d-complaint-fields" }
+
+  # ── 5) 등록
+  - { action: click, target: { css: "button.v_btn.btn_md.btn_outline_primary", text: "등록하기", description: "[등록하기] → 이번엔 통과해야 한다" } }
+  - { action: wait_for, target: { ref: toast_success, description: "저장 성공 토스트(10454 '저장되었습니다.'). 여기서 실패하면 아직 못 채운 필수값이 있는 것" } }
+  - { action: screenshot, name: "21-e-registered" }

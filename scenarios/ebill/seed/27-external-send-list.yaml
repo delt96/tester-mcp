@@ -1,0 +1,84 @@
+id: seed-27-external-send-list
+title: "[조회] 외부발신함 — 목록·검색·페이지네이션·상세·상태확인"
+locale: kr
+login_as: gduser
+tags: [seed, external, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-42`(외부 문서 발송)의 r1159~r1163 을 덮는다** — 외부발신함 목록 구간이다.
+    앞쪽 r1146~r1158(문서 작성 → 등록)은 이 시나리오에 없다. 문서를 새로 발송하면
+    실제로 외부기관으로 나가므로 분리했다.
+
+  ★ **"SED Gateway 라 자동화 불가" 는 과한 판단이었다**(2026-08-14 정정).
+    게이트웨이가 필요한 것은 **수신 유입**과 **상대 기관의 상태 갱신**뿐이고,
+    **발신함 목록·검색·페이지네이션·상세 진입은 우리 DB 만으로 동작한다.**
+    현재 `eas_document` 에 `external_yn='Y'` 문서가 194건(DMT01 70 · DMT02 124) 있어 조회 대상이 충분하다.
+
+  ★ 화면 구조(`ExternalSend.vue`) — **좌우 분할 편지함이 아니라 검색폼 + 그리드**다:
+    · 검색칸에 **고유 id 가 있다**: `#searchDocSubtle`(제목) · `#searchDocNo`(문서번호)
+      (발송일 기간·기한은 DatePicker 라 이 시나리오에서는 쓰지 않는다)
+    · `[검색]`은 `button.search_button`(아이콘+텍스트라 접근성 이름이 있다), `[초기화]`가 그 옆
+    · `Total` 건수는 `.total_num .text_primary`
+    · PrimeVue DataTable(lazy, paginator, rowsPerPageOptions 5/10/20/50)
+
+  ★ **r1159 의 컬럼 서술과 코드가 다르다.** 코드의 Column 은
+    (참조아이콘) · 발송일`resDtm` · 문서번호`docNo` · 제목`docSubtle` · 수신기관`recipientNms` · 기한`docDeadline`
+    여섯이고 **`상태` 컬럼은 없다**. 서술의 '상태'가 무엇을 가리키는지 확인이 필요하다.
+    참조 문서에 아이콘이 붙는다는 부분은 맞다(`docFyi` 일 때 `ico_error`).
+
+  ★ `[상태확인]`(t10056)은 상세의 `button.status_btn` 이고 **`externalId` 가 없으면 disabled** 다.
+    누르면 Popover 로 게이트웨이 전송 상태를 보여준다(`GET /eas/externalDocument/byEas/{docId}`).
+    ⚠ **표시되는 상태값 자체는 게이트웨이가 준 것**이라 우리가 만들 수 없다 —
+      이 시나리오는 **버튼 노출과 팝오버가 뜨는 것까지**만 확인한다.
+
+  ★ **2026-08-14 실측 결과 메모**:
+    · 외부발신함 목록에 **1건만** 있었다(Total=1). `eas_document` 의 `external_yn='Y'` 194건과 다르다 —
+      발신함 목록은 별도 조건으로 걸러진다. 목록이 적다고 결함으로 보지 말 것.
+    · `[상태확인]` 팝오버는 정상적으로 떴으나 내용이 '데이터가 없습니다' 였고
+      `Document recipient information not found.` 오류 토스트가 함께 떴다.
+      게이트웨이 상태 조회(`GET /eas/externalDocument/byEas/{docId}`)가 이 문서에 대해 값을 못 찾은 것이다.
+      **문서별 데이터 문제인지 연동 문제인지는 확인하지 못했다.**
+
+  ⚠ 비파괴 — 조회만 한다.
+on_failure: stop
+steps:
+  - { action: navigate, url: "/main/letter/external/send" }
+  - { action: wait_for, target: { css: ".board_search.type2", description: "★ r1159 — 검색폼(좌우 분할 편지함이 아님)" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "목록 그리드" } }
+  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "행 렌더 — lazy 라 API 응답 뒤에 채워진다" } }
+  - { action: assert_visible, target: { css: ".board_info .total_num .text_primary", description: "Total 건수 표시" } }
+  - { action: screenshot, name: "27-a-send-list" }
+
+  # ── r1160 검색 → 초기화
+  - { action: click, target: { css: "#searchDocSubtle", description: "제목 검색칸 포커스" } }
+  - { action: fill, target: { css: "#searchDocSubtle", description: "제목(10049)으로 검색" }, value: "TEST" }
+  - { action: assert_value, target: { css: "#searchDocSubtle" }, value: "TEST" }
+  - { action: click, target: { css: ".button_area button.search_button", description: "[검색](10053) — 아이콘+텍스트라 접근성 이름이 있다" } }
+  - { action: wait_for, target: { css: ".board_info .total_num .text_primary", description: "검색 후 Total 갱신" } }
+  - { action: screenshot, name: "27-b-searched" }
+
+  - { action: click, target: { css: ".button_area button:nth-of-type(2)", description: "[초기화](10492) — 검색칸을 비운다" } }
+  - { action: assert_value, target: { css: "#searchDocSubtle" }, value: "" }
+  - { action: screenshot, name: "27-c-reset" }
+
+  # ── r1161 페이지당 건수 변경
+  - { action: click, target: { css: ".p-paginator .p-select", description: "RowsPerPage 드롭다운 열기" } }
+  - { action: wait_for, target: { css: ".p-select-overlay .p-select-option", description: "건수 옵션(5/10/20/50)" } }
+  - { action: click, target: { css: ".p-select-overlay .p-select-option:nth-of-type(1)", description: "첫 옵션(5건) 선택 → 페이지네이션 재적용" } }
+  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "행 재렌더" } }
+  - { action: screenshot, name: "27-d-rows-changed" }
+
+  # ── r1162 행 클릭 → 상세
+  - { action: click, target: { css: ".p-datatable-tbody > tr:nth-of-type(1)", description: "첫 행 클릭 → fn_detail" } }
+  - { action: wait_for, target: { css: ".main_area .right_section .approvals", description: "★ r1162 — 상세의 결재선 영역" } }
+  - { action: assert_visible, target: { css: ".main_area .right_section .recipients", description: "수신자 목록 영역" } }
+  - { action: screenshot, name: "27-e-detail" }
+
+  # ── r1163 [상태확인] → 팝오버 → [목록]
+  - { action: assert_visible, target: { css: "button.status_btn", description: "★ [상태확인](10056) 버튼. externalId 가 없으면 disabled 로 렌더된다" } }
+  - { action: click, target: { css: "button.status_btn", description: "상태 팝오버 토글" } }
+  - { action: screenshot, name: "27-f-status-popover" }
+  # ⚠ 산출물 r1163 은 "[목록] 버튼"이라 적었지만 **이 화면에 '목록' 버튼은 없다.**
+  #   실제 라벨은 **[취소]**(t10001, `goBack`)이고 그것이 목록으로 돌아가는 버튼이다(2026-08-14 실측).
+  - { action: click, target: { css: ".right_section .btn_group button.btn_md.btn_outline_neutral", description: "[취소](10001) → goBack. 산출물의 '[목록]'에 해당하는 버튼이다" } }
+  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "★ r1163 — 목록으로 돌아옴(검색조건은 pageStore 가 유지)" } }
+  - { action: screenshot, name: "27-g-back-to-list" }

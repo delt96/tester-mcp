@@ -1,0 +1,59 @@
+id: seed-34-document-manage
+title: "[조회] 문서관리 — 부서문서 진입 · 목록/썸네일 전환 · 내문서함 · 공유문서"
+locale: kr
+login_as: gduser
+tags: [seed, document, readonly]
+precondition: >
+  ★ **산출물 `TS-EBS-25`(문서관리)의 r974 · r980 · r982 · r984 만 덮는다 — 부분이다.**
+    나머지는 의도적으로 뺐다:
+    · r975~r979(새폴더 등록 · 파일 업로드) — **파괴적**. 폴더·파일이 실제로 생성되고
+      되돌리는 UI 가 휴지통 경유라 시딩 잔여물이 남는다.
+    · r981(파일 아이콘 클릭 → 다운로드) — DSL 에 `download` 액션이 없다.
+    · r983(전자결재 문서 상세의 [내 문서함에 저장]으로 보관한 파일 확인) — 저장 자체가
+      파괴적이라 `TS-EBS-34` 에서도 제외했던 구간이다. 선행 데이터가 없으면 확인할 수 없다.
+
+  ★ **`/main/document` 는 화면이 아니라 리다이렉트다** — `redirect: {name:'document.dept'}`
+    (`router/index.js:126`). 실제로 그려지는 것은 `/main/document/dept` 이다.
+    산출물 r974 의 "부서관리 목록이 표출됨" 은 **부서 문서함**을 말한다(부서관리 화면이 아니다).
+
+  ★ 다섯 화면(`dept`/`my`/`share`/`star`/`trash`)이 **`DocumentMng.vue` 한 컴포넌트를 공유**한다.
+    좌측 버튼은 `:class="{on: docKind === '...'}"` 로만 갈려 **아이콘뿐이라 접근성 이름이 없다.**
+    → 버튼을 누르지 말고 **URL 로 직접 이동**한다.
+
+  ★ **목록형/썸네일형 전환은 `viewType` 로컬 상태다** — 서버에 저장되지 않는다.
+    · 목록형 `button.btn_sort_list` · 썸네일형 `button.btn_sort_gallery`
+    · 선택된 쪽에 **`.active`** 가 붙는다 → 이걸로 판정한다.
+    ⚠ `viewType == 'list'` 일 때만 `.v_table.table_list` 가 렌더된다(`v-if`). 썸네일로 바꾸면 사라진다.
+
+  ⚠ 비파괴 — 조회와 화면 전환만 한다.
+on_failure: stop
+steps:
+  # ── r974 문서관리 진입 (→ 부서 문서함으로 리다이렉트)
+  - { action: navigate, url: "/main/document" }
+  - { action: wait_for, target: { css: ".file_manage_wrap", description: "★ r974 — 문서관리 화면(부서 문서함으로 리다이렉트된다)" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "Total 건수 표시" } }
+  - { action: screenshot, name: "34-a-dept-documents" }
+
+  # ── r980 조회 형식 전환 — 썸네일형
+  - { action: assert_visible, target: { css: "button.btn_sort_list.active", description: "기본은 목록형(viewType='list')" } }
+  - { action: click, target: { css: "button.btn_sort_gallery", description: "★ r980 — 썸네일형 전환" } }
+  - { action: assert_visible, target: { css: "button.btn_sort_gallery.active", description: "★ r980 — 썸네일형이 선택 상태가 된다" } }
+  - { action: assert_not_visible, target: { css: ".v_table.table_list", description: "★ 썸네일형에서는 목록 테이블이 사라진다(v-if=\"viewType=='list'\")" } }
+  - { action: screenshot, name: "34-b-thumbnail-view" }
+
+  # ── r980 조회 형식 전환 — 목록형 복귀
+  - { action: click, target: { css: "button.btn_sort_list", description: "★ r980 — 목록형 전환" } }
+  - { action: assert_visible, target: { css: "button.btn_sort_list.active", description: "★ r980 — 목록형이 선택 상태가 된다" } }
+  - { action: screenshot, name: "34-c-list-view" }
+
+  # ── r982 내문서함
+  - { action: navigate, url: "/main/document/my" }
+  - { action: wait_for, target: { css: ".file_manage_wrap", description: "★ r982 — 내문서함(나의문서) 화면" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "Total 건수 표시" } }
+  - { action: screenshot, name: "34-d-my-documents" }
+
+  # ── r984 공유문서
+  - { action: navigate, url: "/main/document/share" }
+  - { action: wait_for, target: { css: ".file_manage_wrap", description: "★ r984 — 공유문서 화면" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "Total 건수 표시" } }
+  - { action: screenshot, name: "34-e-share-documents" }
