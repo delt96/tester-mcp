@@ -423,12 +423,43 @@ node bin/tester-mcp.js run scenarios/ebill/seed/05-plenary-submit-and-result.yam
 | `27-external-send-list.yaml` | 외부발신함 — 목록·검색·페이지네이션·상세·[상태확인] (조회 전용) | gduser | 불필요 |
 | `28-external-receive-list.yaml` | 외부수신함 — 목록·상태필터·상세 진입 (조회 전용) | gduser | 불필요 |
 | `29-bill-register-etc-kind.yaml` | 의안접수 등록 — 안건종류 **'기타주제'(billKind=2)**. 필수값이 3개로 줄어든다 | gduser | 불필요 |
+| ⚠ `30`~`34` | **아래 6개는 아직 한 번도 통과한 적이 없다** — 상세는 이 표 아래 참조 | | |
 | `30-access-history.yaml` | 시스템접속이력 · 의안접속이력 — 검색·초기화·**정렬 미제공 음성단언** | tester(admin) | 불필요 |
 | `30b-admin-access-blocked.yaml` | **음성** — 일반 계정으로 관리자 이력 화면 직접 접근 시 데이터 미노출 | gduser | 불필요 |
 | `31-notice-boards.yaml` | 게시판 3종(공지사항·자료실·FAQ) 목록→검색→**더블클릭** 상세→[목록] | gduser | 불필요 |
 | `32-bill-integrated-search.yaml` | 의안통합검색 — **2글자 미만 차단 음성** + 검색 → 상세. 의안모니터링 진입 포함 | gduser | 불필요 |
 | `33-bill-detail-search.yaml` | 의안검색 — `#btnDtlCond` 상세조건 펼침 → 조회 → 상세(정부이송 패널) | gduser | 불필요 |
 | `34-document-manage.yaml` | 문서관리 — 부서문서·내문서함·공유문서 + 목록/썸네일 전환 (조회 전용) | gduser | 불필요 |
+
+### ⚠ `30`~`34` 는 미실행이다 (2026-08-15 기준)
+
+**`validate` 6/6 만 통과했고 `run` 은 한 번도 성공하지 못했다.** 표의 다른 시나리오처럼
+"돌려서 통과한 것"으로 읽으면 안 된다. 셀렉터는 소스에서 뽑았을 뿐 **실행으로 검증되지 않았다**
+— `_selectors.yaml` 에 새로 넣은 `board_search_btn` · `board_search_reset` · `detail_list_link`
+세 개도 마찬가지다(캐시에 있다고 검증된 것이 아니다).
+
+막힌 원인은 앱이 아니라 **Chrome 확장 연결**이다. 두 단계로 나타났다:
+
+| 시점 | 증상 | 판정 |
+|---|---|---|
+| 1차 | `navigate` 직후 `Frame with ID 0 is showing error page` | executor 탭만 실패. 같은 시각 내 세션 탭은 로그인 화면 정상 표출, `curl localhost:5173` 200 |
+| 2차 | `tabs_create_mcp` 에서 `Browser extension is not connected` | `list_connected_browsers` 가 **0대**를 반환 |
+
+계기는 세션 중 실행된 **`/login`** 이다 — 그때 `Remote Control disconnected` 가 찍혔다.
+
+> **교훈: `/login` 이후에는 E2E 를 바로 돌리지 말 것.**
+> 확장을 재연결하고 `_verify-login.yaml` 스모크를 먼저 태운 뒤 본 실행에 들어간다.
+> 스모크가 `NOT_TESTED` 면 그 다음은 전부 같은 이유로 죽는다 — 배치를 돌릴 이유가 없다.
+
+돌릴 수 있게 되면 순서는 `_verify-login` → `30` → `30b` → `31` → `32` → `33` → `34`.
+전부 **비파괴(조회 전용)** 라 아무 때나 돌려도 다른 시나리오를 깨뜨리지 않는다.
+
+실행 대신 코드·DB 로 확인해 둔 것(실측 아님):
+- 대상 메뉴 8개가 전부 `com_menu.use_yn='Y'` — 죽은 화면은 없다
+- 데이터도 있다: 공지 6 · 자료실 19 · FAQ 1 · `com_acs_hist` 당일 6,601 · `ebs_acs_hist` 당일 11
+- **엑셀 다운로드 6곳은 DSL 에 `download` 액션이 없어 구조적으로 검증 불가** — 수동 확인 대상
+- `32` 만 외부 검색엔진(`VITE_SEARCH_ENG_URL`)에 직접 의존한다. 엔진이 죽으면 0건이 되고
+  그건 앱 결함이 아니다. 운영/스테이징은 `/vite_search/...` 상대경로라 주소 체계가 다르다
 | `01a-receive-external-doc.yaml` | **외부수신문서 접수 — 대기함에 '등록대기' 행을 만든다(01의 선행)** | gduser | 불필요 |
 | `01-register-and-review-request.yaml` | 대기 건 → 의안등록 → 이첩 → 법률검토 이행요청 + [C] | gduser → lgrvhead | **필요** (원문 kg/ru — 아래 버그로 [가져오기] 대신 업로드) |
 | `01b-assign-lgreview.yaml` | 01의 이행요청 블록만 분리(대기 큐 없이 시작할 때) | lgrvhead | 불필요 |
