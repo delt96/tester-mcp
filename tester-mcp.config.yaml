@@ -1,3 +1,11 @@
+# ⚠ **반드시 localhost 를 쓸 것. 127.0.0.1 로 바꾸면 로그인이 깨진다.**
+# 백엔드 CORS_ALLOWED_ORIGINS(.env)에 http://localhost:5173 만 있고 127.0.0.1 은 없다.
+# 2026-08-13 실측: 127.0.0.1 로 바꿨더니 프리플라이트는 통과하는데 로그인 POST 가 CORS 로 막혀
+# '로그인 화면에 그대로 머무름' 으로 나타났다 — 원인이 안 보이는 형태로 실패한다.
+#
+# ⚠ 다른 프로젝트의 vite 가 ::1:5173 을 잡으면 localhost 가 그쪽으로 간다(Windows 는 ::1 우선).
+# eBill vite 는 :: 에 바인딩되므로 포트는 공유되지만 localhost 요청을 뺏긴다.
+# 증상: 프리플라이트에서 <title> 이 다른 앱으로 나온다. → 충돌 프로세스를 끄는 것이 정답이다.
 targets:
   frontend: http://localhost:5173
   backend: http://localhost:8081
