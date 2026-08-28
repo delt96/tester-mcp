@@ -33,6 +33,9 @@ btn_outline_md:
   css: "button.v_btn.btn_outline_primary.btn_md"
 btn_primary_md:
   css: "button.v_btn.btn_primary.btn_md"
+# ⚠ 결재대기함(ApprovalInbox)의 [결재]는 btn_primary 가 아니라 **btn_outline_primary** 다
+#   (ApprovalInbox.vue:314) → btn_outline_md 를 쓸 것. 수신함(Inbox.vue:565)의 [결재]는 또 다르다
+#   (btn_outline_neutral). 화면마다 결재 버튼 클래스가 갈리므로 별칭 하나로 뭉뚱그리지 말 것.
 dialog_textarea:
   css: ".dialog_main_area textarea.form_control.full"
 # 심사 리스트 전체/이행받은 토글 (BillListViewToggle.vue) — 4개 심사화면 공통
@@ -131,7 +134,7 @@ esign_pin_modal:
   css: ".p-dialog input[type='password']"
 esign_pin_lock_icon:
   css: ".p-dialog .pi-lock"
-reject_modal_textarea:
+dialog_textarea_full:
   css: ".p-dialog textarea.form_control.full"
 reject_modal_submit:
   css: ".p-dialog .btn_group button.btn_md.btn_primary"
@@ -200,6 +203,25 @@ logout_btn:
 # ⚠ 앞에 놓인 label[for=officialfile] 아이콘은 클릭 금지 — 네이티브 파일 선택창이 열려 세션이 멈춘다.
 official_file_input:
   css: "#officialfile"
+
+# ── InsertLetter 모달 (_fragments/insert-letter-modal.yaml 이 쓴다) ──────────────
+# ⚠ .p-dialog 의 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 언어가 아니다.
+#   언어는 .language_area 안의 국가언어/공용어/외국어 3종이다(InsertLetter.vue:948-955).
+language_first_checkbox:
+  css: ".language_area .check_item input[type=checkbox]"
+# 수신자·승인자·수행자·서명자가 전부 같은 AutoCompleteUserInput 이라
+# `.p-dialog .p-autocomplete-input` 으로는 못 가른다 — 부모 영역으로 스코프해야 한다.
+dialog_recipient_input:
+  css: ".p-dialog .recipient_area .p-autocomplete-input"
+dialog_approver_input:
+  css: ".p-dialog .approve .p-autocomplete-input"
+# 오버레이가 화면마다 .p-autocomplete-overlay / .user-autocomplete-overlay 로 갈려 둘 다 받는다.
+ac_option_any:
+  css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option"
+# 모달 하단 [등록]. ⚠ LawRegModal·signerAssignModal·signModal 은 색이 반대라(저장=outline)
+#   이 별칭을 쓰면 취소를 누른다 — InsertLetter 계열에만 쓸 것.
+dialog_submit_primary:
+  css: ".p-dialog button.v_btn.btn_primary"
 # 공문파일 영역. 첨부파일(.file_section)에는 의안 원문이 자동으로 딸려오므로
 # 업로드 성공 판정은 반드시 이 영역으로 한정할 것.
 official_doc_area:
@@ -209,3 +231,12 @@ wr_executor_input:
   css: ".p-dialog .p-autocomplete-input"
 wr_primary_badge:
   css: ".p-dialog .badge_c, .p-dialog [class*=badge_main]"
+
+# 월간의사일정 (billMngMonthlyAgenda.vue:289-299) — 위원회 키 전환 검증 스위트 공용.
+# ⚠ `datatable_row`(.p-datatable-tbody > tr)는 **빈 상태 행도 잡는다** — PrimeVue 는 빈 메시지도
+#   <tr> 로 그린다. "목록에 데이터가 있다"의 증거로 쓰면 안 된다. 아래 두 개를 나눠 쓸 것.
+monthly_agenda_table:
+  css: ".p-datatable"
+# 위원회명 컬럼 셀. 이번 전환의 핵심 산출물이라 여기 값이 채워지는지가 곧 검증이다.
+monthly_agenda_cmt_cell:
+  css: ".p-datatable-tbody > tr:first-child > td:last-child"

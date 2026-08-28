@@ -1,0 +1,59 @@
+id: seed-04b2-exntn-opinion-resume
+title: "[시딩] 전문심사 의견서만 — 04b 가 언어심사까지 끝난 상태에서 이어받는다"
+locale: kr
+login_as: exntnstaff
+tags: [seed, e2e-fullflow]
+precondition: >
+  ★ **`04b` 의 전문심사 절반만 떼어낸 파일이다.** `04b` 는 언어심사와 전문심사를 한 파일에서
+  연달아 처리하는데, 언어심사만 끝난 상태에서 `04b` 를 통째로 재실행하면 **언어심사 구간에서 멈춘다** —
+  의견서를 이미 등록해 부서원 화면에 `[의견서 작성]` 버튼이 사라져 있기 때문이다.
+  (2026-08-28: `04b` 가 언어심사 의견서 등록 직후 결재 단계에서 중단됐고, 결재는 사람이 처리했다.
+   그 시점 DB: `E2E-SEED 언어심사 의견서` doc_no `03-254/26` · DMS02.)
+
+  선행 조건은 `04b` 와 같다 — `seed-04` 로 전문심사 부서장이 부서원에게 이행요청을 걸고
+  **[C] 주 이행자까지 지정**돼 있어야 한다. 아니면 `[의견서 작성]` 버튼이 없다.
+
+  단계는 올라가지 않는 것이 정상이다. `SUBMIT_EXPERT_REVIEW_OPINION` 은 **1400 → 1400 self-loop** 라
+  1500 으로 올리는 것은 소관위원회 의견서 결재(`04c`)뿐이다.
+
+  ⚠ autocomplete 접두어 함정: `lgexntnuser ⊂ lgexntnuser2`, `cmtuser1 ⊂ cmtuser10`.
+  부서장은 전체 ID 로 좁힐 수 없으므로 후보 선택은 반드시 `text: "부서장"` 으로 한다.
+on_failure: stop
+steps:
+
+  # ── 1) 전문심사 부서원(lgexntnuser2) — 대상 의안 상세 진입
+  - { action: navigate, url: "/main/billMng/lgExntnMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "전문심사부서의견서 목록" } }
+  - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글" } }
+  - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
+  - { action: screenshot, name: "04b2-a-exntn-list" }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 전문심사 상세" } }
+  - { action: wait_for, target: { ref: content_title, description: "전문심사 상세" } }
+  - { action: screenshot, name: "04b2-b-exntn-detail" }
+
+  # ── 2) 의견서 작성
+  - { action: assert_visible, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서 작성", description: "[의견서 작성](10826) — 없으면 주 이행자가 아니다" } }
+  - { action: click, target: { css: ".btn_group_fixed button, .btn_group_fixed a", text: "의견서 작성", description: "[의견서 작성] → 문서 작성 모달" } }
+  - { action: wait_for, target: { css: ".p-dialog", description: "의견서 작성 모달" } }
+  - { action: screenshot, name: "04b2-c-exntn-opinion-modal" }
+
+  # ── 3) 필수값 — 수신자는 소관위원회 부서장, 승인자는 전문심사 부서장
+  # ⚠ .p-dialog 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 그걸 누르면
+  #   공문파일 칸이 사라져 뒤의 upload 가 통째로 실패한다. 언어는 .language_area 안에 있다.
+  - use: insert-letter-modal
+    with: { title: "E2E-SEED 전문심사 의견서", recipient: "cmtuser1", recipient_pick: "부서장", approver: "lgexntnuser", approver_pick: "부서장", tag: "04b2-d" }
+  - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
+  - { action: screenshot, name: "04b2-e-exntn-opinion-registered" }
+
+  # ── 4) 전문심사 부서장(lgexntnuser) — 결재
+  - { use: switch-account, with: { account: exntnhead } }
+  - use: approve-in-approval-inbox
+    with: { doc: "E2E-SEED 전문심사", tag: "04b2-f-exntn" }
+
+  # ── 5) 소관위원회 부서장(cmtuser1) 수신 확인 — 두 부서 의견서가 다 도착했는가
+  - { use: switch-account, with: { account: cmthead } }
+  - { action: navigate, url: "/main/letter/inbox" }
+  - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
+  - { action: screenshot, name: "04b2-h-cmt-inbox" }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 언어심사 의견서", description: "언어심사 의견서 수신 — 04b 에서 사람이 결재한 건" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 전문심사 의견서", description: "전문심사 의견서 수신" } }

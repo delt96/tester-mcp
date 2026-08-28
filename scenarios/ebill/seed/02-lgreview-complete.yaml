@@ -50,36 +50,15 @@ steps:
   # ── 4) 의견서 필수값 — 언어/제목/수신자(GD)/승인자(부서장)
   # ⚠ .p-dialog 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 언어가 아니다.
   #   언어는 .language_area 안 3종(국가언어/공용어/외국어) — InsertLetter.vue:948-955
-  - { action: click, target: { css: ".language_area .check_item input[type=checkbox]", description: "언어 체크박스 첫 번째(국가언어) — 필수(EA-09)" } }
-  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 법무실 검토 의견서" }
-  - { action: fill, target: { css: ".p-dialog .recipient_area .p-autocomplete-input", description: "수신자(내부기관) — GD부서" }, value: "gduser1" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "gduser1 선택" } }
-  # ⚠ 검색어는 로그인 ID가 아니라 **HRMIS 표시명** 기준이다(/hrmis/autocomplete).
-  #   로그인 ID LGRVuser1 로 치면 0건 — 표시명이 'LGRVuser L (법률검토 부서장)' 이기 때문이다.
-  #   'LGRVuser' 는 3건(부서장·직원·직원2)이 뜨므로 text:"부서장"으로 특정한다.
-  # 승인자는 .approve 안(AddApproveComponent.vue) — 수신자와 같은 컴포넌트라 css 로 갈라야 한다
-  - { action: fill, target: { css: ".p-dialog .approve .p-autocomplete-input", description: "승인자(Бекитүүчү) — 법률검토 부서장" }, value: "LGRVuser" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "후보 중 'LGRVuser L (법률검토 부서장)' 선택. 검색어를 로그인 ID(LGRVuser1)로 바꾸면 0건이 되므로 건드리지 말 것 — 옵션 회색줄 '직급 · 부서'로 직원과 구분된다" } }
-  # ── 5) 공문파일(Расмий документ) — 없으면 [등록]이 오류 없이 조용히 실패한다
-  # InsertLetter.vue:874가 type='official'로 렌더 → id=officialfile (accept=.pdf, 단일).
-  # fileAttachYn 기본값 true → docMode='official'이라 이 칸은 모달을 열면 바로 보인다.
-  - { action: upload, target: { css: "#officialfile", description: "공문파일 input 자체. 앞의 label[for=officialfile](.v_btn 업로드 아이콘)은 누르면 네이티브 파일 선택창이 열려 세션이 멈추므로 클릭 금지" }, file: "documentSample.pdf" }
-  - { action: screenshot, name: "02d-opinion-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 공문 파일이 첨부되어야 통과한다(2026-08-11 실측: 파일 없으면 조용히 실패)" } }
+  - use: insert-letter-modal
+    with: { title: "E2E-SEED 법무실 검토 의견서", recipient: "gduser1", recipient_pick: "gduser1", approver: "LGRVuser", approver_pick: "부서장", tag: "02-d" }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "02e-opinion-registered" }
 
   # ── 5) 부서장으로 전환 → 결재대기함에서 의견서 결재 → 법률검토완료
   - { use: switch-account, with: { account: lgrvhead } }
-  - { action: navigate, url: "/main/letter/approvalInbox" }
-  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 의견서" } }
-  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역" } }
-  - { action: screenshot, name: "02f-approval-detail" }
-  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] — 전자서명 비활성 환경이면 PIN 모달 없이 바로 처리된다" } }
-  - { action: screenshot, name: "02g-approved" }
+  - use: approve-in-approval-inbox
+    with: { doc: "E2E-SEED", tag: "02f" }
 
   # ── 6) 결과 확인 — 위원회회부 목록에 나타나야 한다
   - { use: switch-account, with: { account: gduser } }

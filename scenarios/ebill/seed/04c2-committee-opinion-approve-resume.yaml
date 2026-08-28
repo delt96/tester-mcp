@@ -1,0 +1,36 @@
+id: seed-04c2-committee-opinion-approve-resume
+title: "[시딩] 위원회 심사 의견서 결재만 — 04c 가 의견서 등록까지 끝난 상태에서 이어받는다 (1400 → 1500)"
+locale: kr
+login_as: cmthead
+tags: [seed, e2e-fullflow]
+precondition: >
+  ★ **`04c` 의 결재 절반만 떼어낸 파일이다.** `04c` 는 소관위원회 부서원의 의견서 작성과
+  부서장 결재를 한 파일에서 처리하는데, 의견서만 등록된 상태에서 `04c` 를 통째로 재실행하면
+  **의견서 작성 구간에서 멈춘다** — 이미 등록해 `[의견서 작성]` 버튼이 사라져 있기 때문이다.
+  (2026-08-28: `04c` 가 51스텝까지 통과해 의견서를 등록했고, 결재 버튼 셀렉터가 틀려 거기서 멈췄다.
+   그 시점 DB: `E2E-SEED 위원회 심사 의견서` · bill_type `JURISDICTIONAL_COMMITTEE_REVIEW` ·
+   doc_no 미채번 · DMS01(결재대기).)
+
+  ★ **이 결재가 1400 → 1500 을 만드는 유일한 트리거다.**
+  `ebs_bp_step_transition` 실측상 1400 에서 전진하는 것은 `JURISDICTIONAL_COMMITTEE_REVIEW` 뿐이고,
+  언어·전문심사 의견서는 1400 → 1400 self-loop 라 단계를 못 올린다.
+
+  ⚠ 결재대기함의 [결재] 버튼은 `btn_primary` 가 **아니라** `btn_outline_primary` 다
+  (`ApprovalInbox.vue:314`). 수신함(`Inbox.vue:565`)의 [결재]는 또 `btn_outline_neutral` 이라
+  화면마다 다르다 — `04c` 1차가 `btn_primary_md` 로 잡으려다 0 매치로 멈췄다.
+on_failure: stop
+steps:
+
+  # ── 1) 소관위원회 부서장(cmtuser1) — 결재  ← 여기서 1400 → 1500 이 일어난다
+  - use: approve-in-approval-inbox
+    with: { doc: "E2E-SEED 위원회 심사 의견서", tag: "04c2-b" }
+
+  # ── 2) 결과 확인 — 본회의 안건 후보에 나타나야 1500 이다
+  # MtngFromMapper.xml: (bp_df_id='1' AND current_step_id IN ('1500')) 인 의안만 후보로 뜬다.
+  - { use: switch-account, with: { account: mainmtng } }
+  - { action: navigate, url: "/main/mtng/mainMtng1/create" }
+  - { action: wait_for, target: { css: "input[placeholder='회기']", description: "본회의부의예정 등록 폼" } }
+  - { action: click, target: { css: "a, button", text: "안건추가", description: "[안건추가] → 안건 등록하기 모달" } }
+  - { action: wait_for, target: { css: ".p-dialog .p-datatable-tbody tr", description: "안건 후보 그리드" } }
+  - { action: screenshot, name: "04c2-d-agenda-candidates" }
+  - { action: assert_visible, target: { css: ".p-dialog", text: "E2E-SEED", description: "E2E-SEED 가 본회의 안건 후보에 있다 = step 1500 도달의 증거. 없으면 아직 1400이다" } }

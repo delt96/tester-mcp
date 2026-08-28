@@ -43,9 +43,9 @@ on_failure: stop
 steps:
   - { action: navigate, url: "/main/letter/external/send" }
   - { action: wait_for, target: { css: ".board_search.type2", description: "★ r1159 — 검색폼(좌우 분할 편지함이 아님)" } }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "목록 그리드" } }
-  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "행 렌더 — lazy 라 API 응답 뒤에 채워진다" } }
-  - { action: assert_visible, target: { css: ".board_info .total_num .text_primary", description: "Total 건수 표시" } }
+  - { action: wait_for, target: { ref: datatable, description: "목록 그리드" } }
+  - { action: wait_for, target: { ref: datatable_row, description: "행 렌더 — lazy 라 API 응답 뒤에 채워진다" } }
+  - { action: assert_visible, target: { ref: board_total_num, description: "Total 건수 표시" } }
   - { action: screenshot, name: "27-a-send-list" }
 
   # ── r1160 검색 → 초기화
@@ -53,7 +53,7 @@ steps:
   - { action: fill, target: { css: "#searchDocSubtle", description: "제목(10049)으로 검색" }, value: "TEST" }
   - { action: assert_value, target: { css: "#searchDocSubtle" }, value: "TEST" }
   - { action: click, target: { css: ".button_area button.search_button", description: "[검색](10053) — 아이콘+텍스트라 접근성 이름이 있다" } }
-  - { action: wait_for, target: { css: ".board_info .total_num .text_primary", description: "검색 후 Total 갱신" } }
+  - { action: wait_for, target: { ref: board_total_num, description: "검색 후 Total 갱신" } }
   - { action: screenshot, name: "27-b-searched" }
 
   - { action: click, target: { css: ".button_area button:nth-of-type(2)", description: "[초기화](10492) — 검색칸을 비운다" } }
@@ -64,7 +64,7 @@ steps:
   - { action: click, target: { css: ".p-paginator .p-select", description: "RowsPerPage 드롭다운 열기" } }
   - { action: wait_for, target: { css: ".p-select-overlay .p-select-option", description: "건수 옵션(5/10/20/50)" } }
   - { action: click, target: { css: ".p-select-overlay .p-select-option:nth-of-type(1)", description: "첫 옵션(5건) 선택 → 페이지네이션 재적용" } }
-  - { action: wait_for, target: { css: ".p-datatable-tbody > tr", description: "행 재렌더" } }
+  - { action: wait_for, target: { ref: datatable_row, description: "행 재렌더" } }
   - { action: screenshot, name: "27-d-rows-changed" }
 
   # ── r1162 행 클릭 → 상세
@@ -80,5 +80,5 @@ steps:
   # ⚠ 산출물 r1163 은 "[목록] 버튼"이라 적었지만 **이 화면에 '목록' 버튼은 없다.**
   #   실제 라벨은 **[취소]**(t10001, `goBack`)이고 그것이 목록으로 돌아가는 버튼이다(2026-08-14 실측).
   - { action: click, target: { css: ".right_section .btn_group button.btn_md.btn_outline_neutral", description: "[취소](10001) → goBack. 산출물의 '[목록]'에 해당하는 버튼이다" } }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "★ r1163 — 목록으로 돌아옴(검색조건은 pageStore 가 유지)" } }
+  - { action: wait_for, target: { ref: datatable, description: "★ r1163 — 목록으로 돌아옴(검색조건은 pageStore 가 유지)" } }
   - { action: screenshot, name: "27-g-back-to-list" }

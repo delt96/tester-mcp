@@ -1,0 +1,15 @@
+id: monthly-agenda-cmt-scope
+title: 월간의사일정 — 위원회 계정은 자기 위원회로만 스코프된다
+locale: ru
+login_as: cmthead
+ephemeral: true
+tags: [cmtKey]
+precondition: >
+  monthly-agenda-gd 와 짝. GD 가 전체를 보는 동안 위원회 계정은 자기 것만 봐야 한다.
+  전환 중 한때 <if> 필터가 LEFT JOIN 의 ON 절에 있어 스코프가 무력화됐고(cmtCd 값과
+  무관하게 429건 반환) 다른 위원회 자료가 노출됐다. 그 회귀를 잡는 것이 목적이다.
+  cmthead 의 부서에 departments.cmt_id 가 채워져 있어야 한다 — 비어 있으면 0건이 정상 동작이다.
+steps:
+  - { action: navigate, url: "/main/billMng/monthlyAgenda/billMngMonthlyAgenda" }
+  - { action: wait_for, target: { ref: monthly_agenda_table, description: "월간의사일정 표 렌더" } }
+  - { action: screenshot, name: "01-cmt-scoped-list" }

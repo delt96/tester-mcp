@@ -64,7 +64,7 @@ steps:
   - { action: fill, target: { css: ".p-dialog .responder_row .p-autocomplete-input", description: "수행자 — 부서원 ID 를 그대로 치면 후보가 1건만 남는다" }, value: "cmtuser10" }
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "수행자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", text: "cmtuser10", description: "cmtuser10 선택" } }
-  - { action: fill, target: { css: ".p-dialog textarea.form_control.full", description: "이행내용" }, value: "E2E-SEED 답변용 문서 접수 이행요청" }
+  - { action: fill, target: { ref: dialog_textarea_full, description: "이행내용" }, value: "E2E-SEED 답변용 문서 접수 이행요청" }
   - { action: wait_for, target: { css: ".p-dialog button.main-worker-btn", description: "[C] 배지 — 수행자가 채워져야 렌더링된다" } }
   - { action: click, target: { css: ".p-dialog button.main-worker-btn", description: "[C] 클릭 → 주 이행자 지정" } }
   - { action: assert_visible, target: { css: ".p-dialog button.main-worker-btn.is-main", description: "[C] 활성 확인 — .is-main 이 없으면 주 이행자가 아니다" } }
@@ -77,7 +77,7 @@ steps:
   - { action: screenshot, name: "16-d-requested" }
 
   # ── 4) 즉시 발송됐는지 (서명자가 본인이라 서명대기가 없어야 한다)
-  - { action: assert_visible, target: { css: "[class*='badge']", text: "발송", description: "본인 서명이라 즉시 '발송'. '서명 대기'면 서명자가 타인으로 잡힌 것(seed-04 교훈)" } }
+  - { action: assert_visible, target: { css: ".command .command_status", text: "발송", description: "본인 서명이라 즉시 '발송'. '서명 대기'면 서명자가 타인으로 잡힌 것(seed-04 교훈)" } }
 
   # ── 5) 접수 후 종료
   - { action: click, target: { css: ".right_top_area button.v_btn.btn_outline_neutral.btn_md", text: "종료하기", description: "[종료하기](10497) → fn_endAfterReceipt. 접수 후에는 이 버튼만 남는다" } }

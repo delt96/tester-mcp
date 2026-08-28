@@ -14,6 +14,6 @@ steps:
   - { action: click, target: { text: "Отправить", description: "[전송](10348)" } }
   - { action: wait_for, target: { ref: confirm_popup, description: "전송 confirm 팝업" } }
   - { action: click, target: { ref: confirm_accept, description: "confirm 수락 — send API → WS04 → 목록 이동" } }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "목록 복귀" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "Передано", description: "작업상태 '정부이송'(WS04, 회색 행)" } }
+  - { action: wait_for, target: { ref: datatable, description: "목록 복귀" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "Передано", description: "작업상태 '정부이송'(WS04, 회색 행)" } }
   - { action: screenshot, name: "list-transferred-ws04" }

@@ -70,7 +70,7 @@ steps:
   - { action: screenshot, name: "08-b-signer-search" }
   # ⚠ legalactuser 는 후보가 2건(부서장·직원)이라 :first-child 로 찍으면 안 된다.
   #   seed-05 1차가 딱 이 실수로 남의 의안을 부의했다 — 행은 반드시 식별자로 집는다.
-  - { action: click, target: { css: ".gtw-user_row", text: "부서장", description: "legalactuser(법적행위 부서장) 행 체크 → 선택 칩 추가. 본인이라야 다음 [서명]이 뜬다" } }
+  - { action: click, target: { ref: gtw_user_row, text: "부서장", description: "legalactuser(법적행위 부서장) 행 체크 → 선택 칩 추가. 본인이라야 다음 [서명]이 뜬다" } }
   - { action: assert_visible, target: { ref: gtw_chip_num, text: "1", description: "선택 칩 순번 1 — 실제로 선택됐는지" } }
   - { action: screenshot, name: "08-c-signer-selected" }
   # [저장]은 outline, [취소]가 primary 다 — 뒤집혀 있으니 주의(signerAssignModal.vue:230-233)
@@ -81,8 +81,8 @@ steps:
   # ── 3) 서명 — btnSign = mySign 있고 WS02 일 때만
   - { action: assert_visible, target: { css: ".gtw-action_row button.v_btn.btn_primary.btn_md", text: "서명", description: "[서명](10095). 없으면 본인이 서명자로 안 들어갔거나 아직 WS02 가 아니다" } }
   - { action: click, target: { css: ".gtw-action_row button.v_btn.btn_primary.btn_md", text: "서명", description: "[서명] → signModal" } }
-  - { action: wait_for, target: { css: ".p-dialog textarea.form_control.full", description: "서명 의견(11098) 입력란 — 모달 진입 신호" } }
-  - { action: fill, target: { css: ".p-dialog textarea.form_control.full", description: "서명 의견(선택)" }, value: "E2E-SEED 정부이송 서명" }
+  - { action: wait_for, target: { ref: dialog_textarea_full, description: "서명 의견(11098) 입력란 — 모달 진입 신호" } }
+  - { action: fill, target: { ref: dialog_textarea_full, description: "서명 의견(선택)" }, value: "E2E-SEED 정부이송 서명" }
   - { action: screenshot, name: "08-e-sign-modal" }
   # VITE_ENABLE_SIGN=false 라 PIN 모달 없이 바로 처리된다. [수정요청]은 btn_outline_error 라 다른 버튼이다.
   - { action: click, target: { css: ".p-dialog .popup_footer button.v_btn.btn_outline_primary.btn_md", text: "서명", description: "[서명] 실행 → 전원 서명 완료 시 WS03" } }
@@ -105,35 +105,25 @@ steps:
 
   # ── 5) 공문 필수값 — 앞 단계들과 같은 InsertLetter 라 셀렉터 동일
   # ⚠ .p-dialog 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 언어가 아니다.
-  - { action: click, target: { css: ".language_area .check_item input[type=checkbox]", description: "언어 체크박스 첫 번째(국가언어) — 필수(EA-09)" } }
-  # 제목은 fnWriteLetter 가 법률명으로 채워 준다고 봤으나(billMngDtl.vue:118 title: dispLang(...)),
-  # 2026-08-12 실행에서 저장된 doc_subtle 은 법률명이 아니었다 = 자동 채움에 의존하면 비결정적이다.
-  # 마커가 들어간 값을 명시적으로 넣어 뒤의 결재대기함 조회가 흔들리지 않게 한다.
-  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема) — 자동 채움에 기대지 말고 직접 넣는다" }, value: "E2E-SEED 정부이송 공문" }
-  - { action: fill, target: { css: ".p-dialog .recipient_area .p-autocomplete-input", description: "수신자(내부기관) — 총무국 gduser1" }, value: "gduser1" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "gduser1 선택 — 후보 1건이라 text 불필요" } }
-  - { action: fill, target: { css: ".p-dialog .approve .p-autocomplete-input", description: "승인자 — 법적행위 부서장(legalactuser)" }, value: "legalactuser" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "legalactuser(부서장) 선택 — legalactuser2(직원)와 갈라야 한다" } }
-  - { action: upload, target: { css: "#officialfile", description: "공문파일 input(README: 정부이송 공문 = 공문파일 1개)" }, file: "documentSample.pdf" }
-  - { action: screenshot, name: "08-h-letter-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 등록 시점에 work 와 자동 링크된다(gvrn_letter_doc_id)" } }
+  # 정부이송 공문만 문서 종류가 자동 지정되지 않는다 — fragment 앞에서 직접 고른다
+  - { action: click, target: { css: "#DMT02", description: "문서 종류 '확인용'(DMT02) — 필수*" } }
+  - use: insert-letter-modal
+    with: { title: "E2E-SEED 정부이송 공문", recipient: "gduser1", recipient_pick: "gduser1", approver: "legalactuser", approver_pick: "부서장", tag: "08-h" }
   - { action: wait_for, target: { css: ".gtw-billinfo_toggle", description: "모달 닫히고 상세 복귀" } }
   - { action: screenshot, name: "08-i-letter-registered" }
 
   # ── 6) 결재 = 이송 트리거. 별도 [이송] 버튼은 없다
   - { use: switch-account, with: { account: lgactuser } }
-  - { action: navigate, url: "/main/letter/approvalInbox" }
-  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "정부이송 공문 — 제목이 법률명(E2E-SEED мыйзам аталышы)으로 채워져 있다" } }
-  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역" } }
-  - { action: screenshot, name: "08-j-approval-detail" }
-  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] → autoSendIfReady → 1900 → 3200 + work WS04" } }
-  - { action: screenshot, name: "08-k-approved" }
+  - use: approve-in-approval-inbox
+    with: { doc: "E2E-SEED", tag: "08-j" }
 
   # ── 7) 결과 확인 — 정부이송 목록(gvrnTrsfMng)에 나타나면 3200 이다
   # 법적행위 목록은 stat_cd=ST130(1900) 기준이라 3200 이 되면 거기서는 빠진다.
+  # ⚠ **계정을 총무국으로 바꿔야 한다.** 이 목록 API 는 `hasAuthority('GD')` 다
+  #   (BillMngController:157 /bill/review/billMng/transferToGovernment). 결재한 lgactuser 는 LGACT 라
+  #   Total 0 과 '이 페이지에 접근할 권한이 없습니다' 토스트가 뜬다 — 이송이 안 된 것으로 오독하기 쉽다
+  #   (2026-08-28 실측: DB 는 이미 3200 + gvrn_trsf_dt 기록됨).
+  - { use: switch-account, with: { account: gduser } }
   - { action: navigate, url: "/main/billMng/gvrnTrsfMng/billMng" }
   - { action: wait_for, target: { ref: content_title, description: "정부이송 목록" } }
   - { action: screenshot, name: "08-l-gvrntrsf-list" }

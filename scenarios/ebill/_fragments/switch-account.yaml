@@ -1,13 +1,29 @@
-
 # 시나리오 도중 담당자를 바꾼다. 전 구간 시딩(seed/*)처럼 한 흐름을 여러 역할이 이어받는 경우에 쓴다.
 # use 중첩이 금지되므로 login fragment를 부르지 않고 로그아웃+로그인 스텝을 직접 갖는다.
+#
+# ⚠ 그래서 login fragment 의 방어를 **여기에도 복제해야 한다.** 2026-08-28 seed-00b 가
+#   이 fragment 에서 gduser 재로그인에 실패해 PARTIAL 로 끝났다. 증상은 '아이디 또는 비밀번호가
+#   일치하지 않습니다' 였으나 계정은 정상이었다(13개 계정 전수 API 검증 통과).
+#   원인은 값이 Vue ref 에 안 박히는 것이다 — 서버로 가는 건 DOM value 가 아니라
+#   `userId.value`/`pswd.value` 다(LoginView.vue:26-27). DOM 만 보면 멀쩡해 보인다.
+#   ① 마운트 완료를 `.btn_login` 으로 기다리고 ② 클릭으로 상호작용 가능 상태를 만든 뒤 채우고
+#   ③ 양쪽 다 assert_value 로 즉시 확인한다. 셋 중 하나라도 빠지면 실패가 '로그인 클릭 이후'로
+#   밀려 보여 계정 문제와 구분되지 않는다.
+#
+# ⚠ localStorage 의 idChk 가 있으면 onMounted 가 입력칸을 그 값으로 덮어쓴다(LoginView.vue:158-161).
+#   아래 assert_value 가 그 경우도 불일치로 잡아준다 — 엉뚱한 계정으로 조용히 진행되지 않는다.
 id: switch-account
 params:
   account:
 steps:
-  - { action: click, target: { css: "button.v_btn:has(i.ico_logout)", description: "헤더 우측 로그아웃 버튼" } }
+  - { action: click, target: { ref: logout_btn, description: "헤더 우측 로그아웃 버튼" } }
+  - { action: wait_for, target: { css: ".btn_login", description: "로그인 버튼 — 템플릿 마지막 요소. 마운트 완료 신호로 쓴다" } }
   - { action: wait_for, target: { css: "#userId", placeholder: "ИНН", description: "로그인 화면 복귀" } }
+  - { action: click, target: { css: "#userId", placeholder: "ИНН", description: "포커스 확보 — 요소 존재만으로는 v-model 바인딩 완료를 보장하지 못한다" } }
   - { action: fill, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.{{account}}.username}" }
+  - { action: assert_value, target: { css: "#userId", placeholder: "ИНН" }, value: "${secrets.{{account}}.username}" }
+  - { action: click, target: { css: "#pswd", placeholder: "Ваш пароль", description: "비밀번호 칸 포커스" } }
   - { action: fill, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.{{account}}.password}" }
+  - { action: assert_value, target: { css: "#pswd", placeholder: "Ваш пароль" }, value: "${secrets.{{account}}.password}" }
   - { action: click, target: { css: ".btn_login", role: "button", description: "로그인 버튼" } }
   - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창 — 전환 완료 신호" } }

@@ -21,7 +21,7 @@ precondition: >
   ★ 수신함 [반려]는 **답변용(DMT01)·서명용(DMT03)에만** 나온다.
   확인용(DMT02)에는 [종료하기]뿐이다(seed-17 실측).
 
-  ★ 반려 모달 셀렉터는 `_selectors.yaml` 의 `reject_modal_textarea` / `reject_modal_submit`
+  ★ 반려 모달 셀렉터는 `_selectors.yaml` 의 `dialog_textarea_full` / `reject_modal_submit`
   (seed-13 에서 검증됨). 결재대기함 반려와 같은 모달을 쓴다.
 
   ⚠ **비가역**: 반려하면 문서가 반려 상태로 넘어가고 수신함에서 빠진다.
@@ -41,8 +41,8 @@ steps:
   # ── 2) 반려 — 수신함 화면의 반려다(결재대기함이 아님)
   - { action: assert_visible, target: { css: ".right_top_area button.v_btn.btn_outline_error.btn_md", text: "반려", description: "DMT01 답변용에는 [반려]가 있다. 확인용(DMT02)에는 없다" } }
   - { action: click, target: { css: ".right_top_area button.v_btn.btn_outline_error.btn_md", text: "반려", description: "[반려](10269) → set_isRejectModal. 결재대기함의 반려와 같은 모달을 쓴다" } }
-  - { action: wait_for, target: { ref: reject_modal_textarea, description: "반려 사유 입력 모달" } }
-  - { action: fill, target: { ref: reject_modal_textarea, description: "반려 사유" }, value: "E2E-SEED 수신 반려 사유 — 자동화 검증" }
+  - { action: wait_for, target: { ref: dialog_textarea_full, description: "반려 사유 입력 모달" } }
+  - { action: fill, target: { ref: dialog_textarea_full, description: "반려 사유" }, value: "E2E-SEED 수신 반려 사유 — 자동화 검증" }
   - { action: screenshot, name: "19-b-reason" }
   - { action: click, target: { ref: reject_modal_submit, description: "모달의 [반려] 확정" } }
   - { action: screenshot, name: "19-c-rejected" }

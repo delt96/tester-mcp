@@ -23,7 +23,7 @@ steps:
   - { action: wait_for, target: { ref: datatable, description: "위원회회부 그리드(안건상태 기본값 '법률검토완료')" } }
   - { action: screenshot, name: "03a-referral-list" }
   - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 행 더블클릭 → 위원회회부 상세. 첫 클릭은 선택만 되므로 더블클릭이어야 한다" } }
-  - { action: wait_for, target: { css: ".content_tit", description: "위원회회부 상세 진입" } }
+  - { action: wait_for, target: { ref: content_title, description: "위원회회부 상세 진입" } }
   - { action: screenshot, name: "03b-referral-detail" }
 
   # ── 2) 소관위원회 지정 (필수)
@@ -41,7 +41,7 @@ steps:
 
   # ── 3) [위원회 회부 요청] → 이행요청 모달 (수행자 자동 채움 확인)
   - { action: click, target: { ref: btn_primary_md, text: "위원회 회부 요청", description: "[위원회 회부 요청] → 이행요청 모달" } }
-  - { action: wait_for, target: { css: ".p-dialog .p-autocomplete-input", description: "이행요청 모달" } }
+  - { action: wait_for, target: { ref: wr_executor_input, description: "이행요청 모달" } }
   - { action: assert_visible, target: { css: ".p-dialog", text: "위원회1 부서장", description: "수행자에 소관위원회 부서장이 자동으로 채워져 있어야 한다(BL-05)" } }
   - { action: assert_visible, target: { css: ".p-dialog", text: "언어심사 부서장", description: "언어심사 부서장도 자동 채움" } }
   - { action: assert_visible, target: { css: ".p-dialog", text: "전문심사 부서장", description: "전문심사 부서장도 자동 채움" } }
@@ -52,11 +52,11 @@ steps:
   # 운영에서는 서명자가 타인(국회의장 등)이다. 개발환경은 esign 서버에 접근할 수 없어
   # 본인 지정 시 PIN 없이 자동 승인되므로, 테스트 편의로 본인을 쓴다(2026-08-12 사용자 확인).
   # 이 때문에 이 시나리오는 '서명 대기 → 서명 승인함' 경로를 검증하지 못한다.
-  - { action: fill, target: { label: "서명자", css: ".p-dialog .p-autocomplete-input", description: "서명자 — 요청자 본인(gduser1)" }, value: "gduser1" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "서명자 후보" } }
+  - { action: fill, target: { label: "서명자", ref: wr_executor_input, description: "서명자 — 요청자 본인(gduser1)" }, value: "gduser1" }
+  - { action: wait_for, target: { ref: ac_option_any, description: "서명자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option:first-child, .user-autocomplete-overlay .p-autocomplete-option:first-child", description: "gduser1 L 선택" } }
   - { action: screenshot, name: "03e-workrequest-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 업무요청 생성 + 본인 서명으로 즉시 발송" } }
+  - { action: click, target: { ref: dialog_submit_primary, text: "등록", description: "[등록] — 업무요청 생성 + 본인 서명으로 즉시 발송" } }
 
   # ── 5) 전진 확인 — 목록으로 돌아오고 대상 의안이 빠져 있어야 한다
   - { action: wait_for, target: { ref: datatable, description: "위원회회부 목록으로 자동 복귀" } }

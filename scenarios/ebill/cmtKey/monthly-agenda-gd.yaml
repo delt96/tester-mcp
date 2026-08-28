@@ -1,0 +1,20 @@
+id: monthly-agenda-gd
+title: 월간의사일정 — 총무부서(GD) 전체조회가 비지 않는다
+locale: ru
+login_as: gduser
+ephemeral: true
+tags: [cmtKey]
+precondition: >
+  위원회 키 cmt_id 전환 Phase A 배포분. 전환 전에는 프론트가 store.cmtId 를 보내는데
+  매퍼가 부서 id 리터럴(cmtCd != 9)로 전체조회를 가드해, GD 사용자(부서 9/22/24 — 전부
+  cmt_id NULL)에게 0건이 나왔다. 수정 후에는 allCmt 플래그로 전체가 조회돼야 한다.
+  개발 DB 202608 기준 원시 201건 존재. 화면 기본 월이 현재 월이므로 실행 시점이
+  2026-08 이 아니면 월 선택을 바꿔야 한다.
+steps:
+  - { action: navigate, url: "/main/billMng/monthlyAgenda/billMngMonthlyAgenda" }
+  - { action: wait_for, target: { ref: monthly_agenda_table, description: "월간의사일정 표 렌더 — 이후 단언이 빈 화면에서 공짜로 통과하지 않도록 먼저 기다린다" } }
+  - { action: screenshot, name: "01-gd-list" }
+  # 위원회명 셀에 값이 있으면 (a) 행이 존재하고 (b) 위원회 조인이 살아 있다는 뜻이다.
+  # 빈 목록이면 이 셀렉터가 빈 메시지 행을 잡아 텍스트가 안내문이 되므로 스크린샷과 함께 판별 가능.
+  - { action: assert_visible, target: { ref: monthly_agenda_cmt_cell, description: "첫 행 위원회명 셀 — 전환 전에는 행 자체가 없었다" } }
+  - { action: screenshot, name: "02-gd-cmt-column" }

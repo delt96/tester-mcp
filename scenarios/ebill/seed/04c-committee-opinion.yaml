@@ -58,36 +58,15 @@ steps:
   # ⚠ .p-dialog 의 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이다 — 언어가 아니다.
   #   이걸 누르면 공문파일 칸이 사라져 뒤의 upload 가 통째로 실패한다.
   #   언어는 .language_area 안에 국가언어/공용어/외국어 3종(InsertLetter.vue:948-955).
-  - { action: click, target: { css: ".language_area .check_item input[type=checkbox]", description: "언어 체크박스 첫 번째(국가언어) — 언어는 필수(EA-09)" } }
-  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "제목(Тема)" }, value: "E2E-SEED 위원회 심사 의견서" }
-  # ⚠ 수신자가 04b 와 다르다. 언어·전문심사는 소관위원회로 보냈지만 위원회 의견서는 총무국으로 간다.
-  #   gduser1 은 autocomplete 결과가 1건뿐이라 text 필터를 걸면 안 된다(부서장 라벨이 없다).
-  - { action: fill, target: { css: ".p-dialog .recipient_area .p-autocomplete-input", description: "수신자(내부기관) — 총무국 gduser1" }, value: "gduser1" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "수신자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "gduser1 선택 — 후보가 1건이라 text 지정 불필요" } }
-  # 승인자는 .approve 안(AddApproveComponent.vue:26). 수신자와 같은 AutoCompleteUserInput 이라
-  # .p-dialog .p-autocomplete-input 만으로는 절대 갈라지지 않는다.
-  - { action: fill, target: { css: ".p-dialog .approve .p-autocomplete-input", description: "승인자 — 소관위원회 부서장(cmtuser1)" }, value: "cmtuser1" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "승인자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "cmtuser1(부서장) 선택 — 접두어를 공유하는 cmtuser10(직원)과 갈라야 한다" } }
-  # 공문파일(Расмий документ) 필수 — 없으면 [등록]이 오류 없이 조용히 실패한다(2026-08-11 실측).
-  # label[for=officialfile] 은 누르면 네이티브 파일 선택창이 열려 세션이 멈추므로 input 자체를 target 으로.
-  - { action: upload, target: { css: "#officialfile", description: "공문파일 input(InsertLetter.vue:874, accept=.pdf 단일)" }, file: "documentSample.pdf" }
-  - { action: screenshot, name: "04c-d-opinion-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — seed-02/04b 에서 검증된 패턴" } }
+  - use: insert-letter-modal
+    with: { title: "E2E-SEED 위원회 심사 의견서", recipient: "gduser1", recipient_pick: "gduser1", approver: "cmtuser1", approver_pick: "부서장", tag: "04c-d" }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "04c-e-opinion-registered" }
 
   # ── 4) 소관위원회 부서장(cmtuser1) — 결재  ← 여기서 1400 → 1500 이 일어난다
   - { use: switch-account, with: { account: cmthead } }
-  - { action: navigate, url: "/main/letter/approvalInbox" }
-  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED 위원회 심사 의견서", description: "위원회 심사 의견서" } }
-  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역" } }
-  - { action: screenshot, name: "04c-f-approval-detail" }
-  # 개발환경은 esign 미접근이라 PIN 없이 즉시 승인된다(2026-08-12 사용자 확인)
-  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] → jurisdictionalCommitteeReview → executeAction → step 1500" } }
-  - { action: screenshot, name: "04c-g-approved" }
+  - use: approve-in-approval-inbox
+    with: { doc: "E2E-SEED 위원회 심사 의견서", tag: "04c-f" }
 
   # ── 5) 결과 확인 — 본회의 안건 후보에 나타나야 1500 이다
   # MtngFromMapper.xml: (bp_df_id='1' AND current_step_id IN ('1500')) 인 의안만 후보로 뜬다.

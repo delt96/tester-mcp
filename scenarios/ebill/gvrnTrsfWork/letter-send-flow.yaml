@@ -24,12 +24,12 @@ steps:
   - { action: wait_for, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 오버레이에서 legalactuser 항목" } }
   - { action: click, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 = 본인 1인 지정 (작성자=첫 결재자 → 자동 승인 → 1인이라 즉시 결재완료)" } }
   - { action: click, target: { css: ".p-dialog .btn_primary", role: "button", text: "Зарегистрировать", description: "등록하기(10493) — 등록+자동승인+letterSent(docId)" } }
-  - { action: wait_for, target: { css: ".p-toast-message-success", description: "등록/저장 성공 토스트" } }
+  - { action: wait_for, target: { ref: toast_success, description: "등록/저장 성공 토스트" } }
   - { action: wait_for, target: { text: "Утверждено", description: "S4 공문 섹션 — 결재상태 '결재완료'(11105). onLetterSent→PUT letter→fnReload 반영. doc_no 채번은 스크린샷으로 확인" } }
   - { action: screenshot, name: "letter-linked-approved" }
   - { action: click, target: { text: "Отправить", description: "[전송](10348) — DMS02에서만 노출" } }
   - { action: wait_for, target: { ref: confirm_popup, description: "전송 confirm 팝업" } }
   - { action: click, target: { ref: confirm_accept, description: "confirm 수락 — send API → WS04 → 목록 이동" } }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "목록 복귀" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "Передано", description: "해당 의안 행 작업상태 '정부이송'(WS04, 회색 행)" } }
+  - { action: wait_for, target: { ref: datatable, description: "목록 복귀" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "Передано", description: "해당 의안 행 작업상태 '정부이송'(WS04, 회색 행)" } }
   - { action: screenshot, name: "list-transferred-ws04" }

@@ -25,7 +25,14 @@ steps:
   - { action: navigate, url: "/main/letter/executionInbox" }
   - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
   - { action: screenshot, name: "04a-cmt-execution-inbox" }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 위원회 회부 요청" } }
+  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다(2026-08-28 실측 3건). text 만으로는 어느 것을 여는지
+  #   보장되지 않아 executor 가 "대상을 못 고르겠다"며 멈췄다. → **첫 행을 잡되 그 행이 맞는지 먼저 단언**한다.
+  #   정렬 근거: `OfficialDocumentMapper.xml:261`
+  #     order by res.check_dtm is null desc, coalesce(req.sign_dtm, req.reg_dt) desc
+  #   = 미확인 우선 + 최신순. 방금 회부한 건은 미확인·최신이라 첫 행이다.
+  #   ※ 임시 조치다. 근본 해결은 의안명에 실행 단위 마커를 넣는 것(document-guide-feedback.md 2026-08-28 #1).
+  - { action: assert_visible, target: { ref: list_item_first, text: "E2E-SEED", description: "첫 행이 이번 회부 요청인지 — 아니면 여기서 멈추는 게 맞다" } }
+  - { action: click, target: { ref: list_item_first, description: "위에서 단언한 그 행을 연다" } }
   - { action: wait_for, target: { css: "button.add_command", description: "[+ 이행자추가] — 상세 진입 신호" } }
   # 회부 요청 카드에는 소관위원회 부서장에게 이미 ⓒ 가 붙어 있다(gduser1이 회부하며 선지정, BL-05)
   - { action: assert_visible, target: { css: ".p-dialog, .command_area, body", text: "위원회 회부 요청", description: "회부 요청 카드 존재" } }
@@ -33,7 +40,7 @@ steps:
   - use: assign-main-executor
     with: { executor: "cmtuser10", signer: "cmtuser1", content: "E2E-SEED 위원회 심사 이행요청" }
   - { action: screenshot, name: "04c-cmt-assigned" }
-  - { action: assert_visible, target: { css: "[class*='badge']", text: "발송", description: "본인 서명이라 즉시 '발송' — '서명 대기'면 서명자가 타인으로 잡힌 것" } }
+  - { action: assert_visible, target: { css: ".command .command_status", text: "발송", description: "본인 서명이라 즉시 '발송' — '서명 대기'면 서명자가 타인으로 잡힌 것" } }
 
   # 위원회심사 목록에 즉시 반영되는지 확인 — 주 이행자 지정의 효과를 눈으로 본다
   - { action: navigate, url: "/main/billMng/cmtMng/billCmtReview" }
@@ -44,7 +51,14 @@ steps:
   - { use: switch-account, with: { account: langhead } }
   - { action: navigate, url: "/main/letter/executionInbox" }
   - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 위원회 회부 요청" } }
+  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다(2026-08-28 실측 3건). text 만으로는 어느 것을 여는지
+  #   보장되지 않아 executor 가 "대상을 못 고르겠다"며 멈췄다. → **첫 행을 잡되 그 행이 맞는지 먼저 단언**한다.
+  #   정렬 근거: `OfficialDocumentMapper.xml:261`
+  #     order by res.check_dtm is null desc, coalesce(req.sign_dtm, req.reg_dt) desc
+  #   = 미확인 우선 + 최신순. 방금 회부한 건은 미확인·최신이라 첫 행이다.
+  #   ※ 임시 조치다. 근본 해결은 의안명에 실행 단위 마커를 넣는 것(document-guide-feedback.md 2026-08-28 #1).
+  - { action: assert_visible, target: { ref: list_item_first, text: "E2E-SEED", description: "첫 행이 이번 회부 요청인지 — 아니면 여기서 멈추는 게 맞다" } }
+  - { action: click, target: { ref: list_item_first, description: "위에서 단언한 그 행을 연다" } }
   - { action: wait_for, target: { css: "button.add_command", description: "상세 진입" } }
   - use: assign-main-executor
     with: { executor: "LGGSPLZ2", signer: "LGGSPLZ", content: "E2E-SEED 언어심사 이행요청" }
@@ -54,7 +68,14 @@ steps:
   - { use: switch-account, with: { account: exntnhead } }
   - { action: navigate, url: "/main/letter/executionInbox" }
   - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 위원회 회부 요청" } }
+  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다(2026-08-28 실측 3건). text 만으로는 어느 것을 여는지
+  #   보장되지 않아 executor 가 "대상을 못 고르겠다"며 멈췄다. → **첫 행을 잡되 그 행이 맞는지 먼저 단언**한다.
+  #   정렬 근거: `OfficialDocumentMapper.xml:261`
+  #     order by res.check_dtm is null desc, coalesce(req.sign_dtm, req.reg_dt) desc
+  #   = 미확인 우선 + 최신순. 방금 회부한 건은 미확인·최신이라 첫 행이다.
+  #   ※ 임시 조치다. 근본 해결은 의안명에 실행 단위 마커를 넣는 것(document-guide-feedback.md 2026-08-28 #1).
+  - { action: assert_visible, target: { ref: list_item_first, text: "E2E-SEED", description: "첫 행이 이번 회부 요청인지 — 아니면 여기서 멈추는 게 맞다" } }
+  - { action: click, target: { ref: list_item_first, description: "위에서 단언한 그 행을 연다" } }
   - { action: wait_for, target: { css: "button.add_command", description: "상세 진입" } }
   - use: assign-main-executor
     with: { executor: "lgexntnuser2", signer: "lgexntnuser", content: "E2E-SEED 전문심사 이행요청" }

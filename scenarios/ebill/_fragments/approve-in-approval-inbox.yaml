@@ -1,0 +1,26 @@
+id: approve-in-approval-inbox
+# 결재대기함(ApprovalInbox)에서 문서를 찾아 열고 [결재]까지. eBill 전 구간에서 가장 많이 반복되는 블록이다
+# (2026-08-28 기준 11개 파일 12곳). 문서를 특정하는 텍스트 말고는 전부 같아서 fragment 로 묶었다.
+#
+# ⚠ **[결재] 버튼은 `btn_primary` 가 아니라 `btn_outline_primary`(=btn_outline_md) 다**
+#   (`ApprovalInbox.vue:314`). 이 별칭이 12곳에 인라인으로 흩어져 있던 탓에 전부 `btn_primary_md` 로
+#   **틀리게** 적혀 있었고, executor 가 `text: "결재"` 로 폴백해 통과하는 바람에 오래 숨어 있었다.
+#   2026-08-28 에 한꺼번에 고치면서 fragment 로 올렸다 — 다음에 클래스가 바뀌면 여기 한 곳만 고치면 된다.
+#   ※ 수신함(`Inbox.vue:565`)의 [결재]는 또 `btn_outline_neutral` 이다. 그 화면엔 이 fragment 를 쓰지 말 것.
+#
+# ⚠ **단언과 조작을 같은 대상으로 맞춘다.** 목록에서 엉뚱한 문서를 열면 시나리오는 실패하는 게 아니라
+#   **틀린 것을 맞다고 보고한다**(seed-05 1차 사고). 그래서 클릭 전에 같은 text 로 assert 한다.
+#
+# 전자서명 PIN 모달은 `VITE_ENABLE_SIGN='true'` 일 때만 열리는데 .env 전부 false 라 PIN 없이 즉시 승인된다.
+params:
+  doc:   # 결재대기함에서 문서를 특정할 텍스트(부제목). 마커까지 포함해 좁게 줄 것
+  tag:   # 스크린샷 이름 접두어. 한 시나리오에서 두 번 쓰면 이름이 겹치므로 반드시 다르게 준다
+steps:
+  - { action: navigate, url: "/main/letter/approvalInbox" }
+  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록" } }
+  - { action: assert_visible, target: { ref: list_item, text: "{{doc}}", description: "대상 문서가 결재대기함에 있다 — 조작 전에 먼저 단언한다" } }
+  - { action: click, target: { ref: list_item, text: "{{doc}}", description: "위에서 단언한 그 문서를 연다" } }
+  - { action: wait_for, target: { ref: btn_outline_md, description: "결재 버튼 영역" } }
+  - { action: screenshot, name: "{{tag}}-approval-detail" }
+  - { action: click, target: { ref: btn_outline_md, text: "결재", description: "[결재](10268) — ApprovalInbox.vue:314" } }
+  - { action: screenshot, name: "{{tag}}-approved" }

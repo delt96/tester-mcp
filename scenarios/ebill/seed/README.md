@@ -59,6 +59,25 @@
 
 목록이 비면 권한부터 의심하지 말고 **상태필터 기본값 vs 의안의 현재 stat_cd**를 먼저 맞춰볼 것.
 
+#### ⚠ '정부이송 예정' 과 '정부이송' 은 **다른 메뉴**다 — 계정을 바꿔야 한다 (2026-08-28 실측)
+
+이름이 비슷해 한 화면으로 착각하기 쉽다. `com_menu` 상 **별개의 메뉴 2개**다.
+
+| menu_id | 메뉴명 | 경로 | API | 권한 | LGACT 매핑 |
+|---|---|---|---|---|---|
+| **149** | 정부이송 **예정** | `gvrnTrsfWork/billMng` | `/bill/gvrnTrsfWork/list` | `@PreAuthorize` **없음** | **있음** |
+| **91** | 정부이송 | `gvrnTrsfMng/billMng` | `/bill/review/billMng/transferToGovernment` | **`hasAuthority('GD')`** | **없음** |
+
+`lgactuser`·`lgactstaff` 는 149 만 갖는다. 91 은 `com_dept_menu` 에 GD 계열 15개만 매핑돼 있다.
+
+**증상이 결함으로 위장한다.** `seed-08` 이 결재까지 마친 `lgactuser` 그대로 91 로 이동해
+`Total 0` + '이 페이지에 접근할 권한이 없습니다' 토스트를 받고 **FAIL** 로 끝났다.
+그런데 **DB 는 이미 `current_step_id=3200` + `gvrn_trsf_dt` 기록 완료**였다 —
+화면만 보면 이송이 안 된 것으로 읽힌다.
+
+→ **규칙: 91(정부이송)·공포 계열로 넘어가기 전에 `switch-account: gduser` 를 넣을 것.**
+   `seed-08`·`08b` 는 반영했고, `seed-09` 는 처음부터 `login_as: gduser` 라 문제없다.
+
 **외부수신함도 같은 함정이 있다.** `ExternalReceive.vue:21` 의 `DEFAULT_STATUS='in'` 인데
 실제 문서는 전부 `closed` 다(2026-08-12 실측 64/64). 기본 화면에 아무것도 안 뜨고,
 제목만 검색하면 Total 0 이 된다. 상태를 먼저 풀어야 한다.
@@ -180,8 +199,36 @@ PrimeVue가 `value`로 DOM id를 만드는데 정당명이 `Фракция "Ат
 | **단언/조작 타깃 불일치** | `fill` 은 placeholder 로, `assert_value` 는 css 로 잡으면 서로 다른 것을 본다 |
 | **v-model 바인딩 전 입력** | 값이 실제로 안 박힌다. `wait_for` → `click` → `fill` → `assert_value` 로 방어 |
 
-→ `_fragments/login.yaml` 에 세 방어가 모두 들어가 있다. **`fill` 직후 `assert_value` 를 습관화할 것** —
+| **새 탭 워밍업 누락** | **가장 흔하다.** 아래 절 참조 — `screenshot` 전에는 클릭·타이핑이 통째로 무시된다 |
+
+→ `_fragments/login.yaml` 에 방어가 모두 들어가 있다. **`fill` 직후 `assert_value` 를 습관화할 것** —
    이게 없으면 실패 지점이 '로그인 클릭 이후'로 밀려 보여 원인을 가를 수 없다.
+   2026-08-28 에 **비밀번호에도 `assert_value` 를 추가**했다(아이디만 단언하고 있었다).
+
+### ★ 새 탭은 `screenshot` 을 찍기 전까지 클릭·타이핑이 전부 무시된다 (2026-08-28 확정)
+
+executor 가 `tabs_create` 로 만든 탭에서는 **`screenshot` 을 한 번 찍기 전까지** `computer` 의
+클릭·타이핑이 조용히 버려진다. 도구는 성공을 반환하고 아무 일도 안 일어난다.
+`browser_batch` 로 새 탭 3개에서 재현해 확정했다 — **횟수가 아니라 screenshot 이 게이트**이고,
+클릭을 두 번 하든 type 을 재시도하든 안 풀린다. `document.hidden` 은 무관하다(true 인 채로 동작한다).
+
+**2차 피해가 원인을 가린다.** 첫 입력이 유실되면 executor 는 셀렉터를 의심해 좌표로 복구를 시도하고,
+좌표가 빗나가면 **빈 비밀번호로 로그인**해 '아이디 또는 비밀번호가 일치하지 않습니다' 가 뜬다.
+executor 가 **두 번** "계정이 DB에 없는 것 같다" 로 오인계했다. 계정은 13개 전부 정상이었다.
+
+→ **감별: 로그인 실패를 계정 문제로 올리기 전에 `POST /login` 을 직접 호출해 볼 것.** 30초면 갈린다.
+→ 조치: executor 시스템 프롬프트(`src/run/buildPrompt.ts`)에 **"새 탭 navigate 직후 screenshot 1장 필수"**
+   를 박았다. 시나리오의 `screenshot` 스텝은 계약상 best-effort 라 executor 가 건너뛴다(`01b` 가 그렇게 죽었다).
+
+### ★ 좌표 클릭은 쓰지 말 것 (2026-08-28)
+
+스크린샷은 축소되는 데다 **레터박스**라(페이지가 캔버스를 다 채우지 않음) `imageWidth/innerWidth` 로
+환산해도 틀리고, `computer` 의 coordinate 는 **스크린샷 좌표계**라 `getBoundingClientRect()`(페이지 좌표)를
+그대로 넣어도 틀린다. 실측: `#userId` 중심 DOM (1422,559) ↔ 스크린샷 (705,277).
+비밀번호 칸 ~16px 빗나감 2회, 행 더블클릭 실패 3회가 전부 이것이다.
+→ **`ref`(find) 또는 `javascript_tool` 로 조작한다.** 프롬프트에도 금지로 박았다.
+⚠ `resize_window` 는 **페이지 줌을 origin 단위로 바꿔 놓고**(dpr 1 → 0.9) `ctrl+0` 은 도구가 막아 놔
+   되돌릴 수 없다(사람이 눌러야 한다). **쓰지 말 것.**
 
 ### 포트를 뺏겼는지 아닌지 (2026-08-13)
 

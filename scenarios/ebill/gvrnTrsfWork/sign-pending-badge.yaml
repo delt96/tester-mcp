@@ -11,11 +11,11 @@ precondition: >
   읽기 전용 시나리오 — 서명/수정요청 버튼은 누르지 않는다(누르면 SS02가 소모되어 재현 데이터가 사라진다).
 steps:
   - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "정부이송 예정 목록 테이블 렌더" } }
+  - { action: wait_for, target: { ref: datatable, description: "정부이송 예정 목록 테이블 렌더" } }
   - { action: assert_visible, target: { css: "#v_sidebar .depth2 li[data-menu-key='149']", description: "사이드바 2단 '정부이송 예정' 항목(com_menu 149)" } }
-  - { action: assert_value, target: { css: "#v_sidebar .depth2 li[data-menu-key='149'] span", description: "사이드바 뱃지 카운트 숫자 — setGvrnTrsfSignCount()가 채운 alarm[149]" }, value: "1" }
+  - { action: assert_value, target: { ref: sidebar_badge_149, description: "사이드바 뱃지 카운트 숫자 — setGvrnTrsfSignCount()가 채운 alarm[149]" }, value: "1" }
   - { action: screenshot, name: "sidebar-badge-1" }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "6-6925/26", description: "SS02 대상 의안 행" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "6-6925/26", description: "SS02 대상 의안 행" } }
   - { action: assert_visible, target: { css: ".badge-myturn", description: "목록 상태 컬럼의 '내 차례' 배지 — myTurnYn='Y'인 행에만" } }
   - { action: assert_value, target: { css: ".badge-myturn", description: "배지 텍스트 t('11150') ru" }, value: "Моя очередь" }
   - { action: screenshot, name: "list-myturn-badge" }

@@ -17,7 +17,7 @@ steps:
   - { action: screenshot, name: "trip-badge-not-blocked" }
 
   # 2) 실제로 선택되는가
-  - { action: click, target: { css: ".user-autocomplete-overlay .list-item:not(.is-absent)", text: "Асанов", description: "사무총장(출장 중) 옵션 클릭" } }
+  - { action: click, target: { ref: user_ac_option_normal, text: "Асанов", description: "사무총장(출장 중) 옵션 클릭" } }
   # full_name 자체에 역할 표기 '(사무총장)'이 들어 있는 테스트 데이터라 그대로 포함해야 한다.
   - { action: assert_value, target: { ref: recipient_ac_input, description: "optionLabel=fullName이라 '이름+직위+부서'가 구분자 없이 이어진다" }, value: "Асанов Аскар Уланович (사무총장)Руководитель АппаратаОбщий отдел" }
   - { action: screenshot, name: "trip-selected" }

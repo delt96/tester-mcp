@@ -26,7 +26,7 @@ steps:
   - { action: wait_for, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 오버레이에서 legalactuser 항목" } }
   - { action: click, target: { css: ".user-autocomplete-overlay .list-item", text: "legalactuser", description: "승인자 = 본인 1인 지정 → 자동결재 대상" } }
   - { action: click, target: { css: ".p-dialog .btn_primary", role: "button", text: "Зарегистрировать", description: "등록하기 — 등록+자동승인+letterSent+closeAll" } }
-  - { action: wait_for, target: { css: ".p-toast-message-success", description: "등록 성공 토스트" } }
+  - { action: wait_for, target: { ref: toast_success, description: "등록 성공 토스트" } }
   - { action: wait_for, target: { text: "Утверждено", description: "S4 공문 섹션 결재상태 '결재완료'(11105) — 자동결재+자동연결+리로드 반영" } }
   - { action: assert_visible, target: { text: "Дата отправки", description: "전송일자(11109) 행 — 결재완료 훅의 자동 전송(WS04) 증거" } }
   - { action: screenshot, name: "auto-transferred-ws04" }

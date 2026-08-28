@@ -1,0 +1,61 @@
+id: insert-letter-modal
+# InsertLetter 모달(의견서·톡돔·정부이송 공문)을 채우고 [등록]까지. 2026-08-28 기준 7개 파일 8곳에서
+# 같은 모양으로 반복됐다 — 바뀌는 건 제목·수신자·승인자뿐이라 fragment 로 묶었다.
+#
+# **선행**: 모달이 이미 열려 있어야 한다(`.p-dialog` 대기까지는 호출부 몫).
+# **후행**: [등록] 뒤의 대기는 화면마다 다르므로 **호출부가 한다** —
+#          의견서 계열은 `ref: content_title`, 정부이송 공문은 `.gtw-billinfo_toggle`.
+#
+# ⚠ `.p-dialog` 의 **첫 체크박스는 `#docModeOfficial`**(공문파일 첨부 모드)이지 언어가 아니다.
+#   그걸 누르면 공문파일 칸이 통째로 사라져 뒤의 `upload` 가 실패한다. 언어는 `.language_area` 안이다.
+#
+# ⚠ **문서 종류(11066)가 필요한 화면이면 호출부가 이 fragment 앞에서 눌러야 한다** (`#DMT02` 등).
+#   대부분은 자동 지정된다 — 등록요청은 DMT01, 이행요청 응답(의견서·톡돔)은 rcvId 경로로 DMT02.
+#   **정부이송 공문만 자동 지정 대상이 아니라서** 안 고르면 `InsertLetter.vue:540` 의
+#   `if (!types.value) errors.types` 에 막히는데 **토스트도 없고 네트워크 요청도 0건**이라
+#   "[등록하기]가 안 먹는다"로 보인다(2026-08-28 seed-08 이 이걸로 멈췄다).
+#   자동 지정되는 화면에까지 이 클릭을 넣지 않은 이유: 그 화면들은 이미 통과 중이고, 검증 없이
+#   동작을 바꾸지 않기 위해서다.
+#
+# ⚠ autocomplete 후보 선택은 **반드시 text 로 특정**한다. 부서장/부서원이 접두어를 공유해서
+#   (`LGGSPLZ ⊂ LGGSPLZ2`, `cmtuser1 ⊂ cmtuser10`) 좌표나 첫 후보로 찍으면 직원이 잡히는 사고가 난다.
+#
+#   무엇이 매칭되는가: 후보의 굵은 줄은 `option.userName` 이고 그 값은 **HRMIS fullName** 이다
+#   (`AutoCompleteUserInput.vue:75` `userName: d.fullName`, 141행에서 렌더).
+#     `cmtuser1 L (위원회1 부서장)`  → pick "부서장" 으로 직원(`cmtuser10 L (위원회1 직원)`)과 갈린다
+#     `gduser1 L`                  → 직급 표기가 없어 "부서장" 은 안 걸린다. **pick 에 로그인 ID 를 준다**
+#   ※ 옛 주석에 "gduser1 은 후보 1건이라 text 를 걸면 안 된다" 고 적혀 있었는데, 그건 *부서장* 필터를
+#     두고 한 말이다. 로그인 ID 는 fullName 에 그대로 들어 있어 매칭되고, 첫 후보를 찍는 것보다 안전하다.
+#
+# ⚠ **검색어는 로그인 ID 가 아니라 HRMIS 표시명 기준**이다(`/hrmis/autocomplete`, 같은 파일 69행).
+#   `LGRVuser1` 로 치면 **0건** — 표시명이 `LGRVuser L (법률검토 부서장)` 이라서다.
+#   그래서 법무실 부서장은 `LGRVuser` 로 검색하고 pick 으로 좁힌다. (전체 계정표는 seed/README 참조)
+#
+# 수신자 행은 [내부기관|정부기관] 탭 + autocomplete 구조지만(AddRecipientComponent.vue:68-82)
+# 기본이 내부기관이라 탭 전환 없이 바로 입력하면 된다.
+#
+# 공문파일(Расмий документ)은 필수다 — 없으면 [등록]이 오류 없이 조용히 실패한다.
+# `label[for=officialfile]` 은 누르면 네이티브 파일 선택창이 열려 세션이 멈추므로 input 자체를 target 으로 준다.
+params:
+  title:          # 부제목(Тема)
+  recipient:      # 수신자 검색어 (로그인 ID)
+  recipient_pick: # 수신자 후보를 특정할 텍스트 — 부서장이면 "부서장", 후보 1건이면 로그인 ID
+  approver:       # 승인자 검색어 (로그인 ID)
+  approver_pick:  # 승인자 후보를 특정할 텍스트 — 보통 "부서장"
+  tag:            # 스크린샷 이름 접두어. 한 시나리오에서 두 번 쓰면 반드시 다르게 준다
+  file: documentSample.pdf
+steps:
+  - { action: click, target: { ref: language_first_checkbox, description: "언어 '국가언어' — 필수(EA-09)" } }
+  - { action: fill, target: { label: "제목", css: ".p-dialog input.form_control", description: "부제목(Тема) 필수*" }, value: "{{title}}" }
+
+  - { action: fill, target: { ref: dialog_recipient_input, description: "수신자(내부기관)" }, value: "{{recipient}}" }
+  - { action: wait_for, target: { ref: ac_option_any, description: "수신자 후보" } }
+  - { action: click, target: { ref: ac_option_any, text: "{{recipient_pick}}", description: "수신자 후보 특정 — 접두어 공유 계정 때문에 text 필수" } }
+
+  - { action: fill, target: { ref: dialog_approver_input, description: "승인자" }, value: "{{approver}}" }
+  - { action: wait_for, target: { ref: ac_option_any, description: "승인자 후보" } }
+  - { action: click, target: { ref: ac_option_any, text: "{{approver_pick}}", description: "승인자 후보 특정 — 부서장/직원을 갈라야 한다" } }
+
+  - { action: upload, target: { ref: official_file_input, description: "공문파일 input(필수). label 클릭 금지 — 네이티브 선택창" }, file: "{{file}}" }
+  - { action: screenshot, name: "{{tag}}-letter-filled" }
+  - { action: click, target: { ref: dialog_submit_primary, text: "등록", description: "[등록] — 공문파일이 붙어야 통과한다" } }

@@ -40,8 +40,8 @@ steps:
 
   # ── 2) 반려
   - { action: click, target: { css: "button.v_btn.btn_outline_error.btn_md", text: "반려", description: "[반려](10269) → set_isRejectModal(true). btn_outline_error 라 [결재](btn_primary)와 안 겹친다" } }
-  - { action: wait_for, target: { ref: reject_modal_textarea, description: "반려 사유 입력 모달" } }
-  - { action: fill, target: { ref: reject_modal_textarea, description: "반려 사유" }, value: "E2E-SEED 반려 사유 — 자동화 검증" }
+  - { action: wait_for, target: { ref: dialog_textarea_full, description: "반려 사유 입력 모달" } }
+  - { action: fill, target: { ref: dialog_textarea_full, description: "반려 사유" }, value: "E2E-SEED 반려 사유 — 자동화 검증" }
   - { action: screenshot, name: "13-b-reason" }
   - { action: click, target: { ref: reject_modal_submit, description: "모달의 [반려] 확정 → PUT /eas/approval/reject" } }
   - { action: screenshot, name: "13-c-rejected" }

@@ -13,10 +13,10 @@ steps:
   - { action: wait_for, target: { ref: user_ac_option, description: "사용자 옵션 목록" } }
 
   # 1) 과거 이력만 있는 사람이 '부재 아님(.is-absent 없음)' 쪽에 렌더되는가
-  - { action: assert_visible, target: { css: ".user-autocomplete-overlay .list-item:not(.is-absent)", text: "Ажибеков", description: "Ажибеков는 부재 이력 5건이 모두 종료/삭제 상태라 회색 처리되면 안 된다" } }
+  - { action: assert_visible, target: { ref: user_ac_option_normal, text: "Ажибеков", description: "Ажибеков는 부재 이력 5건이 모두 종료/삭제 상태라 회색 처리되면 안 된다" } }
   - { action: screenshot, name: "past-absence-not-greyed" }
 
   # 2) 실제로 선택되는가 (pointer-events가 막지 않는지)
-  - { action: click, target: { css: ".user-autocomplete-overlay .list-item:not(.is-absent)", text: "Ажибеков", description: "Ажибеков 옵션 클릭" } }
+  - { action: click, target: { ref: user_ac_option_normal, text: "Ажибеков", description: "Ажибеков 옵션 클릭" } }
   - { action: assert_value, target: { ref: recipient_ac_input, description: "optionLabel=fullName이라 '이름+직위+부서'가 구분자 없이 이어진 문자열이 들어간다" }, value: "Ажибеков Азат МанасбековичЭкономистОтдел Экономики и Анализа" }
   - { action: screenshot, name: "past-absence-selected" }

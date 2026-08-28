@@ -33,7 +33,7 @@ steps:
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "수행자 후보" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", text: "{{executor}}", description: "{{executor}} 선택" } }
 
-  - { action: fill, target: { css: ".p-dialog textarea.form_control.full", description: "이행내용" }, value: "{{content}}" }
+  - { action: fill, target: { ref: dialog_textarea_full, description: "이행내용" }, value: "{{content}}" }
 
   # [C] 주 이행자 — 수행자 선택 후에만 나타난다. 누르면 .is-main 이 붙고 빨간 테두리가 된다.
   - { action: wait_for, target: { css: ".p-dialog button.main-worker-btn", description: "[C] 배지 — 수행자가 채워져야 렌더링된다" } }

@@ -39,11 +39,16 @@ steps:
   # 표 행 순서(ApplySave.vue:174-193): 1 안건명(kg)* / 2 안건명(ru)* / 3 문서(kg) / 4 문서(ru) / 5 공동발의 / 6·7 비고
   - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(1) textarea.form_control", description: "안건명(키르키즈어)(10067) 필수*" }, value: "E2E-SEED MP автотест мыйзам долбоору" }
   - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(2) textarea.form_control", description: "안건명(러시아어)(10068) 필수*" }, value: "E2E-SEED MP автотест законопроект" }
-  # 문서 셀 안에는 원문·근거참조·비교표·기타 4묶음이 Divider 로 나뉘어 있고 **원문이 첫 묶음**이다
-  # (BillFilesInputRow.vue:47-50). file input 은 id 가 런타임 채번이라 위치로 잡는다.
-  # 클릭하면 네이티브 선택창이 열려 세션이 멈추므로 input 자체를 target 으로 준다.
-  - { action: upload, target: { css: ".v_table table tbody tr:nth-of-type(3) .bill_files_wrap .form_row:first-child input[type=file].form_file", description: "문서(키르키즈어) 원문(110/lng_type_1) 필수*" }, file: "documentSample.pdf" }
-  - { action: upload, target: { css: ".v_table table tbody tr:nth-of-type(4) .bill_files_wrap .form_row:first-child input[type=file].form_file", description: "문서(러시아어) 원문(110/lng_type_2) 필수*" }, file: "documentSample.pdf" }
+  # ⚠ **키르기스어 문서와 러시아어 문서는 같은 `<tr>` 안에 나란히 있다** — 행이 둘이 아니다.
+  #   `BillFilesInputRow.vue:43-157` 이 `<tr><th>10076</th><td>(kg)</td><th>10077</th><td>(ru)</td></tr>`
+  #   한 행을 렌더한다. 그래서 러시아어를 `tr:nth-of-type(4)` 로 잡으면 **공동발의 행**에 가서 없다.
+  #   → 행이 아니라 **td 순서**로 가른다. 2026-08-28 에 executor 가 이 셀렉터를 거부하며 드러났다
+  #     (그 전에는 executor 가 임기응변으로 맞춰 통과시켜 왔다 — 결과는 맞았지만 셀렉터는 틀려 있었다).
+  # 문서 셀 안에는 원문·근거참조·비교표·기타 4묶음이 Divider 로 나뉘어 있고 **원문이 첫 묶음**이다.
+  # file input 은 id 가 런타임 채번이라 위치로 잡는다. 클릭하면 네이티브 선택창이 열려 세션이 멈추므로
+  # input 자체를 target 으로 준다.
+  - { action: upload, target: { css: ".v_table table tbody tr:nth-of-type(3) td:nth-of-type(1) .bill_files_wrap .form_row:first-child input[type=file].form_file", description: "문서(키르키즈어)(10076) 원문(110/lng_type_1) 필수*" }, file: "documentSample.pdf" }
+  - { action: upload, target: { css: ".v_table table tbody tr:nth-of-type(3) td:nth-of-type(2) .bill_files_wrap .form_row:first-child input[type=file].form_file", description: "문서(러시아어)(10077) 원문(110/lng_type_2) 필수* — 같은 행의 두 번째 td" }, file: "documentSample.pdf" }
   - { action: screenshot, name: "00a-b-filled" }
 
   - { action: click, target: { css: "button[type=submit].v_btn.btn_primary.btn_md", text: "저장", description: "[저장](10174) → 저장 확인 팝업" } }

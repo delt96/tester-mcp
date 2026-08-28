@@ -21,8 +21,8 @@ steps:
   - { action: click, target: { ref: mtapv_request_btn } }
   - { action: wait_for, target: { ref: mtapv_reject_btn, description: "본인 차례 → [반려] 버튼(red)" } }
   - { action: click, target: { ref: mtapv_reject_btn } }
-  - { action: wait_for, target: { ref: reject_modal_textarea, description: "반려 사유 모달" } }
-  - { action: fill, target: { ref: reject_modal_textarea }, value: "E2E reject test" }
+  - { action: wait_for, target: { ref: dialog_textarea_full, description: "반려 사유 모달" } }
+  - { action: fill, target: { ref: dialog_textarea_full }, value: "E2E reject test" }
   - { action: screenshot, name: "03-reject-modal" }
   - { action: click, target: { ref: reject_modal_submit, description: "반려 확정 → POST /bill/mtng/apvl/reject" } }
   - { action: wait_for, target: { ref: mtapv_badge_rejected, description: "전체 상태 배지 = 반려됨" } }

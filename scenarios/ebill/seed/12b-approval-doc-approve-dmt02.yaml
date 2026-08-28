@@ -41,21 +41,8 @@ on_failure: stop
 steps:
 
   # ── 1) 결재대기함
-  - { action: navigate, url: "/main/letter/approvalInbox" }
-  - { action: wait_for, target: { ref: list_item, description: "결재대기함 목록(3분할 좌측)" } }
-  - { action: screenshot, name: "12-a-inbox" }
-
-  # ── 2) 대상 문서 열기
-  # ★ 단언과 조작을 같은 대상으로 맞춘다. 부제목으로 특정한다.
-  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 결재문서 확인용", description: "seed-11 이 만든 문서가 결재대기함에 있어야 한다. 없으면 seed-11 을 먼저 돌릴 것" } }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED 결재문서 확인용", description: "그 문서를 연다 → 가운데 문서 내용 + 우측 결재 버튼" } }
-  - { action: wait_for, target: { ref: btn_primary_md, description: "결재 버튼 영역 로드" } }
-  - { action: screenshot, name: "12-b-detail" }
-
-  # ── 3) 결재
-  # seed-02·04b·04c 에서 검증된 경로. PIN 모달이 없으므로 클릭 한 번으로 끝난다.
-  - { action: click, target: { ref: btn_primary_md, text: "결재", description: "[결재] → 전자서명 비활성 환경이라 PIN 모달 없이 바로 처리된다" } }
-  - { action: screenshot, name: "12-c-approved" }
+  - use: approve-in-approval-inbox
+    with: { doc: "E2E-SEED 결재문서 확인용", tag: "12b-b" }
 
   # ── 4) 결재 후 목록에서 빠졌는지
   - { action: navigate, url: "/main/letter/approvalInbox" }

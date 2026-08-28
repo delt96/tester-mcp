@@ -65,13 +65,20 @@ steps:
   - { action: wait_for, target: { ref: datatable, description: "저장 후 목록으로 복귀(@saved=fnGoList)" } }
   - { action: screenshot, name: "07-d-saved" }
 
-  # ── 5) 결과 확인 — 같은 버튼이 이번엔 상세로 넘어가야 한다(work 가 생겼으므로)
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  # ── 5) 결과 확인 — **본회의검증 목록으로 돌아가면 안 된다**
+  # ⚠ 저장 직후 이 의안은 본회의검증 목록에서 사라진다. 앱이 의도적으로 뺀다:
+  #     BillMngController:147  param.put("excludeGvrnTrsfWork", "true")
+  #   즉 정부이송작업이 생긴 의안은 이 목록의 대상이 아니다. 결함이 아니다.
+  #   2026-08-28 1차가 여기서 재검색을 하다 PARTIAL 로 끝났다 — 다른 E2E-SEED 의안만 남아
+  #   "의안이 사라졌다"로 보였는데, 사라진 게 맞고 그게 정상이었다.
+  # → work 가 생긴 뒤의 정식 진입점은 **정부이송 예정(gvrnTrsfWork) 목록**이다(seed-08 과 같은 경로).
+  - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "정부이송 예정(11073) 목록" } }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(순서: 의안번호 / 의안명 / 작업상태)" }, value: "E2E-SEED" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "다시 법적행위 상세로" } }
-  - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
-  - { action: click, target: { css: ".btn_group_fixed a.v_btn.btn_primary", text: "정부이송작업", description: "[정부이송작업] 재클릭 — 이번엔 work 가 있으니 gvrnTrsfWork 상세로 이동해야 한다" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "정부이송 예정 목록에 나타남 = work 생성의 직접 증거" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED → 정부이송 예정 상세(11074)" } }
   - { action: wait_for, target: { css: ".gtw-billinfo_toggle", description: "정부이송작업 상세 진입 신호(billMngDtl.vue:166)" } }
   - { action: screenshot, name: "07-e-gvrntrsf-detail" }
   - { action: assert_visible, target: { css: ".p-dialog, body", text: "E2E-SEED мыйзам аталышы", description: "등록한 법률명(kg)이 상세에 보인다 = 저장 성공의 직접 증거" } }

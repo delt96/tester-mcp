@@ -11,8 +11,8 @@ precondition: >
 steps:
   - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
   - { action: assert_visible, target: { text: "Ожидающие передачи в правительство", description: "사이드바 신규 메뉴(정부이송 예정, com_menu 149) 노출 — deptmenu 등록 검증" } }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "S3 정부이송 예정 목록 테이블 렌더" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody > tr", text: "Идёт подписание", description: "서명 진행중(WS02) 상태의 스모크 의안 행 — 진행률 (0/1) 병기" } }
+  - { action: wait_for, target: { ref: datatable, description: "S3 정부이송 예정 목록 테이블 렌더" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "Идёт подписание", description: "서명 진행중(WS02) 상태의 스모크 의안 행 — 진행률 (0/1) 병기" } }
   - { action: screenshot, name: "s3-list" }
   - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng/Dtl?id=EB_126d83ed-4b5a-4c41-8a07-cddc5abcbe4d" }
   - { action: wait_for, target: { css: ".gtw_row_turn", description: "서명 테이블의 내 차례(SS02) 강조 행" } }
@@ -20,8 +20,8 @@ steps:
   - { action: screenshot, name: "s4-before-sign" }
   - { action: click, target: { css: ".gtw-action_row button.v_btn.btn_primary.btn_md", text: "Подписать", description: "S5 서명 모달 오픈" } }
   - { action: wait_for, target: { css: ".popup_tit", text: "Подписать", description: "S5 서명 모달 타이틀" } }
-  - { action: click, target: { css: "button.v_btn.btn_outline_primary.btn_md", text: "Подписать", description: "모달 내 [서명] 실행 — ENABLE_SIGN=false라 즉시 sign API" } }
-  - { action: wait_for, target: { css: ".p-toast-message-success", description: "저장 성공 토스트" } }
+  - { action: click, target: { ref: btn_outline_md, text: "Подписать", description: "모달 내 [서명] 실행 — ENABLE_SIGN=false라 즉시 sign API" } }
+  - { action: wait_for, target: { ref: toast_success, description: "저장 성공 토스트" } }
   - { action: wait_for, target: { text: "Подписание завершено", description: "서명완료(WS03) 상태 표기 — 스텝퍼/상태 영역" } }
   - { action: assert_visible, target: { css: "button.v_btn.btn_outline_secondary.btn_xs", text: "Скачать лист подписей", description: "[서명부 다운로드] 버튼 — WS03 이후 노출" } }
   - { action: assert_visible, target: { text: "Создать письмо", description: "[공문 작성] 버튼 — WS03에서 노출 (클릭하지 않음)" } }

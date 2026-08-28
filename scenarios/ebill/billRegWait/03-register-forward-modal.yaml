@@ -49,7 +49,7 @@ steps:
   - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "수신자 옵션 목록" } }
   - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option", description: "첫 번째 수신자 옵션 선택" } }
   - { action: screenshot, name: "03c2-recipient-set" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록하기", description: "[등록하기](10493) — 의안 등록 + 외부문서 전달(완료) 일괄 처리 후 등록 대기 리스트로 자동 이동" } }
+  - { action: click, target: { ref: dialog_submit_primary, text: "등록하기", description: "[등록하기](10493) — 의안 등록 + 외부문서 전달(완료) 일괄 처리 후 등록 대기 리스트로 자동 이동" } }
 
   # 7) 대기 리스트(자동 이동)에서 처리완료 확인
   - { action: wait_for, target: { ref: datatable, description: "등록 대기 DataTable — 자동 이동 확인" } }

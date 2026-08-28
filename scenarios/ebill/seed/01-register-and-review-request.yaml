@@ -67,7 +67,7 @@ steps:
   - { action: wait_for, target: { css: ".p-dialog .popup_tit", text: "등록요청발송", description: "이첩 모달(ForwardExtDocModal)" } }
   - { action: assert_visible, target: { css: ".p-dialog .recipients", description: "수신자 영역 — 법무실 부서장이 자동으로 채워져 있어야 한다(EA-08)" } }
   - { action: screenshot, name: "01c-forward-modal" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록하기", description: "[등록하기](10493) — 의안 생성 + 법무실로 이첩" } }
+  - { action: click, target: { ref: dialog_submit_primary, text: "등록하기", description: "[등록하기](10493) — 의안 생성 + 법무실로 이첩" } }
   - { action: wait_for, target: { ref: datatable, description: "등록 대기 목록으로 자동 복귀" } }
   - { action: screenshot, name: "01d-registered" }
 
@@ -81,15 +81,15 @@ steps:
 
   # ── 6) 이행요청 모달 — 이행자 + [C] 주이행자 + 서명자(본인)
   - { action: click, target: { ref: btn_outline_md, text: "주 이행자", description: "[주 이행자 추가] → 이행요청 모달" } }
-  - { action: wait_for, target: { css: ".p-dialog .p-autocomplete-input", description: "이행요청 모달의 이행자 입력" } }
+  - { action: wait_for, target: { ref: wr_executor_input, description: "이행요청 모달의 이행자 입력" } }
   # ⚠ 수행자와 서명자는 같은 컴포넌트(AutoCompleteUserInput)라 .p-dialog .p-autocomplete-input 만으로는
   #   구분되지 않는다. 게다가 화면 라벨은 '수행자'(10526)이지 '이행자'가 아니라 label 매칭도 안 먹는다.
   #   RequestModal.vue 기준으로 수행자는 .responder_row, 서명자는 .signer_area 안에 있다.
   - { action: fill, target: { css: ".p-dialog .responder_row .p-autocomplete-input", description: "수행자 autocomplete" }, value: "LGRVuser2" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "이행자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "LGRVuser2 선택" } }
+  - { action: wait_for, target: { ref: ac_option_any, description: "이행자 후보" } }
+  - { action: click, target: { ref: ac_option_any, description: "LGRVuser2 선택" } }
   # ⚠ .full 이 빠지면 매칭에 실패해 입력이 수행자 autocomplete 로 흘러든다(2026-08-12 실측)
-  - { action: fill, target: { css: ".p-dialog textarea.form_control.full", description: "이행 내용" }, value: "E2E-SEED 법률검토 요청" }
+  - { action: fill, target: { ref: dialog_textarea_full, description: "이행 내용" }, value: "E2E-SEED 법률검토 요청" }
   # [C] 배지 = 주 이행자 지정. 이걸 눌러야 다음 단계에서 [의견서 작성] 버튼이 나온다
   - { action: click, target: { css: ".p-dialog button.main-worker-btn", description: "수행자 우측 [C] 배지 — 주 이행자 지정(EA-02). 수행자가 채워져야(canPickMainWorker) 렌더링되며 활성 시 .is-main 이 붙는다" } }
   - { action: assert_visible, target: { css: ".p-dialog button.main-worker-btn.is-main", description: "[C] 활성 확인 — .is-main 이 없으면 주 이행자가 아니다" } }
@@ -98,12 +98,12 @@ steps:
   #   'LGRVuser1' 로 치면 0건이다(2026-08-12 API 직접 확인). 'LGRVuser' 는 3건(부서장·직원·직원2)이
   #   뜨므로 :first-child 로 찍으면 안 되고 text:"부서장"으로 특정해야 한다.
   - { action: fill, target: { css: ".p-dialog .signer_area .p-autocomplete-input", description: "서명자 autocomplete — .signer_area 로 수행자와 갈라야 한다" }, value: "LGRVuser" }
-  - { action: wait_for, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", description: "서명자 후보" } }
-  - { action: click, target: { css: ".p-autocomplete-overlay .p-autocomplete-option, .user-autocomplete-overlay .p-autocomplete-option", text: "부서장", description: "후보 중 'LGRVuser L (법률검토 부서장)' 선택 — 로그인 계정 본인이다. 검색어를 로그인 ID로 바꾸지 말 것(0건). 옵션 회색줄이 '직급 · 부서'라 부서장/직원이 여기서 갈린다(AutoCompleteUserInput.vue:78). 본인 지정 시 서명대기 없이 즉시 발송(EA-01)" } }
+  - { action: wait_for, target: { ref: ac_option_any, description: "서명자 후보" } }
+  - { action: click, target: { ref: ac_option_any, text: "부서장", description: "후보 중 'LGRVuser L (법률검토 부서장)' 선택 — 로그인 계정 본인이다. 검색어를 로그인 ID로 바꾸지 말 것(0건). 옵션 회색줄이 '직급 · 부서'라 부서장/직원이 여기서 갈린다(AutoCompleteUserInput.vue:78). 본인 지정 시 서명대기 없이 즉시 발송(EA-01)" } }
   - { action: screenshot, name: "01f-workrequest-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록", description: "[등록] — 이행요청 생성" } }
+  - { action: click, target: { ref: dialog_submit_primary, text: "등록", description: "[등록] — 이행요청 생성" } }
 
   # ── 7) 결과 확인 — 본인 서명이므로 '발송됨' 상태여야 한다
   - { action: wait_for, target: { css: ".p-dialog", description: "모달 닫힘 대기(닫히면 통과)" } }
   - { action: screenshot, name: "01g-workrequest-created" }
-  - { action: assert_visible, target: { css: "[class*='badge']", text: "발송", description: "이행요청 카드 배지가 '발송됨' — 요청자 본인을 서명자로 지정해 즉시 발송된 증거(EA-01). '서명 대기'면 타인 서명자가 지정된 것" } }
+  - { action: assert_visible, target: { css: ".command .command_status", text: "발송", description: "이행요청 카드 배지가 '발송됨' — 요청자 본인을 서명자로 지정해 즉시 발송된 증거(EA-01). '서명 대기'면 타인 서명자가 지정된 것" } }

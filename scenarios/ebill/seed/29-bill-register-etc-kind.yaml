@@ -34,7 +34,7 @@ on_failure: stop
 steps:
   # ── r572 의안접수 목록
   - { action: navigate, url: "/main/billMng/gdMng/billMngRc" }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "의안접수 목록" } }
+  - { action: wait_for, target: { ref: datatable, description: "의안접수 목록" } }
   - { action: screenshot, name: "29-a-reception-list" }
 
   # ── r573 [등록] → 등록 화면
@@ -65,5 +65,5 @@ steps:
   - { action: click, target: { css: ".btn_group_fixed button.btn_primary", description: "[저장](10174) → fnConfirm 이 확인 팝업을 띄운다" } }
   - { action: wait_for, target: { ref: confirm_popup, description: "저장 확인 팝업" } }
   - { action: click, target: { ref: confirm_accept, description: "확인 → fnSave()" } }
-  - { action: wait_for, target: { css: ".v_table.table_list .p-datatable", description: "★ r576 — 저장 후 의안접수 목록으로 복귀" } }
+  - { action: wait_for, target: { ref: datatable, description: "★ r576 — 저장 후 의안접수 목록으로 복귀" } }
   - { action: screenshot, name: "29-e-saved" }

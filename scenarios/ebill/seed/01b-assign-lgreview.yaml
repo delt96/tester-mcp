@@ -44,6 +44,6 @@ steps:
   - { action: screenshot, name: "01b-d-workrequest-filled" }
 
   # ── 3) 결과 확인 — 본인 서명이므로 '발송' 상태여야 한다
-  - { action: wait_for, target: { css: "[class*='badge']", description: "이행요청 카드 렌더" } }
+  - { action: wait_for, target: { css: ".commands .command", description: "이행요청 카드 렌더" } }
   - { action: screenshot, name: "01b-e-workrequest-created" }
-  - { action: assert_visible, target: { css: "[class*='badge']", text: "발송", description: "'발송됨' 배지 — 요청자 본인을 서명자로 지정해 즉시 발송된 증거(EA-01). '서명 대기'면 타인이 서명자로 잡힌 것" } }
+  - { action: assert_visible, target: { css: ".command .command_status", text: "발송", description: "'발송됨' 배지 — 요청자 본인을 서명자로 지정해 즉시 발송된 증거(EA-01). '서명 대기'면 타인이 서명자로 잡힌 것" } }

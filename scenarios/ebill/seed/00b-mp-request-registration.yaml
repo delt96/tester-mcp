@@ -115,8 +115,11 @@ steps:
   # 수신자는 입력하지 않는다 — 모달이 열릴 때 LGRVuser 가 이미 채워져 있다(2026-08-12 실측).
   - { action: assert_visible, target: { css: ".p-dialog .recipient_area", text: "LGRVuser", description: "수신자가 자동으로 채워져 있어야 한다(법률검토 부서장)" } }
   - { action: screenshot, name: "00b-g-filled" }
-  - { action: click, target: { css: ".p-dialog button.v_btn.btn_primary", text: "등록하기", description: "[등록하기] → REQUEST_REGISTRATION 완료(C) → step 1000 REGISTRATION(GD) 생성" } }
-  - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
+  - { action: click, target: { ref: dialog_submit_primary, text: "등록하기", description: "[등록하기] → REQUEST_REGISTRATION 완료(C) → step 1000 REGISTRATION(GD) 생성" } }
+  # ⚠ 상세로 복귀하지 않는다. `onLetterSent` 가 `fnGoList()` 를 부른다(ApplyDetail.vue:287-289) —
+  #   모달이 닫히면서 목록(`bill.apply`)으로 나가고 상태필터도 '서명중'으로 바뀐다.
+  #   2026-08-28 실행에서 '상세 재조회'를 기다리다 PARTIAL 로 끝났다. 앱이 아니라 이 기대가 틀렸던 것.
+  - { action: wait_for, target: { ref: datatable, description: "목록으로 복귀 = 등록요청 발송 완료 신호" } }
   - { action: screenshot, name: "00b-h-sent" }
 
   # ── 7) 결과 확인 — GD 의 의안접수 목록에 나타나야 한다

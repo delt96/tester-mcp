@@ -14,7 +14,7 @@ steps:
   - { action: assert_visible, target: { css: ".board_search.type2 .search_area .search_one:nth-child(4) #searchDocNo", description: "검색폼 4번째 칸 = 문서번호 입력 (4칸 grid의 마지막)" } }
 
   # 서버가 내려준 총건수가 Total에 반영되는가 (lazy 모드에서 totalRecords는 응답의 totalElements)
-  - { action: assert_value, target: { css: ".board_info .total_num .text_primary", description: "Total 숫자" }, value: "1" }
+  - { action: assert_value, target: { ref: board_total_num, description: "Total 숫자" }, value: "1" }
 
   # 행이 실제 데이터로 렌더되는가 — 4번째 셀이 제목 컬럼(icon2/resDtm/docNo/docSubtle 순)
   - { action: assert_value, target: { css: ".p-datatable-tbody > tr:first-child td:nth-child(4)", description: "첫 행 제목 셀" }, value: "외부 문서 테스트 03 (2025-07-16)" }
@@ -25,5 +25,5 @@ steps:
   - { action: click, target: { css: ".button_area .search_button", description: "조회 버튼" } }
   - { action: wait_for, target: { css: ".v_table .no_data", description: "검색 무결과 빈 상태 블록" } }
   - { action: assert_visible, target: { css: ".v_table .no_data .text_msg", description: "빈 상태 메시지(t 10075)" } }
-  - { action: assert_value, target: { css: ".board_info .total_num .text_primary", description: "무결과 시 Total" }, value: "0" }
+  - { action: assert_value, target: { ref: board_total_num, description: "무결과 시 Total" }, value: "0" }
   - { action: screenshot, name: "02-send-empty-state" }
