@@ -3,6 +3,40 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
+## [0.9.0]
+
+### Added
+- **`--var key=value` (repeatable, on `run` and `validate`)** — sets a scenario var, overriding the
+  config `vars:` map. A chain of scenarios is a chain of separate CLI invocations, so a value the
+  runner generates per process cannot be shared between them; a marker the operator passes to every
+  invocation can. Without one a seed suite writes the same literal name on every run, and a later
+  step that grabs a row by text has no way to tell this run's record from last week's — measured: a
+  bill left over from an earlier run sat in the same list as the new one.
+- **Built-in `${today}`** (`YYYYMMDD`), enough for a suite that runs once a day. Layering, later
+  wins: built-in → config `vars:` → `--var`.
+- **`warnings` in the result JSON** — what the runner noticed about *how* a run went, independent of
+  the verdict. The first one: the executor clicked or typed before the tab's first screenshot.
+
+### Changed
+- **Vars substitute into `target.text` and `target.description`, not only `url` and `value`.**
+  `target.text` is what pins a row in a list, so a marker that could not reach it could not do the
+  one job it exists for. The bare `${name}` form now resolves from the same map as `${vars.name}`;
+  its pattern allows no dot, which is what keeps it clear of `${secrets.a.b}` and
+  `${targets.frontend}`.
+- **The mandatory warm-up screenshot is attached to the first `navigate` step itself**, and the
+  contract's "screenshots are best-effort" rule now names the warm-up as its exception — the two
+  clauses contradicted each other and the executor settled it by skipping the warm-up. It rides on
+  the existing step rather than becoming one, because a new step would shift every following index,
+  and indices are how a result maps back to the scenario.
+
+### Fixed
+- **A timed-out executor no longer leaves a live process behind on Windows.** `child.kill()`
+  terminates only the direct child; `claude` does its work in a grandchild that survived, kept
+  holding claude-in-chrome and kept driving the shared browser. Four timed-out runs left 22 live
+  executors fighting over one tab, which then read as "the extension is unresponsive". The SIGKILL
+  escalation now goes through `taskkill /pid <pid> /T /F`; SIGTERM still reaches the child alone so
+  a clean shutdown keeps its chance.
+
 ## [0.8.0]
 
 ### Added
