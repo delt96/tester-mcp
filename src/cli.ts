@@ -12,6 +12,7 @@ import { collectSecretValues, redactSecrets } from "./secrets/redactSecrets.js";
 import { runInit, type InitOptions } from "./init.js";
 import { runScenarios, clampConcurrency, MAX_CONCURRENCY } from "./run/runScenarios.js";
 import { expandScenarioPaths } from "./scenario/expandScenarioPaths.js";
+import { resolveRunVars } from "./scenario/vars.js";
 import { validateScenarioFiles } from "./validate.js";
 import { writeScenarioResult, writeSummary } from "./result/writeResult.js";
 import { captureEnv } from "./env/captureEnv.js";
@@ -20,6 +21,8 @@ import { loadGuide } from "./guide/loadGuide.js";
 import { checkPreflight, PREFLIGHT_TIMEOUT_MS } from "./preflight/checkPreflight.js";
 
 const program = new Command();
+
+const collectVar = (v: string, prev: string[]) => [...prev, v];
 program.name("tester-mcp").description("Opus (planner) + Sonnet (executor) + Chrome screen E2E test orchestrator");
 
 // [ext5] add report/diff commands here.
@@ -34,8 +37,9 @@ program
   .option("--verbose", "stream executor tool activity to the console")
   .option("--out-dir <path>", "output base dir for results/logs (default runs)", "runs")
   .option("--tag <tags>", "run only scenarios carrying at least one of these comma-separated tags")
+  .option("--var <key=value>", "set a scenario var, overriding the config (repeatable)", collectVar, [])
   .option("--no-preflight", "skip the pre-run target health check")
-  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string; tag?: string; preflight?: boolean }) => {
+  .action(async (scenarioPaths: string[], opts: { config: string; secrets: string; frontDir?: string; timeout?: string; concurrency?: string; verbose?: boolean; outDir?: string; tag?: string; var: string[]; preflight?: boolean }) => {
     try {
       const config = loadConfig(resolve(opts.config));
 
@@ -54,7 +58,7 @@ program
       }
       const secrets = loadSecretsFile(resolve(opts.secrets));
       const files = expandScenarioPaths(scenarioPaths);
-      const all = files.map((f) => loadScenario(f, config.vars));
+      const all = files.map((f) => loadScenario(f, resolveRunVars(config.vars, opts.var ?? [])));
       const tagFilter = parseTagFilter(opts.tag);
       const scenarios = all.filter((s) => matchesTagFilter(s.tags, tagFilter));
       if (scenarios.length === 0) {
@@ -91,6 +95,7 @@ program
         writeScenarioResult(runDir, s);
         console.log(`[${s.status}] ${s.scenario_id} → ${join(runDir, s.scenario_id + ".json")}`);
         if (s.evidence?.length) console.log("  evidence:", s.evidence.join(" | "));
+        for (const w of s.warnings ?? []) console.log("  warning:", w);
       }
       writeSummary(runDir, runId, startedAt, safe);
 
@@ -109,12 +114,14 @@ program
   .argument("<scenarios...>", "scenario YAML path(s) (files or directories)")
   .option("-c, --config <path>", "config file (for 'vars'; if the file is absent, vars are empty)", "tester-mcp.config.yaml")
   .option("--expand", "print each valid scenario's fully expanded steps as YAML")
-  .action((scenarioPaths: string[], opts: { config: string; expand?: boolean }) => {
+  .option("--var <key=value>", "set a scenario var, overriding the config (repeatable)", collectVar, [])
+  .action((scenarioPaths: string[], opts: { config: string; expand?: boolean; var: string[] }) => {
     try {
-      let vars: Record<string, string> = {};
+      let configVars: Record<string, string> = {};
       const cfgPath = resolve(opts.config);
-      if (existsSync(cfgPath)) vars = loadConfig(cfgPath).vars;
+      if (existsSync(cfgPath)) configVars = loadConfig(cfgPath).vars;
       else console.error(`note: config not found (${opts.config}) — vars treated as empty`);
+      const vars = resolveRunVars(configVars, opts.var ?? []);
       const files = expandScenarioPaths(scenarioPaths);
       const reports = validateScenarioFiles(files, vars);
       for (const r of reports) {

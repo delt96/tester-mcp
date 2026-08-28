@@ -3,6 +3,9 @@
 실제 시나리오 작성·실행 중 발견한 문제점. document-guide/DSL/도구를 명확히 하기 위한 입력.
 대상 작업: kg_ebill alert→toast 42건 검증.
 
+> **처리 상태는 문서 맨 끝 [처리 결과 (2026-08-28)](#처리-결과-2026-08-28) 표를 볼 것.**
+> 본문은 발견 당시 기록 그대로 두었다(왜 그렇게 판단했는지가 근거로 남아야 하므로).
+
 ## A. DSL / 작성 가이드
 
 ### A1. `assert_toast` 전용 action — 보류 (이번 작업 한정 + assert_visible로 충분 확인됨)
@@ -86,3 +89,116 @@
 ## 2026-07-13 — inbox-save-to-mydocs 작성 중 발견
 
 - **`:has()` 셀렉터로 groping 발생**: `button:has(i.pi-download)` 타겟이 첫 시도 미스 후 browser_batch 28회 반복 → groping kill. 아이콘 전용 버튼(접근성 이름 없음)은 read_page 트리에 일부만 노출되어 description 폴백도 실패. **해결**: 아이콘 요소 직접 타겟(`i.pi-download`)으로 교체 — 클릭이 버튼으로 버블되므로 동작 동일. 가이드에 ":has() 등 관계형 의사클래스 지양 + 아이콘 전용 버튼은 아이콘 클래스를 직접 타겟" 명시 필요.
+
+## 2026-08-28 — 발의→공포 전 구간(14 시나리오) 완주 중 발견 · 변경 요청
+
+대상 작업: kg_ebill seed 스위트로 의안 1건을 step 0 → 3300(공포)까지 전진.
+아래 1~2는 **요청**, 3은 이미 이 저장소에 반영한 것(재작성 방지용 기록).
+
+### 1. ⭐ 실행 단위 마커를 시나리오에 주입할 수단 — `--var` 플래그 + 내장 `${today}`
+
+**문제**: seed 스위트는 의안명에 고정 문자열 `E2E-SEED` 마커를 넣는다. 돌릴 때마다 **같은 이름의
+의안이 쌓이고**, 뒤 단계가 `target.text: "E2E-SEED"` 로 행을 잡으므로 **어느 의안을 여는지 보장이 없다.**
+2026-08-28 실측: 옛 `6-6989/26`(step 1200)이 남아 있어 법무실검토서 목록에서 신규 건과 겹쳤다.
+이번엔 '이행받은 의안' 토글 덕에 우연히 갈렸을 뿐이고, 구조적으로는 **엉뚱한 의안을 전진시킬 수 있다.**
+(같은 부류의 사고가 이미 있었다 — seed README 의 `seed-05` 1차 오부의.)
+
+**요청 A — `run --var key=value` (반복 가능)**
+- 체인의 각 시나리오는 **별개의 CLI 실행**이다(러너가 시나리오마다 `node bin/tester-mcp.js run` 호출).
+  따라서 실행마다 달라지는 `run_id` 계열 값은 쓸 수 없다 — 뒤 시나리오가 앞 시나리오의 의안을 못 찾는다.
+  **운영자가 체인 전체에 같은 값을 넘길 수 있어야 한다.**
+- 예: `--var marker=20260828-2` → 시나리오에서 `E2E-SEED ${marker}`
+
+**요청 B — 내장 `${today}`(YYYYMMDD)**
+- 하루 한 번 도는 흔한 경우를 위해 기본 제공. 하루에 두 번 돌릴 때는 요청 A 로 덮어쓴다.
+
+**요청 C — 치환 범위 확장 (이게 없으면 A·B 가 무의미하다)**
+- 현재 `${var}` 치환은 **`url` 과 `value` 에만** 걸린다 (`src/scenario/expandScenario.ts:91-105`
+  — `if (out.url !== undefined) … if (out.value !== undefined) …`).
+- 의안명은 `value` 로 들어가니 **등록은 되지만**, 뒤 단계가 행을 찾는 `target.text` 는 치환되지 않아
+  **여전히 옛 의안까지 매칭된다.** 구분이 목적인데 구분이 안 된다.
+- → **`target.text` 를 치환 대상에 추가**할 것. (`description` 도 넣으면 로그 가독성에 도움)
+
+**부수 요청**: 미정의 var 는 지금도 `var '<name>' not defined` 로 즉시 실패하므로(같은 파일 96-98행)
+오타 안전성은 이미 확보돼 있다. `--var` 도 같은 경로를 타면 된다.
+
+### 2. 시나리오 `screenshot` 스텝은 계약상 best-effort 라 워밍업 용도로는 못 쓴다
+
+**배경**: claude-in-chrome 의 새 탭은 **`screenshot` 을 한 번 찍기 전까지 `computer` 의 클릭·타이핑이
+전부 조용히 버려진다**(도구는 성공을 반환한다). `browser_batch` 로 새 탭 3개에서 재현해 확정했다 —
+횟수가 아니라 screenshot 이 게이트이고, `document.hidden` 과는 무관하다.
+
+**문제**: 이 워밍업을 시나리오의 `screenshot` 스텝으로 넣었더니 executor 가 **그냥 건너뛰었다**
+(SYSTEM_CONTRACT 의 "Take a screenshot … best-effort, once … If you can't capture it, just skip"),
+그 결과 로그인 클릭이 통째로 무시돼 `seed-01b` 가 NOT_TESTED 로 죽었다.
+
+**요청**: 워밍업을 **런타임 구조로** 보장할 것 — 탭 생성/첫 navigate 직후 러너가 screenshot 을 강제하거나,
+executor 계약에서 "첫 screenshot 은 skip 불가"로 예외 처리. 지금은 프롬프트 문구로만 막아 뒀는데
+(아래 3번) 모델이 계약의 다른 조항과 충돌로 읽으면 다시 건너뛸 수 있다.
+
+### 3. 이미 이 저장소에 반영한 변경 (재작성·되돌림 방지용 기록)
+
+`src/run/buildPrompt.ts` SYSTEM_CONTRACT 에 3개 규칙을 추가하고 `npm run build`·`npm test`(198/198) 통과.
+
+| 규칙 | 근거 |
+|---|---|
+| 새 탭 navigate 직후 **screenshot 1장 필수** | 위 2번. 없으면 첫 입력이 유실된다 |
+| **css 타깃이 우선** — find 결과와 대조하고 어긋나면 javascript_tool 로 조작 | find 는 자연어만 받아 **접근성 이름 없는 요소**(라벨 없는 textarea, 아이콘 버튼)는 css 로 지정해도 못 잡는다. `seed-01b` 가 이행내용 textarea 대신 수행자 콤보박스에 타이핑했다 |
+| **좌표 클릭 금지**(더블클릭 포함, ref 로) | 스크린샷은 축소 + **레터박스**라 `imageWidth/innerWidth` 로 환산해도 틀리고, coordinate 는 스크린샷 좌표계라 `getBoundingClientRect()`(페이지 좌표)를 넣어도 틀린다. 실측 `#userId` 중심 DOM (1422,559) ↔ 스크린샷 (705,277). 비밀번호 칸 ~16px 빗나감 2회, 행 더블클릭 실패 3회 |
+
+**부작용(의도된 것)**: 세 번째 규칙 때문에 executor 가 임기응변을 멈추고 **정직하게 실패**하게 됐다.
+그 덕에 오래 숨어 있던 잘못된 셀렉터 2건이 드러났다 —
+결재 버튼 별칭(`btn_primary` → 실제는 `btn_outline_primary`, 12곳)과
+안건등록 러시아어 문서 업로드(`tr:nth-of-type(4)` → 실제는 같은 행의 두 번째 `td`).
+둘 다 executor 폴백에 가려 **PASS 로 통과해 오던 것**이다. → 라벨이 PASS 라도 셀렉터가 맞다는 뜻은 아니다.
+
+---
+
+## 처리 결과 (2026-08-28)
+
+문서 전체를 코드와 대조해 미해결 항목을 처리했다. `vitest` 221 통과, `tsc` 통과,
+기존 시나리오 `validate` 130/130 무회귀.
+
+### 코드로 처리
+
+| 항목 | 처리 | 파일 |
+|---|---|---|
+| 2026-08-28 #1-A `--var k=v` | `run`·`validate` 양쪽에 반복 가능 플래그 추가. config `vars:` 를 덮어쓴다 | `src/cli.ts`, `src/scenario/vars.ts` |
+| 2026-08-28 #1-B 내장 `${today}` | `YYYYMMDD`. 층위는 builtin → config → `--var` (뒤가 이김) | `src/scenario/vars.ts` |
+| 2026-08-28 #1-C 치환 범위 | `url`·`value` 에 더해 **`target.text`·`target.description`** 치환. 바 형태 `${name}` 도 `${vars.name}` 과 같은 맵에서 해석(점이 없어 `${secrets.a.b}` 와 안 겹침) | `src/scenario/expandScenario.ts` |
+| 2026-08-28 #2 워밍업 screenshot | ① 첫 `navigate` 스텝 줄에 워밍업 지시를 인라인으로 붙였다 — **스텝 번호는 그대로**(별도 스텝으로 넣으면 뒤 인덱스가 전부 밀려 결과 매핑이 깨진다). ② SYSTEM_CONTRACT 의 "screenshot 은 best-effort" 조항에 워밍업 예외를 명시(충돌 제거). ③ **탐지 추가** — 탭의 첫 screenshot 이전에 click/type 이 나가면 결과 JSON `warnings` 에 기록 | `src/run/buildPrompt.ts`, `src/run/streamParser.ts`, `src/run/runScenario.ts` |
+| B0-1 좀비 executor | win32 에서 SIGKILL 단계를 `taskkill /pid <pid> /T /F` 로 교체. `child.kill()` 은 직계 자식만 죽여서 실제 작업을 하는 `claude` 손자 프로세스가 살아남았다 | `src/run/spawnExecutor.ts` |
+
+**#2 의 한계 (정직하게)**: 러너는 `claude -p` 를 spawn 할 뿐 브라우저 도구를 직접 못 부른다.
+따라서 워밍업을 **강제 실행**할 수단은 없다. 위 ①②는 강제력을 높인 것이고, ③은
+"실제로 건너뛰었는지"를 사후에 드러내는 것이다. 탐지는 `computer` 도구의 `action`
+열거값만 읽는다 — 스트림 파서의 "도구 입력은 저장하지 않는다"(시크릿 안전) 원칙은 유지.
+
+### 가이드로 처리 (`skills/tester-mcp/document-guide.md`)
+
+| 항목 | 반영 위치 |
+|---|---|
+| A4 셀렉터 우선순위 | Target 섹션에 6단계 표(id > 단일 class > 컨테이너+자식 > role+이름 > nth(지양) > description). nth 로 통과해 오던 실제 사고 예시 포함 |
+| 2026-07-13 `:has()` groping | 같은 섹션 — 관계형 의사클래스 금지 + **아이콘 전용 버튼은 아이콘 클래스를 직접 타깃**(클릭은 버블링됨) |
+| 2026-07-06 #1 전환 동반 toast | Ephemeral 섹션 — 제출이 페이지 전환을 유발하면 toast 대신 **사후 상태**(행 존재 / 버튼 소멸)를 assert |
+| 2026-07-06 #2 CORS | Prerequisites — `targets.frontend` 오리진이 백엔드 CORS 허용목록에 있어야 함. 증상은 화면 없이 "Network Error" 뿐 |
+| A6 출력 경로 | Running — `runs/` 는 **CWD 기준**, `--out-dir` 로 변경 |
+| `--var`/`${today}`/치환 범위 | Running + Reuse 섹션. 마커로 실행 단위를 구분하는 이유와 예시 포함 |
+| `warnings` 필드 | Result labels — 이 경고가 붙은 실패는 앱 버그로 보기 전에 재실행할 것 |
+
+프로젝트 설치본 `.claude/skills/tester-mcp/` 이 2026-08-06 판으로 낡아 있어 함께 동기화했다
+(전역 `~/.claude/skills/tester-mcp/` 는 자체 사본 없이 `tester-mcp document-guide` 를 호출하므로 영향 없음).
+
+### 처리 안 한 것
+
+| 항목 | 이유 |
+|---|---|
+| A1 `assert_toast` 전용 action | 사용자 보류 유지. A5(ephemeral 정책)가 상위 개념이고 이미 반영됨 |
+| B0-3 executor 별 브라우저 **인스턴스** 격리 | 별도 프로필/유저데이터디렉터리는 `claude -p --chrome` 에 주입할 수단이 없다. 현재는 **탭 격리**(SYSTEM_CONTRACT 가 `tabs_create_mcp` 강제)로 대응 중 |
+| 2026-08-28 #3 | 이미 반영된 것의 기록이므로 조치 불필요 |
+
+### 대조 결과 — 이미 반영돼 있던 항목
+
+A2(`login_as` 구현됨) · A3(native `select` → `fill`, 가이드 136행) · A5(`ephemeral:` 필드 + 계약 + 가이드) ·
+B0-3 탭 격리 · B1(`last_tool`/`tool_count`/`executor_log`/`--verbose` + 요약 출력) ·
+B2(stall 60s·groping 25연속 워치독) · B3(`preflight:` 사전 헬스체크) · 2026-07-06 부정 단언(`assert_not_visible`).

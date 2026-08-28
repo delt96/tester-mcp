@@ -11,6 +11,24 @@ export function parseEnvelope(stdout: string): Envelope {
 }
 
 export interface SpawnHandle { kill(signal: NodeJS.Signals): void; }
+
+export interface KillTreeDeps {
+  platform: string;
+  kill(signal: NodeJS.Signals): void;
+  exec(cmd: string, args: string[]): void;
+}
+
+// On Windows child.kill() terminates ONLY the direct child; `claude` does its work in a grandchild
+// that survives, keeps holding claude-in-chrome and keeps driving the shared browser. Measured: four
+// timed-out runs left 22 live executors fighting over one tab. SIGTERM still goes to the child so a
+// clean shutdown gets its chance; the SIGKILL escalation takes the whole tree.
+export function killProcessTree(pid: number | undefined, signal: NodeJS.Signals, deps: KillTreeDeps): void {
+  if (deps.platform === "win32" && signal === "SIGKILL" && pid !== undefined) {
+    deps.exec("taskkill", ["/pid", String(pid), "/T", "/F"]);
+    return;
+  }
+  deps.kill(signal);
+}
 export interface StreamSpawner {
   (cmd: string, args: string[], handlers: {
     onLine: (line: string) => void;
@@ -50,7 +68,17 @@ const defaultSpawner: StreamSpawner = (cmd, args, h) => {
   child.stderr.on("data", (d: Buffer) => err.push(d));
   child.on("close", (code, signal) => { out.flush(); err.flush(); h.onClose(code, signal); });
   child.on("error", () => h.onClose(null, null));
-  return { kill: (sig) => { try { child.kill(sig); } catch { /* already dead */ } } };
+  return {
+    kill: (sig) => {
+      try {
+        killProcessTree(child.pid, sig, {
+          platform: process.platform,
+          kill: (s) => { child.kill(s); },
+          exec: (c, a) => { spawn(c, a, { stdio: "ignore", windowsHide: true }).unref(); },
+        });
+      } catch { /* already dead */ }
+    },
+  };
 };
 
 export function spawnExecutor(opts: ExecutorArgsOptions, deps: SpawnExecutorDeps = {}): Promise<SpawnExecutorResult> {

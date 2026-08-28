@@ -6,6 +6,8 @@ export interface ExpandContext { assets: ReuseAssets; vars: Record<string, strin
 
 const PARAM_RE = /\{\{\s*([A-Za-z0-9_-]+)\s*\}\}/g;
 const VAR_RE = /\$\{vars\.([A-Za-z0-9_.-]+)\}/g;
+// Bare `${name}`: the dotless charset is what keeps it off ${secrets.a.b} and ${targets.frontend}.
+const BARE_VAR_RE = /\$\{([A-Za-z0-9_-]+)\}/g;
 
 function deepMapStrings(node: unknown, fn: (s: string) => string): unknown {
   if (typeof node === "string") return fn(node);
@@ -89,18 +91,26 @@ export function expandRawScenario(rawIn: unknown, ctx: ExpandContext): any {
     st && typeof st === "object" && "target" in st ? { ...st, target: resolveRef(st.target, i, ctx) } : st);
   steps = steps.map((st, i) => {
     if (!st || typeof st !== "object") return st;
+    const lookup = (name: string) => {
+      const v = ctx.vars[name];
+      if (v === undefined)
+        throw new Error(`${ctx.source}: steps[${i}]: var '${name}' not defined (add it to the config 'vars' section, or pass --var ${name}=…)`);
+      return v;
+    };
     const subst = (s: unknown) =>
       typeof s === "string"
-        ? s.replace(VAR_RE, (_m, name: string) => {
-            const v = ctx.vars[name];
-            if (v === undefined)
-              throw new Error(`${ctx.source}: steps[${i}]: var '${name}' not defined (add it to the config 'vars' section)`);
-            return v;
-          })
+        ? s.replace(VAR_RE, (_m, name: string) => lookup(name)).replace(BARE_VAR_RE, (_m, name: string) => lookup(name))
         : s;
     const out = { ...st };
     if (out.url !== undefined) out.url = subst(out.url);
     if (out.value !== undefined) out.value = subst(out.value);
+    // target.text is what pins a list row, so a marker that cannot reach it cannot tell runs apart.
+    if (out.target && typeof out.target === "object") {
+      const target = { ...out.target };
+      if (target.text !== undefined) target.text = subst(target.text);
+      if (target.description !== undefined) target.description = subst(target.description);
+      out.target = target;
+    }
     return out;
   });
   steps = steps.map((st, i) => resolveUploadFile(st, i, ctx));

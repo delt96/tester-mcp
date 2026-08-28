@@ -136,3 +136,43 @@ describe("upload fixture resolution", () => {
     expect(() => expandRawScenario(uploadScenario("doc.pdf"), uploadCtx(undefined))).toThrow(/no _fixtures\//);
   });
 });
+
+describe("var substitution scope", () => {
+  it("substitutes ${vars.x} and the bare ${x} form from the same map", () => {
+    const out = expandRawScenario(
+      { id: "s", title: "t", steps: [{ action: "navigate", url: "${vars.doc}?m=${marker}" }] },
+      ctx({ doc: "/d", marker: "M1" })
+    );
+    expect(out.steps[0].url).toBe("/d?m=M1");
+  });
+  it("substitutes inside target.text and target.description", () => {
+    const out = expandRawScenario(
+      { id: "s", title: "t", steps: [
+        { action: "click", target: { css: "td", text: "E2E-SEED ${marker}", description: "row ${marker}" } },
+      ] },
+      ctx({ marker: "M1" })
+    );
+    expect(out.steps[0].target.text).toBe("E2E-SEED M1");
+    expect(out.steps[0].target.description).toBe("row M1");
+  });
+  it("substitutes into a target merged from a selector ref", () => {
+    const out = expandRawScenario(
+      { id: "s", title: "t", steps: [{ action: "click", target: { ref: "toast", text: "${marker}" } }] },
+      ctx({ marker: "M1" })
+    );
+    expect(out.steps[0].target).toEqual({ css: ".p-toast", description: "toast", text: "M1" });
+  });
+  it("leaves ${secrets.*} and other dotted forms alone", () => {
+    const out = expandRawScenario(
+      { id: "s", title: "t", steps: [{ action: "fill", target: { css: "#u" }, value: "${secrets.tester.username}" }] },
+      ctx()
+    );
+    expect(out.steps[0].value).toBe("${secrets.tester.username}");
+  });
+  it("errors on an undefined bare var and names both sources", () => {
+    expect(() => expandRawScenario(
+      { id: "s", title: "t", steps: [{ action: "navigate", url: "/x?m=${nope}" }] },
+      ctx()
+    )).toThrow(/var 'nope' not defined.*--var/s);
+  });
+});

@@ -127,3 +127,25 @@ describe("SYSTEM_CONTRACT", () => {
     expect(SYSTEM_CONTRACT).toContain("display:none");
   });
 });
+
+describe("warm-up screenshot", () => {
+  it("attaches the mandatory warm-up to the FIRST navigate step, without renumbering", () => {
+    const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
+    const nav = p.split("\n").find((l) => l.startsWith("1. Navigate:"))!;
+    expect(nav).toMatch(/warm-up screenshot/i);
+    expect(p).toContain("2. Fill:");
+  });
+  it("marks only the first navigate", () => {
+    const s: Scenario = { ...scenario, steps: [
+      { action: "navigate", url: "/" },
+      { action: "navigate", url: "/second" },
+    ] };
+    const p = buildUserPrompt(s, { frontend: "http://x" }, (v) => v);
+    const lines = p.split("\n");
+    expect(lines.find((l) => l.startsWith("1. Navigate:"))).toMatch(/warm-up screenshot/i);
+    expect(lines.find((l) => l.startsWith("2. Navigate:"))).not.toMatch(/warm-up/i);
+  });
+  it("says the warm-up is exempt from the best-effort screenshot rule", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/warm-up[\s\S]{0,200}never/i);
+  });
+});

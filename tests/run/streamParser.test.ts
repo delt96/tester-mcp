@@ -88,3 +88,33 @@ describe("makeStreamAccumulator", () => {
     expect(s.envelope?.result).toContain("best1234");            // raw lives only on the envelope (redacted downstream)
   });
 });
+
+const computerUse = (action: string) => JSON.stringify({
+  type: "assistant",
+  message: { content: [{ type: "tool_use", name: "mcp__claude-in-chrome__computer", input: { action, text: "best1234" } }] },
+});
+
+describe("warm-up detection (input before the first screenshot)", () => {
+  it("flags a click that happens before any screenshot", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    acc.push(computerUse("left_click"));
+    expect(acc.snapshot().inputBeforeScreenshot).toBe(true);
+  });
+  it("does not flag input taken after a screenshot", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    acc.push(computerUse("screenshot"));
+    acc.push(computerUse("left_click"));
+    acc.push(computerUse("type"));
+    expect(acc.snapshot().inputBeforeScreenshot).toBe(false);
+  });
+  it("ignores non-computer tools", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    for (const l of lines) acc.push(l);
+    expect(acc.snapshot().inputBeforeScreenshot).toBe(false);
+  });
+  it("stores the action name only — never the rest of the input", () => {
+    const acc = makeStreamAccumulator(() => 0);
+    acc.push(computerUse("type"));
+    expect(JSON.stringify(acc.snapshot())).not.toContain("best1234");
+  });
+});

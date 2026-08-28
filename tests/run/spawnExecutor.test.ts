@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { spawnExecutor, parseEnvelope, type StreamSpawner } from "../../src/run/spawnExecutor.js";
+import { spawnExecutor, parseEnvelope, killProcessTree, type StreamSpawner } from "../../src/run/spawnExecutor.js";
 
 // Fake spawner: emits the given lines synchronously, then closes.
 function fakeSpawner(lines: string[], opts: { close?: { code: number | null; signal: string | null }; hang?: boolean } = {}): StreamSpawner {
@@ -106,5 +106,32 @@ describe("spawnExecutor (streaming)", () => {
       { spawner, logLine: () => {}, now: () => 0, stallMs: 999999, tickMs: 999999, timeoutMs: 5, killGraceMs: 5, forceResolveMs: 5 }
     );
     expect(r.killedReason).toBe("timeout");
+  });
+});
+
+describe("killProcessTree", () => {
+  it("on Windows, SIGKILL escalates to taskkill /T /F so the claude grandchild dies too", () => {
+    const exec = vi.fn(); const kill = vi.fn();
+    killProcessTree(4242, "SIGKILL", { platform: "win32", kill, exec });
+    expect(exec).toHaveBeenCalledWith("taskkill", ["/pid", "4242", "/T", "/F"]);
+    expect(kill).not.toHaveBeenCalled();
+  });
+  it("on Windows, SIGTERM still asks politely through the child handle first", () => {
+    const exec = vi.fn(); const kill = vi.fn();
+    killProcessTree(4242, "SIGTERM", { platform: "win32", kill, exec });
+    expect(kill).toHaveBeenCalledWith("SIGTERM");
+    expect(exec).not.toHaveBeenCalled();
+  });
+  it("on POSIX, signals go to the child handle (process groups are not used here)", () => {
+    const exec = vi.fn(); const kill = vi.fn();
+    killProcessTree(4242, "SIGKILL", { platform: "linux", kill, exec });
+    expect(kill).toHaveBeenCalledWith("SIGKILL");
+    expect(exec).not.toHaveBeenCalled();
+  });
+  it("falls back to the child handle when the pid is unknown", () => {
+    const exec = vi.fn(); const kill = vi.fn();
+    killProcessTree(undefined, "SIGKILL", { platform: "win32", kill, exec });
+    expect(kill).toHaveBeenCalledWith("SIGKILL");
+    expect(exec).not.toHaveBeenCalled();
   });
 });

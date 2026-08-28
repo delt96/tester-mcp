@@ -20,9 +20,22 @@ describe("ebill migrated scenarios", () => {
   });
   it("login fragment expands at the head of a login_as scenario", () => {
     const sc = loadScenario(join(EBILL, "letter", "inbox-hide-toggle.yaml"));
-    expect(sc.steps[0]).toEqual({ action: "navigate", url: "/" });
-    expect((sc.steps[1] as any).value).toBe("${secrets.tester.username}");
-    expect((sc.steps[3] as any).target.css).toBe(".btn_login");
+    const steps = sc.steps as any[];
+    expect(steps[0]).toEqual({ action: "navigate", url: "/" });
+    // Assert by meaning, not by index — the fragment gains defensive steps over time
+    // (warm-up screenshot, per-field assert_value) and index-pinned expectations rot silently.
+    const idOf = (css: string, action: string) =>
+      steps.findIndex((s) => s.action === action && s.target?.css === css);
+    expect(steps[idOf("#userId", "fill")]?.value).toBe("${secrets.tester.username}");
+    expect(steps[idOf("#pswd", "fill")]?.value).toBe("${secrets.tester.password}");
+    // The submit click must come after both fields are filled.
+    expect(idOf(".btn_login", "click")).toBeGreaterThan(idOf("#pswd", "fill"));
+    // A screenshot must precede the first click: on a fresh tab the computer tool's
+    // click/type are silently dropped until one screenshot has been taken.
+    const firstClick = steps.findIndex((s) => s.action === "click");
+    const firstShot = steps.findIndex((s) => s.action === "screenshot");
+    expect(firstShot).toBeGreaterThanOrEqual(0);
+    expect(firstShot).toBeLessThan(firstClick);
     const used = JSON.stringify(sc.steps);
     expect(used).not.toContain("{{");
     expect(used).not.toContain('"ref"');

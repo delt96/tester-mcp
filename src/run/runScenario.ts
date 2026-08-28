@@ -58,6 +58,12 @@ export function chromeDenialReason(deniedTools: string[]): string | undefined {
   return `claude-in-chrome denied the executor (${names.join(", ")}) — re-running as-is will fail the same way. First check runner.model: as of 2026-08-05 a haiku executor was denied every browser tool while sonnet and opus passed with identical flags (reproduced, though no public doc states a model requirement — it may be a bug). If the model is already sonnet/opus, check that the extension is connected and that only your own Chrome is (list_connected_browsers reports every browser on this account).`;
 }
 
+// A fresh tab drops click/type until it has been screenshotted once, and the tool still reports
+// success — so the run reads as "wrong password" or "button does nothing" instead of "input lost".
+// The runner cannot drive the browser itself, so it names what it saw rather than fixing it.
+export const WARMUP_WARNING =
+  "the executor clicked or typed before this tab's first screenshot — a fresh tab silently drops those inputs, so an early step may have done nothing even though the tool reported success. Any failure below may be this, not the app.";
+
 // file_upload only accepts paths the executor session may read, so upload scenarios need Read.
 export function hasUpload(scenario: Scenario): boolean {
   return scenario.steps.some((s) => s.action === "upload");
@@ -79,6 +85,7 @@ export async function runScenario(scenario: Scenario, opts: RunScenarioOptions):
     environment: opts.env,
     last_tool: state.lastTool, tool_count: state.toolCount, executor_log: opts.executorLog,
     denied_tools: state.deniedTools.length ? state.deniedTools : undefined,
+    warnings: state.inputBeforeScreenshot ? [WARMUP_WARNING] : undefined,
   };
 
   if (!envelope) {

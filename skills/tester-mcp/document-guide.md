@@ -18,7 +18,9 @@ truth for prerequisites and the scenario DSL. Read it before writing scenarios.
   Treat this as a reproduced observation, not a documented rule: no public doc
   states a model requirement and the extension's own UI offers Haiku 4.5, so it may
   be a bug and may stop applying — re-test before assuming it still holds. Default
-  is `sonnet`.
+  is `sonnet`. Re-tested 2026-08-28, unchanged: the same two-step probe run a minute
+  apart came back NOT_TESTED with `denied_tools: [tabs_context_mcp]` on haiku and PASS
+  on sonnet.
 - **Prefer one connected Chrome.** The extension connects per Anthropic account,
   not per machine, so a teammate's Chrome on the same account also shows up
   (`list_connected_browsers` lists every one). With two or more connected, an
@@ -28,6 +30,14 @@ truth for prerequisites and the scenario DSL. Read it before writing scenarios.
   by `switch_browser` pairing) does not reach the executor process.
 - On **Windows**, the `--chrome` flag is required for claude-in-chrome to work in
   PowerShell. **WSL is not supported.**
+- **`targets.frontend` must be an origin the backend's CORS allowlist contains.**
+  The executor drives a real browser, so every API call is subject to CORS. Point the
+  target at a port the backend does not know (a second vite on `:5174`, or `127.0.0.1`
+  where the allowlist says `localhost`) and the page still loads — only the login POST
+  fails, as a bare "Network Error" with nothing on screen naming the cause. Both were
+  measured. Add a `preflight:` entry with `expect_title` so a wrong or hijacked target
+  is caught before an executor is spawned; a bare status check passes even when another
+  app holds the port.
 - Run `tester-mcp init` once per project to install the skill and scaffold
   `tester-mcp.config.yaml` plus a secrets example.
 
@@ -38,8 +48,19 @@ tester-mcp run scenarios/<project>/<area>/<id>.yaml -c tester-mcp.config.yaml
 ```
 
 The CLI spawns the executor, waits, and writes a result to `runs/<runId>/`.
-A hard timeout (default 5 min, `runner.timeout_ms` or `--timeout`) kills a stuck
-executor and reports NOT_TESTED.
+That path is relative to the **current working directory**, not to the config or the
+scenario — an absolute `-c` does not move it. Use `--out-dir <path>` to put results
+elsewhere. A hard timeout (default 5 min, `runner.timeout_ms` or `--timeout`) kills a
+stuck executor and reports NOT_TESTED.
+
+`--var key=value` (repeatable, also on `validate`) sets a scenario var, overriding the
+config `vars:` map. Use it to stamp one run: each scenario in a chain is a separate CLI
+invocation, so a value the runner generates per-process cannot be shared — but a marker
+the operator passes to every invocation can.
+
+```
+tester-mcp run scenarios/ebill/seed/01-register.yaml -c tester-mcp.config.yaml --var marker=20260828-2
+```
 
 `runner.effort` (`low` | `medium` | `high` | `xhigh` | `max`, omit for the CLI
 default) trades reasoning depth for tokens. It is the main cost lever now that
@@ -168,9 +189,30 @@ Scenario side:
       - { action: navigate, url: "${vars.cmt_doc_url}" }                 # config `vars:` (environment data)
 
 Substitution timing: `{{param}}` at parse time (fragments only — anywhere else is an error),
-`${vars.*}` at parse time from the config `vars:` map (url/value fields), `${secrets.*}` at run
-time. Every expansion error fails BEFORE an executor is spawned. Check cheaply with
-`tester-mcp validate <paths> -c <config>` (`--expand` prints the final steps).
+`${vars.*}` at parse time, `${secrets.*}` at run time. Every expansion error fails BEFORE an
+executor is spawned. Check cheaply with `tester-mcp validate <paths> -c <config>` (`--expand`
+prints the final steps).
+
+Vars in detail:
+
+- **Two spellings, one map.** `${vars.name}` and the bare `${name}` resolve identically. The bare
+  form has no dot in it, which is what keeps it clear of `${secrets.a.b}` and `${targets.frontend}`.
+- **Where they apply**: `url`, `value`, `target.text`, `target.description`. `target.text` matters
+  most — it is what pins a row in a list, so a marker that cannot reach it cannot tell one run's
+  data from another's.
+- **Layering** (later wins): built-in → config `vars:` → `--var`.
+- **Built-in `${today}`** = `YYYYMMDD`. Enough when a suite runs once a day; pass `--var today=…`
+  or a separate marker when it runs twice.
+- An undefined name is an error, so a typo fails at validate time rather than matching nothing.
+
+**Stamp data-creating suites.** A seed chain that writes a fixed literal ("E2E-SEED") into every
+run leaves a pile of same-named records, and a later step that grabs a row `by text` then has no
+way to know which one is this run's — it can silently advance last week's. Give the marker a
+per-run value instead:
+
+    # scenario
+    - { action: fill, target: { css: "#billNm" }, value: "E2E-SEED ${marker} проект" }
+    - { action: click, target: { css: "td", text: "E2E-SEED ${marker}" } }
 
 ## Target (how to locate an element)
 
@@ -191,6 +233,29 @@ target:
   placeholder: "Username"
   description: "the username input on the login form"
 ```
+
+**Priority when resolving one from source** — take the highest that applies:
+
+| # | Strategy | Example | Note |
+|---|---|---|---|
+| 1 | unique id | `#userId` | best |
+| 2 | one meaningful class | `.btn_search` | check it is not repeated on the page |
+| 3 | container + child | `.search_form input`, `.btn_group .btn_outline_error` | how you narrow a class used many times |
+| 4 | role + accessible name | `role: button` + `text` | i18n text ⇒ pin `locale:` |
+| 5 | structural `nth` | `tr:nth-of-type(4)` | brittle — avoid |
+| 6 | `description` | "the blue Login button" | last resort; one miss ⇒ NOT_TESTED |
+
+Level 5 breaks on any layout change and is the usual cause of a scenario that passed
+for weeks and then grabbed the wrong element: a document-upload step aimed at
+`tr:nth-of-type(4)` was really the second `td` of the same row, and only surfaced
+once the executor stopped improvising.
+
+**No relational pseudo-classes (`:has()`, `:is()`).** `button:has(i.pi-download)` missed
+on the first try and sent the executor into 28 `browser_batch` calls before the groping
+watchdog killed it. **Target the icon itself** (`i.pi-download`) — the click bubbles to
+the button, so the behaviour is identical. This is the general rule for icon-only buttons:
+they have no accessible name, so `find` cannot name them and `description` cannot rescue
+them; the icon's own class is the only stable handle.
 
 **Authoring rule (selector-first).** Resolve a stable `css` or `role`+name from the
 component source (Vue/PrimeVue) and put it in the target. `description`/`text` are
@@ -253,6 +318,14 @@ round-trips. To verify them reliably:
   proof, and a screenshot of a vanished element causes retry loops.
 - (Optional) In a test build, raise the toast `life` so it stays long enough.
 
+**If the trigger also navigates, do not assert the toast at all.** When a submit reloads
+the list or routes away, the toast and the page transition race each other and even a
+single immediate check loses — a registration-success toast was missed this way and the
+run came back PARTIAL although the app was correct. Assert the **resulting state**
+instead, which is stable and is what you actually care about: the new row is in the list
+(`assert_visible`), or the submit button is gone (`assert_not_visible` after a `wait_for`
+on a settled container).
+
 ## Result labels
 
 - `PASS` — every assertion verified at runtime.
@@ -267,6 +340,13 @@ If the result carries `denied_tools`, the scenario is not at fault: the extensio
 refused the executor. Check `runner.model` first (haiku is denied every browser
 tool), then the extension connection — see Prerequisites. Re-running unchanged
 fails identically.
+
+`warnings` reports something the runner noticed about **how** the run went, independent
+of the verdict. Today there is one: the executor clicked or typed before taking the
+tab's first screenshot. A fresh tab drops those inputs while still reporting success, so
+the failure surfaces far from its cause — typically "wrong id or password" on a correct
+password, or a button that appears to do nothing. Treat a failure carrying this warning
+as unproven and re-run before you go looking for an app bug.
 
 ## Minimal example
 

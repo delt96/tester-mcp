@@ -8,14 +8,25 @@ export interface StreamState {
   toolCount: number;
   consecutiveTool: number;   // run-length of the same tool_use back-to-back (groping signal)
   deniedTools: string[];     // tool names from the result event's permission_denials
+  inputBeforeScreenshot: boolean;  // clicked/typed before the tab's first screenshot → input was silently dropped
 }
+
+const COMPUTER_TOOL_RE = /(^|__)computer$/;
+// Anything that drives the page. 'wait'/'cursor_position' are harmless and deliberately absent.
+const INPUT_ACTIONS = new Set([
+  "left_click", "right_click", "middle_click", "double_click", "triple_click",
+  "left_click_drag", "mouse_move", "type", "key", "hold_key", "scroll",
+]);
 
 // Parses stream-json lines into a diagnostic snapshot. Stores ONLY event
 // types / tool names / timing — never tool inputs or assistant text (which
-// may contain secrets). `now` is injected for deterministic timing in tests.
+// may contain secrets). The single exception is the computer tool's `action`,
+// a fixed enum (never user data), needed to spot the dropped-input failure below.
+// `now` is injected for deterministic timing in tests.
 export function makeStreamAccumulator(now: () => number = () => Date.now()) {
   const t0 = now();
-  const state: StreamState = { trail: [], toolCount: 0, consecutiveTool: 0, deniedTools: [] };
+  const state: StreamState = { trail: [], toolCount: 0, consecutiveTool: 0, deniedTools: [], inputBeforeScreenshot: false };
+  let screenshotSeen = false;
 
   function handleContent(content: unknown) {
     if (!Array.isArray(content)) return;
@@ -26,6 +37,12 @@ export function makeStreamAccumulator(now: () => number = () => Date.now()) {
         state.consecutiveTool = tool && tool === state.lastTool ? state.consecutiveTool + 1 : 1;
         state.lastTool = tool;
         state.toolCount++;
+        if (tool && COMPUTER_TOOL_RE.test(tool)) {
+          const action = (c.input as Record<string, unknown> | undefined)?.action;
+          if (action === "screenshot") screenshotSeen = true;
+          else if (typeof action === "string" && INPUT_ACTIONS.has(action) && !screenshotSeen)
+            state.inputBeforeScreenshot = true;
+        }
       } else if (c?.type === "tool_result") {
         state.trail.push({ t_ms: now() - t0, phase: "result", is_error: !!c.is_error });
       }
@@ -58,7 +75,7 @@ export function makeStreamAccumulator(now: () => number = () => Date.now()) {
   }
 
   function snapshot(): StreamState {
-    return { envelope: state.envelope, trail: [...state.trail], lastTool: state.lastTool, toolCount: state.toolCount, consecutiveTool: state.consecutiveTool, deniedTools: [...state.deniedTools] };
+    return { envelope: state.envelope, trail: [...state.trail], lastTool: state.lastTool, toolCount: state.toolCount, consecutiveTool: state.consecutiveTool, deniedTools: [...state.deniedTools], inputBeforeScreenshot: state.inputBeforeScreenshot };
   }
 
   return { push, snapshot };

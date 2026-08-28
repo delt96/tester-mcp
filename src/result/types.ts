@@ -11,6 +11,7 @@ export interface ScenarioResult {
   handoff_notes?: string; raw_executor_text?: string; parse_repaired?: boolean;
   last_tool?: string; tool_count?: number; executor_log?: string;
   denied_tools?: string[];
+  warnings?: string[];
 }
 export interface RunSummary {
   run_id: string; started_at: string; total: number;
