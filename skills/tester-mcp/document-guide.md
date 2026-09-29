@@ -11,23 +11,22 @@ truth for prerequisites and the scenario DSL. Read it before writing scenarios.
 - The claude-in-chrome browser extension must be installed and connected. The
   executor drives a **real, visible Chrome window** — it is NOT headless and it
   keeps cookies/session. Chrome/Edge only.
-- **Don't run a haiku executor** — as observed on 2026-08-05. Every browser tool
-  came back "Claude in Chrome requires permission" and runs ended NOT_TESTED with
-  `denied_tools` set, while sonnet and opus passed with byte-identical flags and an
-  identical 42-tool list. Seen 9 times, interleaved, across sessions an hour apart.
-  Treat this as a reproduced observation, not a documented rule: no public doc
-  states a model requirement and the extension's own UI offers Haiku 4.5, so it may
-  be a bug and may stop applying — re-test before assuming it still holds. Default
-  is `sonnet`. Re-tested 2026-08-28, unchanged: the same two-step probe run a minute
-  apart came back NOT_TESTED with `denied_tools: [tabs_context_mcp]` on haiku and PASS
-  on sonnet.
+- **Executor model:** default `sonnet`. Claude in Chrome asks for approval on every browser action
+  under a haiku executor (sonnet/opus are never asked). Since 2026-09-28 the runner attaches a
+  bundled permission handler (`bin/executor-tools.cjs`, tool `mcp__tester__approve`), so haiku runs
+  end-to-end — but on the one scenario measured it was neither cheaper nor faster than sonnet at
+  effort `low`, so leave the default unless a new measurement says otherwise.
 - **Prefer one connected Chrome.** The extension connects per Anthropic account,
   not per machine, so a teammate's Chrome on the same account also shows up
   (`list_connected_browsers` lists every one). With two or more connected, an
   interactive session is asked which browser to use — a prompt a `-p` executor
-  cannot answer, and one it cannot resolve itself: `select_browser` is denied
-  inside the executor, and a browser picked interactively (by `select_browser` or
-  by `switch_browser` pairing) does not reach the executor process.
+  cannot answer. Set `runner.browser_device_id` in the config to your own Chrome's
+  deviceId (read it from `list_connected_browsers`): the executor then calls
+  `select_browser` first (the bundled permission handler lets it through), the result
+  JSON records the outcome under `browser_pin`, and a run that touches tabs without
+  pinning carries an `executor did not pin the browser` warning. A browser picked
+  interactively (by `select_browser` or `switch_browser` pairing) does not reach the
+  executor process.
 - On **Windows**, the `--chrome` flag is required for claude-in-chrome to work in
   PowerShell. **WSL is not supported.**
 - **`targets.frontend` must be an origin the backend's CORS allowlist contains.**
@@ -80,8 +79,10 @@ skill/doc workflow (unisolated, it calls Skill/Task/Bash and never opens a brows
   and slash commands are disabled. **Project-scoped CLAUDE.md, project memory, and
   hooks never reach the executor** — you cannot hand it anything by writing to
   project memory or settings; everything it needs must be in the scenario itself.
-- `Skill,Task,Agent,Bash,Write,Edit,Read,Glob,Grep,WebFetch,WebSearch` are hard-denied.
-- No ambient MCP servers are loaded; only claude-in-chrome (via `--chrome`).
+- `Skill,Task,Agent,Bash,Write,Edit,Read,Glob,Grep,WebFetch,WebSearch` are hard-denied
+  (`Read` opens only for upload scenarios).
+- No ambient MCP servers are loaded; only claude-in-chrome (via `--chrome`) and the runner's own
+  `tester` server, which answers permission prompts and receives the executor's step reports.
 
 ### Running multiple scenarios in parallel
 
@@ -117,7 +118,8 @@ A scenario is one YAML file. Fields:
 - `tags` (list of strings, optional) — suite labels; `run --tag a,b` keeps scenarios
   carrying at least one (OR).
 - `on_failure` (string, optional) — `stop` (default) or `continue`.
-- `optional` (bool, optional) — if true, a FAIL is downgraded to a soft signal.
+- `optional` (bool, optional) — if true, a FAIL is downgraded to a soft signal. (A step-level
+  `optional: true` is different — see the end of Actions.)
 - `defaults` (map, optional) — default values reused across steps.
 - `precondition` (string, optional) — human note on required data/state.
 
@@ -156,6 +158,11 @@ A scenario is one YAML file. Fields:
 
 Native `<select>`: there is no separate select action — use `fill` with the option's `value` or its
 visible label as the value; the executor sets the option and dispatches `change`.
+
+Any step may carry `optional: true`: if its target is absent or the action fails, the executor reports
+that step `SKIPPED` and continues — even under `on_failure: stop`. Use it for "log out if a session
+is still alive" style branches; give an optional `wait_for` a short `timeout_ms` so a missing target
+does not cost the default wait.
 
 ## Reuse — fragments, selector aliases, vars
 
@@ -333,17 +340,22 @@ on a settled container).
 - `FAIL` — an assertion was contradicted at runtime.
 - `NOT_TESTED` — could not run (timeout, missing data, blocked prerequisite).
 
+Per-step `status` adds `SKIPPED` (an `optional` step that did not apply). `reported_via` says whether
+the verdict arrived through the tester tools (`tool`) or was parsed from text (`text`, legacy path).
+
 On NOT_TESTED, read the run's `executor_log` (path is in the result JSON) to see the
 tool sequence and errors — that's how the Planner diagnoses and fixes the scenario.
 
 If the result carries `denied_tools`, the scenario is not at fault: the extension
-refused the executor. Check `runner.model` first (haiku is denied every browser
-tool), then the extension connection — see Prerequisites. Re-running unchanged
+refused the executor. The `not_tested_reason` carries the CLI's own denial reason; check the
+extension connection and the `tester` server (see `warnings`). Re-running unchanged
 fails identically.
 
 `warnings` reports something the runner noticed about **how** the run went, independent
-of the verdict. Today there is one: the executor clicked or typed before taking the
-tab's first screenshot. A fresh tab drops those inputs while still reporting success, so
+of the verdict. Today they are: the warm-up input drop below; built-in tools outside the known
+set; the tester server not connected; a Claude Code version change since the last run; browser
+pin failures; repeated clicks on the same target. The warm-up one: the executor clicked or typed
+before taking the tab's first screenshot. A fresh tab drops those inputs while still reporting success, so
 the failure surfaces far from its cause — typically "wrong id or password" on a correct
 password, or a button that appears to do nothing. Treat a failure carrying this warning
 as unproven and re-run before you go looking for an app bug.

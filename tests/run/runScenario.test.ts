@@ -133,3 +133,158 @@ describe("hasUpload", () => {
     })).toBe(true);
   });
 });
+
+const three: Scenario = { id: "s3", title: "t", locale: "ru", steps: [
+  { action: "navigate", url: "/" }, { action: "click", target: { css: "#a" } }, { action: "assert_visible", target: { css: "#b" } },
+] };
+const useTool = (id: string, name: string, input: Record<string, unknown>) =>
+  JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id, name, input }] } });
+const stepsReport = useTool("r1", "mcp__tester__report_steps", { steps: [{ index: 1, status: "PASS" }, { index: 2, status: "SKIPPED", note: "absent" }, { index: 4, status: "PASS" }] });
+const finalReport = useTool("r2", "mcp__tester__report_final", { status: "PARTIAL", evidence: ["saw b"], handoff_notes: "hn" });
+const feedLines = (...lines: string[]): StreamSpawner => (_c, _a, h) => { for (const l of lines) h.onLine(l); h.onClose(0, null); return { kill() {} }; };
+
+describe("runScenario — tool reports", () => {
+  it("report_final wins: verdict and steps come from the tools, actions filled from the scenario", async () => {
+    const emptyResult = JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "" });
+    const r = await runScenario(three, { ...base, spawner: feedLines(stepsReport, finalReport, emptyResult), logLine: () => {} });
+    expect(r.status).toBe("PARTIAL");
+    expect(r.reported_via).toBe("tool");
+    expect(r.evidence).toEqual(["saw b"]);
+    expect(r.handoff_notes).toBe("hn");
+    expect(r.steps).toEqual([
+      { index: 1, action: "navigate", status: "PASS" },
+      { index: 2, action: "click", status: "SKIPPED", note: "absent" },
+      { index: 4, action: "?", status: "PASS" },           // out-of-range index is kept, not dropped
+    ]);
+  });
+  it("a killed executor keeps the steps it reported and explains the kill", async () => {
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(stepsReport); h.onClose(null, "SIGTERM"); return { kill() {} }; };
+    const r = await runScenario(three, { ...base, spawner, logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.steps.map((s) => s.index)).toEqual([1, 2, 4]);
+    expect(r.reported_via).toBe("tool");
+    expect(r.not_tested_reason).toMatch(/never emitted/);
+  });
+  it("an error-type result with no text names the subtype and errors", async () => {
+    const budget = JSON.stringify({ type: "result", subtype: "error_max_budget_usd", is_error: true, errors: ["Reached maximum budget ($5)"] });
+    const r = await runScenario(three, { ...base, spawner: feedLines(stepsReport, budget), logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.not_tested_reason).toMatch(/error_max_budget_usd: Reached maximum budget/);
+    expect(r.steps).toHaveLength(3);
+  });
+  it("a normal exit with empty text and no report_final is NOT_TESTED with a clear reason", async () => {
+    const emptyResult = JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "" });
+    const r = await runScenario(three, { ...base, spawner: feedLines(stepsReport, emptyResult), logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.not_tested_reason).toMatch(/ended without report_final/);
+    expect(r.steps).toHaveLength(3);
+  });
+  it("text fallback: no tools → parsed text, reported_via text", async () => {
+    const r = await runScenario(scenario, { ...base, spawner: feedLines(tool, okResult), logLine: () => {} });
+    expect(r.status).toBe("PASS");
+    expect(r.reported_via).toBe("text");
+  });
+  it("text fallback prefers tool-reported steps over the text's steps", async () => {
+    const textWithSteps = JSON.stringify({ type: "result", result: '{"status":"PASS","steps":[{"index":9,"action":"x","status":"PASS"}]}' });
+    const r = await runScenario(three, { ...base, spawner: feedLines(stepsReport, textWithSteps), logLine: () => {} });
+    expect(r.steps.map((s) => s.index)).toEqual([1, 2, 4]);
+  });
+  it("permission_denied reason replaces the generic haiku text", async () => {
+    const denied = JSON.stringify({ type: "system", subtype: "permission_denied", tool_name: "mcp__claude-in-chrome__tabs_create_mcp", decision_reason_type: "asyncAgent", decision_reason: "requires approval, and this session has no approval surface" });
+    const resultDenied = JSON.stringify({ type: "result", result: "prose", permission_denials: [{ tool_name: "mcp__claude-in-chrome__tabs_create_mcp", tool_input: {} }] });
+    const r = await runScenario(three, { ...base, spawner: feedLines(denied, resultDenied), logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.not_tested_reason).toMatch(/tabs_create_mcp/);
+    expect(r.not_tested_reason).toMatch(/no approval surface/);
+    expect(r.not_tested_reason).not.toMatch(/2026-08-05/);
+  });
+  it("records claude_code_version, browser_pin and warnings from the stream", async () => {
+    const init = JSON.stringify({ type: "system", subtype: "init", claude_code_version: "2.1.284", tools: ["ToolSearch", "BrandNewTool"], mcp_servers: [{ name: "tester", status: "connected" }] });
+    const pin = useTool("p", "mcp__claude-in-chrome__select_browser", { deviceId: "d79" });
+    const pinErr = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: "p", is_error: true, content: "no such device" }] } });
+    const click = (id: string) => useTool(id, "mcp__claude-in-chrome__computer", { action: "left_click", coordinate: [1, 1] });
+    const r = await runScenario(three, { ...base, targets: { frontend: "http://x", browserDeviceId: "d79" }, previousClaudeCodeVersion: "2.1.283",
+      spawner: feedLines(init, pin, pinErr, click("c1"), click("c2"), finalReport), logLine: () => {} });
+    expect(r.claude_code_version).toBe("2.1.284");
+    expect(r.browser_pin).toEqual({ requested: "d79", ok: false, error: "no such device" });
+    expect(r.warnings?.join("\n")).toMatch(/BrandNewTool/);
+    expect(r.warnings?.join("\n")).toMatch(/2\.1\.283 → 2\.1\.284/);
+    expect(r.warnings?.join("\n")).toMatch(/browser pin failed/);
+    expect(r.warnings?.join("\n")).toMatch(/clicked the same target again/);
+  });
+});
+
+describe("runScenario — SKIPPED guard", () => {
+  const withOptional: Scenario = { id: "s4", title: "t", locale: "ru", steps: [
+    { action: "navigate", url: "/" },
+    { action: "wait_for", target: { css: "#h" }, optional: true },
+    { action: "click", target: { css: "#save" } },
+  ] };
+  it("keeps PASS when only optional steps are SKIPPED", async () => {
+    const steps = useTool("r1", "mcp__tester__report_steps", { steps: [{ index: 1, status: "PASS" }, { index: 2, status: "SKIPPED" }, { index: 3, status: "PASS" }] });
+    const final = useTool("r2", "mcp__tester__report_final", { status: "PASS", evidence: ["ok"] });
+    const r = await runScenario(withOptional, { ...base, spawner: feedLines(steps, final), logLine: () => {} });
+    expect(r.status).toBe("PASS");
+    expect(r.warnings).toBeUndefined();
+  });
+  it("downgrades PASS to PARTIAL and warns when a non-optional step is SKIPPED", async () => {
+    const steps = useTool("r1", "mcp__tester__report_steps", { steps: [{ index: 1, status: "PASS" }, { index: 2, status: "SKIPPED" }, { index: 3, status: "SKIPPED" }] });
+    const final = useTool("r2", "mcp__tester__report_final", { status: "PASS", evidence: ["ok"] });
+    const r = await runScenario(withOptional, { ...base, spawner: feedLines(steps, final), logLine: () => {} });
+    expect(r.status).toBe("PARTIAL");
+    expect(r.warnings?.join("\n")).toMatch(/non-optional step\(s\) as SKIPPED: 3/);
+    expect(r.warnings?.join("\n")).not.toMatch(/SKIPPED: 2/);
+  });
+  it("leaves FAIL and NOT_TESTED verdicts alone but still warns", async () => {
+    const steps = useTool("r1", "mcp__tester__report_steps", { steps: [{ index: 3, status: "SKIPPED" }] });
+    const final = useTool("r2", "mcp__tester__report_final", { status: "FAIL", evidence: ["x"] });
+    const r = await runScenario(withOptional, { ...base, spawner: feedLines(steps, final), logLine: () => {} });
+    expect(r.status).toBe("FAIL");
+    expect(r.warnings?.join("\n")).toMatch(/SKIPPED: 3/);
+  });
+});
+
+describe("runScenario — review fixes", () => {
+  it("a prose-only last message without report_final names the missing report, not JSON parsing", async () => {
+    const prose = JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "모든 화면을 확인했습니다." });
+    const r = await runScenario(three, { ...base, spawner: feedLines(stepsReport, prose), logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.not_tested_reason).toMatch(/ended without report_final/);
+    expect(r.not_tested_reason).not.toMatch(/could not parse JSON/);
+    expect(r.steps).toHaveLength(3);
+    expect(r.raw_executor_text).toContain("모든 화면");
+  });
+  it("a killed run still names the chrome denial seen in the stream", async () => {
+    const denied = JSON.stringify({ type: "system", subtype: "permission_denied", tool_name: "mcp__claude-in-chrome__navigate", decision_reason_type: "other", decision_reason: "tab URL unresolved" });
+    const spawner: StreamSpawner = (_c, _a, h) => { h.onLine(denied); h.onLine(tool); h.onClose(null, "SIGKILL"); return { kill() {} }; };
+    const r = await runScenario(three, { ...base, spawner, logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.not_tested_reason).toMatch(/navigate/);
+    expect(r.not_tested_reason).toMatch(/tab URL unresolved/);
+  });
+  it("does not warn about Read being offered to an upload scenario", async () => {
+    const upload: Scenario = { id: "u", title: "t", locale: "ru", steps: [{ action: "upload", target: { css: "#f" }, file: "C:/x.txt" }] };
+    const init = JSON.stringify({ type: "system", subtype: "init", claude_code_version: "2.1.283", tools: ["Read", "ToolSearch"], mcp_servers: [{ name: "tester", status: "connected" }] });
+    const final = useTool("r2", "mcp__tester__report_final", { status: "PASS", evidence: ["ok"] });
+    const r = await runScenario(upload, { ...base, spawner: feedLines(init, final), logLine: () => {} });
+    expect(r.warnings).toBeUndefined();
+  });
+});
+
+describe("runScenario — denial text does not override the executor's own reason", () => {
+  it("keeps the executor's not_tested_reason from report_final and appends the denial", async () => {
+    const final = useTool("r2", "mcp__tester__report_final", { status: "NOT_TESTED", evidence: [], not_tested_reason: "tab and tab group disappeared after step 19" });
+    const resultDenied = JSON.stringify({ type: "result", result: "", permission_denials: [{ tool_name: "mcp__claude-in-chrome__computer", tool_input: {} }] });
+    const r = await runScenario(three, { ...base, model: "sonnet", spawner: feedLines(final, resultDenied), logLine: () => {} });
+    expect(r.status).toBe("NOT_TESTED");
+    expect(r.not_tested_reason).toMatch(/^tab and tab group disappeared after step 19/);
+    expect(r.not_tested_reason).toMatch(/denied the executor \(computer\)/);
+  });
+  it("does not blame haiku for a denial when the executor model is not haiku", async () => {
+    const resultDenied = JSON.stringify({ type: "result", result: "prose", permission_denials: [{ tool_name: "mcp__claude-in-chrome__computer", tool_input: {} }] });
+    const r = await runScenario(three, { ...base, model: "sonnet", spawner: feedLines(resultDenied), logLine: () => {} });
+    expect(r.not_tested_reason).toMatch(/denied the executor \(computer\)/);
+    expect(r.not_tested_reason).not.toMatch(/haiku/);
+    expect(r.not_tested_reason).toMatch(/extension/);
+  });
+});

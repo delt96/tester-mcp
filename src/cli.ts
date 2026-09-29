@@ -19,6 +19,7 @@ import { captureEnv } from "./env/captureEnv.js";
 import { makeRunId } from "./util/runId.js";
 import { loadGuide } from "./guide/loadGuide.js";
 import { checkPreflight, PREFLIGHT_TIMEOUT_MS } from "./preflight/checkPreflight.js";
+import { readPreviousClaudeCodeVersion } from "./result/previousRun.js";
 
 const program = new Command();
 
@@ -82,12 +83,13 @@ program
 
       const results = await runScenarios(scenarios, {
         runId,
-        targets: { frontend: config.targets.frontend },
+        targets: { frontend: config.targets.frontend, browserDeviceId: config.runner.browser_device_id },
         model: config.runner.model,
         effort: config.runner.effort,
         env,
         resolveValue: (v) => resolveSecrets(v, { secrets }),
         timeoutMs,
+        previousClaudeCodeVersion: readPreviousClaudeCodeVersion(opts.outDir ?? "runs", runId),
       }, concurrency, { verbose: opts.verbose, secretValues, outDir: opts.outDir ?? "runs" });
       const safe = results.map((r) => redactSecrets(r, secretValues));
       const startedAt = safe[0]?.started_at ?? new Date().toISOString();

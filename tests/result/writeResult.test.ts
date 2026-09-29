@@ -25,3 +25,11 @@ describe("writeResult", () => {
     expect(s.total).toBe(1); expect(s.by_status.PASS).toBe(1);
   });
 });
+
+describe("writeSummary — Claude Code version", () => {
+  it("carries the executor's Claude Code version when a result has one", () => {
+    dir = mkdtempSync(join(tmpdir(), "tm-"));
+    const p = writeSummary(dir, "RID", "2026-05-26T00:00:00Z", [result, { ...result, scenario_id: "b", claude_code_version: "2.1.283" }]);
+    expect(JSON.parse(readFileSync(p, "utf8")).claude_code_version).toBe("2.1.283");
+  });
+});

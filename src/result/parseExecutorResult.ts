@@ -1,5 +1,7 @@
 import { STATUSES, type Status } from "./types.js";
 
+export const PARSE_FAILED_REASON = "could not parse JSON out of the executor's output";
+
 export interface PartialResult {
   status: Status; evidence?: string[]; screenshots?: string[]; steps?: any[];
   handoff_notes?: string; not_tested_reason?: string;
@@ -56,7 +58,7 @@ export function parseExecutorResult(resultText: string): PartialResult {
   const obj = extractJson(resultText);
   if (!obj || typeof obj !== "object")
     return salvage(resultText)
-      ?? { status: "NOT_TESTED", not_tested_reason: "could not parse JSON out of the executor's output", raw_executor_text: resultText };
+      ?? { status: "NOT_TESTED", not_tested_reason: PARSE_FAILED_REASON, raw_executor_text: resultText };
   if (!STATUSES.includes(obj.status))
     return { status: "NOT_TESTED", not_tested_reason: `status is not one of the four labels: ${String(obj.status)}`, raw_executor_text: resultText };
   return {

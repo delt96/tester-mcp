@@ -1,7 +1,11 @@
 export type Status = "PASS" | "PARTIAL" | "FAIL" | "NOT_TESTED";
 export const STATUSES: Status[] = ["PASS", "PARTIAL", "FAIL", "NOT_TESTED"];
+export type StepStatus = Status | "SKIPPED";
+// What report_steps accepts. PARTIAL is a run verdict, not a step outcome; the text path may still carry it.
+export const REPORTED_STEP_STATUSES: StepStatus[] = ["PASS", "FAIL", "SKIPPED", "NOT_TESTED"];
 
-export interface StepResult { index: number; action: string; status: Status; error?: string; }
+export interface StepResult { index: number; action: string; status: StepStatus; error?: string; note?: string; }
+export interface BrowserPinResult { requested?: string; ok?: boolean; error?: string; }
 export interface Environment { frontend_commit?: string; backend_commit?: string; browser?: string; runner_model?: string; node_version: string; os: string; }
 export interface ScenarioResult {
   run_id: string; scenario_id: string; status: Status;
@@ -12,8 +16,12 @@ export interface ScenarioResult {
   last_tool?: string; tool_count?: number; executor_log?: string;
   denied_tools?: string[];
   warnings?: string[];
+  reported_via?: "tool" | "text";     // how the verdict/steps reached the runner
+  claude_code_version?: string;       // from the executor's init event
+  browser_pin?: BrowserPinResult;
 }
 export interface RunSummary {
   run_id: string; started_at: string; total: number;
   by_status: Record<Status, number>; scenarios: { scenario_id: string; status: Status }[];
+  claude_code_version?: string;
 }

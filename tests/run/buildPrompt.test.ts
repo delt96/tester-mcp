@@ -28,9 +28,9 @@ describe("buildUserPrompt", () => {
     expect(p).toContain('Fill: [css #userId] ← "U"');   // secrets resolved
     expect(p).toContain("Assert visible: [css #v_header]");
   });
-  it("instructs the executor to emit result JSON", () => {
+  it("instructs the executor to report the verdict through the tester tools", () => {
     const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
-    expect(p).toMatch(/JSON/);
+    expect(p).toContain("mcp__tester__report_final");
     expect(p).toContain("PASS");
   });
   it("uses pre-resolved targets and tells the executor not to grope", () => {
@@ -46,12 +46,13 @@ describe("buildUserPrompt", () => {
     const p = buildUserPrompt(sc, { frontend: "http://x" }, (v) => v.replace("${secrets.tester.username}", "U"));
     expect(p).toContain('Assert value: [css #userId] == "U"');
   });
-  it("puts screenshots at the top level, not inside the fragile steps array", () => {
+  it("puts screenshots in report_final, not inside the per-step reports", () => {
     const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
-    const shotAt = p.indexOf('"screenshots"');
-    const stepsAt = p.indexOf('"steps"');
-    expect(shotAt).toBeGreaterThan(-1);
-    expect(shotAt).toBeLessThan(stepsAt);
+    const finalAt = p.indexOf("mcp__tester__report_final");
+    const shotAt = p.indexOf("screenshots[]");
+    expect(finalAt).toBeGreaterThan(-1);
+    expect(shotAt).toBeGreaterThan(finalAt);
+    expect(p).not.toMatch(/steps: \[\{ index, status, note\?, screenshot/);
   });
   it("pins the step index to one integer, because a range breaks JSON parsing", () => {
     const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
@@ -147,5 +148,51 @@ describe("warm-up screenshot", () => {
   });
   it("says the warm-up is exempt from the best-effort screenshot rule", () => {
     expect(SYSTEM_CONTRACT).toMatch(/warm-up[\s\S]{0,200}never/i);
+  });
+});
+
+describe("reporting contract", () => {
+  it("tells the executor to report through the tester tools instead of a JSON message", () => {
+    expect(SYSTEM_CONTRACT).toContain("[Reporting]");
+    expect(SYSTEM_CONTRACT).toContain("mcp__tester__report_steps");
+    expect(SYSTEM_CONTRACT).toContain("mcp__tester__report_final");
+    expect(SYSTEM_CONTRACT).not.toContain("[Output]");
+    const p = buildUserPrompt(scenario, { frontend: "http://x" }, (v) => v);
+    expect(p).toContain("# Reporting");
+    expect(p).not.toContain("# Output format");
+    expect(p).toMatch(/single integer/);
+  });
+  it("forbids re-clicking and explains optional steps", () => {
+    expect(SYSTEM_CONTRACT).toContain("[One click per click step]");
+    expect(SYSTEM_CONTRACT).toMatch(/never repeat/);
+    expect(SYSTEM_CONTRACT).toContain("[Optional steps]");
+    expect(SYSTEM_CONTRACT).toContain("SKIPPED");
+  });
+});
+
+describe("SKIPPED is reserved for optional steps", () => {
+  it("tells the executor a skipped mandatory step is FAIL or NOT_TESTED, never SKIPPED", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/Only \(optional\) steps may be SKIPPED/);
+  });
+});
+
+describe("destructive-step outcome wording matches what the report tools accept", () => {
+  it("never asks for a per-step PARTIAL (the server rejects it)", () => {
+    expect(SYSTEM_CONTRACT).not.toMatch(/report it PARTIAL/);
+    expect(SYSTEM_CONTRACT).toMatch(/report that step FAIL with a note/);
+  });
+});
+
+describe("report calls ride in the same message as the next action", () => {
+  it("tells the executor to batch report_steps with the next browser call and never send a report-only message", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/SAME message as your next browser tool call/);
+    expect(SYSTEM_CONTRACT).toMatch(/never send a message that contains only a report/i);
+  });
+});
+
+describe("report cadence keeps the kill-loss window small", () => {
+  it("demands the report as a parallel tool_use block beside the next action and caps unreported steps", () => {
+    expect(SYSTEM_CONTRACT).toMatch(/two tool_use blocks side by side/);
+    expect(SYSTEM_CONTRACT).toMatch(/Never let more than 2 finished steps go unreported/);
   });
 });

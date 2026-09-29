@@ -16,7 +16,7 @@ export function describeTarget(t: Target): string {
 const RENDERERS: Record<ActionName, (s: any) => string> = {
   navigate: (s) => `Navigate: ${s.url}`,
   fill: (s) => `Fill: [${describeTarget(s.target)}] ← "${s.value}"`,
-  click: (s) => `Click: [${describeTarget(s.target)}]${s.destructive ? " (destructive)" : ""}`,
+  click: (s) => `Click: [${describeTarget(s.target)}]${s.destructive ? " (destructive — never repeat)" : ""}`,
   double_click: (s) => `Double-click: [${describeTarget(s.target)}]`,
   upload: (s) => `Upload: [${describeTarget(s.target)}] ← file "${s.file}"`,
   wait_for: (s) => `Wait for: [${describeTarget(s.target)}] to appear${s.timeout_ms ? ` (${s.timeout_ms}ms)` : ""}`,
@@ -31,5 +31,6 @@ export function isKnownAction(name: string): name is ActionName {
   return (KNOWN_ACTIONS as string[]).includes(name);
 }
 export function renderStep(step: Step): string {
-  return RENDERERS[step.action](step);
+  const base = RENDERERS[step.action](step);
+  return step.optional ? `${base} (optional)` : base;
 }

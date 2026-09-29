@@ -43,3 +43,11 @@ describe("actions registry", () => {
       .toBe('Upload: [css input[type=file]] ← file "C:\\fx\\doc.pdf"');
   });
 });
+
+describe("renderStep suffixes", () => {
+  it("marks optional steps and destructive clicks", () => {
+    expect(renderStep({ action: "wait_for", target: { css: "#h" }, optional: true } as any)).toMatch(/ \(optional\)$/);
+    expect(renderStep({ action: "click", target: { css: "#save" }, destructive: true })).toMatch(/\(destructive — never repeat\)$/);
+    expect(renderStep({ action: "click", target: { css: "#save" } })).not.toMatch(/destructive|optional/);
+  });
+});

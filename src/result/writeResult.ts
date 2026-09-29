@@ -16,6 +16,7 @@ export function writeSummary(runDir: string, runId: string, startedAt: string, r
   const summary: RunSummary = {
     run_id: runId, started_at: startedAt, total: results.length, by_status: byStatus,
     scenarios: results.map((r) => ({ scenario_id: r.scenario_id, status: r.status })),
+    claude_code_version: results.find((r) => r.claude_code_version)?.claude_code_version,
   };
   const p = join(runDir, "summary.json");
   writeFileSync(p, JSON.stringify(summary, null, 2), "utf8");

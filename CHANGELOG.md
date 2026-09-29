@@ -3,6 +3,28 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
+## [Unreleased]
+
+### Added
+- **Step reports as tool calls.** The bundled MCP server (`bin/executor-tools.cjs`, server `tester`) now
+  exposes `report_steps` and `report_final` next to `approve`; the executor reports each step and the
+  verdict through them and the runner reads the calls from stream-json. A killed executor keeps the steps
+  it reported, a malformed index is rejected by the server instead of breaking the result, and the text
+  JSON path stays as a fallback (`reported_via: "tool" | "text"`).
+- **Permission handler.** `--permission-prompts host --permission-prompt-tool mcp__tester__approve` answers
+  Claude in Chrome's approval gate, which `--dangerously-skip-permissions` does not cover; `select_browser`
+  now works from the executor, so `runner.browser_device_id` is a real pin (`browser_pin` in the result).
+- **Step-level `optional: true`** — a failing optional step is reported `SKIPPED` and the run continues.
+  `SKIPPED` on a non-optional step downgrades PASS to PARTIAL with a warning.
+- **Warnings** for built-in tools outside the known set, the tester server not connected, a Claude Code
+  version change since the previous run (`claude_code_version` in results and summaries), browser pin
+  failures and repeated clicks on the same target. `not_tested_reason` now carries the CLI's own
+  denial reason and the `subtype`/`errors` of error-type results.
+
+### Changed
+- Contract: one click per click step, `(destructive — never repeat)` steps are never re-clicked, and
+  `AskUserQuestion`/`EnterPlanMode`/`ExitPlanMode`/`TaskCreate`·`TaskGet`·`TaskList`·`TaskUpdate` are denied.
+
 ## [0.9.0]
 
 ### Added

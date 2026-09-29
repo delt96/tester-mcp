@@ -11,7 +11,7 @@ export interface Target {
 export type Locale = "kg" | "ru" | "kr";
 
 // [ext1] Screen-only actions for this slice. Widen later (assert_toast/assert_api).
-export type Step =
+type StepBody =
   | { action: "navigate"; url: string }
   | { action: "fill"; target: Target; value: string }
   | { action: "click"; target: Target; destructive?: boolean }
@@ -22,6 +22,8 @@ export type Step =
   | { action: "assert_not_visible"; target: Target }
   | { action: "assert_value"; target: Target; value: string }
   | { action: "screenshot"; name?: string };
+// optional: a failed step is reported SKIPPED and the run continues (even under on_failure: stop).
+export type Step = StepBody & { optional?: boolean };
 
 export type ActionName = Step["action"];
 

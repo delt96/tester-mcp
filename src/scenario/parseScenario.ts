@@ -23,6 +23,8 @@ export function parseScenarioObject(rawIn: unknown): Scenario {
     if (!st || typeof st.action !== "string") throw new Error(`step[${i}]: missing action`);
     if (!isKnownAction(st.action))
       throw new Error(`step[${i}]: unknown action "${st.action}" (screen actions only)`);
+    if (st.optional !== undefined && typeof st.optional !== "boolean")
+      throw new Error(`step[${i}]: 'optional' must be true or false`);
     return st as Step;
   });
 

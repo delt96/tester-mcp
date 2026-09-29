@@ -66,3 +66,13 @@ describe("parseScenarioObject + tags", () => {
     expect(() => parseScenarioObject({ ...base, tags: [1] })).toThrow(/tags/);
   });
 });
+
+describe("step-level optional", () => {
+  const doc = (optional: unknown) => ({ id: "o", title: "t", steps: [{ action: "wait_for", target: { css: "#h" }, optional }] });
+  it("keeps optional: true on the step", () => {
+    expect((parseScenarioObject(doc(true)).steps[0] as any).optional).toBe(true);
+  });
+  it("rejects a non-boolean optional", () => {
+    expect(() => parseScenarioObject(doc("yes"))).toThrow(/step\[0\]: 'optional' must be true or false/);
+  });
+});
