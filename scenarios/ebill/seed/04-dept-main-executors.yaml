@@ -25,20 +25,20 @@ steps:
   - { action: navigate, url: "/main/letter/executionInbox" }
   - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
   - { action: screenshot, name: "04a-cmt-execution-inbox" }
-  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다(2026-08-28 실측 3건). text 만으로는 어느 것을 여는지
-  #   보장되지 않아 executor 가 "대상을 못 고르겠다"며 멈췄다. → **첫 행을 잡되 그 행이 맞는지 먼저 단언**한다.
-  #   정렬 근거: `OfficialDocumentMapper.xml:261`
+  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다 — 2026-08-28 실측으로 이행내용·문서 부제목이
+  #   **글자까지 동일한** 항목이 3건이었고, executor 가 "대상을 못 고르겠다"며 멈췄다.
+  #   첫 행으로 잡는 것도 안 된다: 정렬이 `OfficialDocumentMapper.xml:261`
   #     order by res.check_dtm is null desc, coalesce(req.sign_dtm, req.reg_dt) desc
-  #   = 미확인 우선 + 최신순. 방금 회부한 건은 미확인·최신이라 첫 행이다.
-  #   ※ 임시 조치다. 근본 해결은 의안명에 실행 단위 마커를 넣는 것(document-guide-feedback.md 2026-08-28 #1).
-  - { action: assert_visible, target: { ref: list_item_first, text: "E2E-SEED", description: "첫 행이 이번 회부 요청인지 — 아니면 여기서 멈추는 게 맞다" } }
-  - { action: click, target: { ref: list_item_first, description: "위에서 단언한 그 행을 연다" } }
+  #   라 **미확인 항목이 먼저** 와서, 무관한 의안이 첫 행에 앉는다(실측).
+  #   → v0.9.0 의 실행 단위 마커(`${today}`)로 **이번 회차 것만** 가리킨다. 03 이 같은 값으로 쓴다.
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED ${today} 위원회 회부 요청", description: "이번 회차의 회부 요청 — 조작 전에 먼저 단언한다" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED ${today} 위원회 회부 요청", description: "위에서 단언한 그 항목을 연다" } }
   - { action: wait_for, target: { css: "button.add_command", description: "[+ 이행자추가] — 상세 진입 신호" } }
   # 회부 요청 카드에는 소관위원회 부서장에게 이미 ⓒ 가 붙어 있다(gduser1이 회부하며 선지정, BL-05)
   - { action: assert_visible, target: { css: ".p-dialog, .command_area, body", text: "위원회 회부 요청", description: "회부 요청 카드 존재" } }
   - { action: screenshot, name: "04b-cmt-request-detail" }
   - use: assign-main-executor
-    with: { executor: "cmtuser10", signer: "cmtuser1", content: "E2E-SEED 위원회 심사 이행요청" }
+    with: { executor: "cmtuser10", signer: "cmtuser1", content: "E2E-SEED ${today} 위원회 심사 이행요청" }
   - { action: screenshot, name: "04c-cmt-assigned" }
   - { action: assert_visible, target: { css: ".command .command_status", text: "발송", description: "본인 서명이라 즉시 '발송' — '서명 대기'면 서명자가 타인으로 잡힌 것" } }
 
@@ -51,39 +51,39 @@ steps:
   - { use: switch-account, with: { account: langhead } }
   - { action: navigate, url: "/main/letter/executionInbox" }
   - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
-  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다(2026-08-28 실측 3건). text 만으로는 어느 것을 여는지
-  #   보장되지 않아 executor 가 "대상을 못 고르겠다"며 멈췄다. → **첫 행을 잡되 그 행이 맞는지 먼저 단언**한다.
-  #   정렬 근거: `OfficialDocumentMapper.xml:261`
+  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다 — 2026-08-28 실측으로 이행내용·문서 부제목이
+  #   **글자까지 동일한** 항목이 3건이었고, executor 가 "대상을 못 고르겠다"며 멈췄다.
+  #   첫 행으로 잡는 것도 안 된다: 정렬이 `OfficialDocumentMapper.xml:261`
   #     order by res.check_dtm is null desc, coalesce(req.sign_dtm, req.reg_dt) desc
-  #   = 미확인 우선 + 최신순. 방금 회부한 건은 미확인·최신이라 첫 행이다.
-  #   ※ 임시 조치다. 근본 해결은 의안명에 실행 단위 마커를 넣는 것(document-guide-feedback.md 2026-08-28 #1).
-  - { action: assert_visible, target: { ref: list_item_first, text: "E2E-SEED", description: "첫 행이 이번 회부 요청인지 — 아니면 여기서 멈추는 게 맞다" } }
-  - { action: click, target: { ref: list_item_first, description: "위에서 단언한 그 행을 연다" } }
+  #   라 **미확인 항목이 먼저** 와서, 무관한 의안이 첫 행에 앉는다(실측).
+  #   → v0.9.0 의 실행 단위 마커(`${today}`)로 **이번 회차 것만** 가리킨다. 03 이 같은 값으로 쓴다.
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED ${today} 위원회 회부 요청", description: "이번 회차의 회부 요청 — 조작 전에 먼저 단언한다" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED ${today} 위원회 회부 요청", description: "위에서 단언한 그 항목을 연다" } }
   - { action: wait_for, target: { css: "button.add_command", description: "상세 진입" } }
   - use: assign-main-executor
-    with: { executor: "LGGSPLZ2", signer: "LGGSPLZ", content: "E2E-SEED 언어심사 이행요청" }
+    with: { executor: "LGGSPLZ2", signer: "LGGSPLZ", content: "E2E-SEED ${today} 언어심사 이행요청" }
   - { action: screenshot, name: "04e-lang-assigned" }
 
   # ── 3) 전문심사 부서장
   - { use: switch-account, with: { account: exntnhead } }
   - { action: navigate, url: "/main/letter/executionInbox" }
   - { action: wait_for, target: { ref: list_item, description: "이행대기함 목록" } }
-  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다(2026-08-28 실측 3건). text 만으로는 어느 것을 여는지
-  #   보장되지 않아 executor 가 "대상을 못 고르겠다"며 멈췄다. → **첫 행을 잡되 그 행이 맞는지 먼저 단언**한다.
-  #   정렬 근거: `OfficialDocumentMapper.xml:261`
+  # ⚠ 같은 이름의 회부 요청이 실행할 때마다 쌓인다 — 2026-08-28 실측으로 이행내용·문서 부제목이
+  #   **글자까지 동일한** 항목이 3건이었고, executor 가 "대상을 못 고르겠다"며 멈췄다.
+  #   첫 행으로 잡는 것도 안 된다: 정렬이 `OfficialDocumentMapper.xml:261`
   #     order by res.check_dtm is null desc, coalesce(req.sign_dtm, req.reg_dt) desc
-  #   = 미확인 우선 + 최신순. 방금 회부한 건은 미확인·최신이라 첫 행이다.
-  #   ※ 임시 조치다. 근본 해결은 의안명에 실행 단위 마커를 넣는 것(document-guide-feedback.md 2026-08-28 #1).
-  - { action: assert_visible, target: { ref: list_item_first, text: "E2E-SEED", description: "첫 행이 이번 회부 요청인지 — 아니면 여기서 멈추는 게 맞다" } }
-  - { action: click, target: { ref: list_item_first, description: "위에서 단언한 그 행을 연다" } }
+  #   라 **미확인 항목이 먼저** 와서, 무관한 의안이 첫 행에 앉는다(실측).
+  #   → v0.9.0 의 실행 단위 마커(`${today}`)로 **이번 회차 것만** 가리킨다. 03 이 같은 값으로 쓴다.
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED ${today} 위원회 회부 요청", description: "이번 회차의 회부 요청 — 조작 전에 먼저 단언한다" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED ${today} 위원회 회부 요청", description: "위에서 단언한 그 항목을 연다" } }
   - { action: wait_for, target: { css: "button.add_command", description: "상세 진입" } }
   - use: assign-main-executor
-    with: { executor: "lgexntnuser2", signer: "lgexntnuser", content: "E2E-SEED 전문심사 이행요청" }
+    with: { executor: "lgexntnuser2", signer: "lgexntnuser", content: "E2E-SEED ${today} 전문심사 이행요청" }
   - { action: screenshot, name: "04f-exntn-assigned" }
 
   # ── 4) 결과 확인 — 이행요청 카드가 3건(+회부요청 1건) 쌓여 있어야 한다
   #     이행요청 목록은 문서 단위로 공유되므로 어느 부서장 화면에서도 전부 보인다(2026-08-11 실측)
-  - { action: assert_visible, target: { css: "body", text: "E2E-SEED 위원회 심사 이행요청", description: "위원회 지정분" } }
-  - { action: assert_visible, target: { css: "body", text: "E2E-SEED 언어심사 이행요청", description: "언어심사 지정분" } }
-  - { action: assert_visible, target: { css: "body", text: "E2E-SEED 전문심사 이행요청", description: "전문심사 지정분" } }
+  - { action: assert_visible, target: { css: "body", text: "E2E-SEED ${today} 위원회 심사 이행요청", description: "위원회 지정분" } }
+  - { action: assert_visible, target: { css: "body", text: "E2E-SEED ${today} 언어심사 이행요청", description: "언어심사 지정분" } }
+  - { action: assert_visible, target: { css: "body", text: "E2E-SEED ${today} 전문심사 이행요청", description: "전문심사 지정분" } }
   - { action: screenshot, name: "04g-all-assigned" }

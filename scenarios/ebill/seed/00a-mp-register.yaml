@@ -37,8 +37,8 @@ steps:
   - { action: wait_for, target: { css: "textarea.form_control", description: "안건명 입력란 — 등록 폼 진입 신호" } }
 
   # 표 행 순서(ApplySave.vue:174-193): 1 안건명(kg)* / 2 안건명(ru)* / 3 문서(kg) / 4 문서(ru) / 5 공동발의 / 6·7 비고
-  - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(1) textarea.form_control", description: "안건명(키르키즈어)(10067) 필수*" }, value: "E2E-SEED MP автотест мыйзам долбоору" }
-  - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(2) textarea.form_control", description: "안건명(러시아어)(10068) 필수*" }, value: "E2E-SEED MP автотест законопроект" }
+  - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(1) textarea.form_control", description: "안건명(키르키즈어)(10067) 필수*" }, value: "E2E-SEED ${today} MP автотест мыйзам долбоору" }
+  - { action: fill, target: { css: ".v_table table tbody tr:nth-of-type(2) textarea.form_control", description: "안건명(러시아어)(10068) 필수*" }, value: "E2E-SEED ${today} MP автотест законопроект" }
   # ⚠ **키르기스어 문서와 러시아어 문서는 같은 `<tr>` 안에 나란히 있다** — 행이 둘이 아니다.
   #   `BillFilesInputRow.vue:43-157` 이 `<tr><th>10076</th><td>(kg)</td><th>10077</th><td>(ru)</td></tr>`
   #   한 행을 렌더한다. 그래서 러시아어를 `tr:nth-of-type(4)` 로 잡으면 **공동발의 행**에 가서 없다.
@@ -59,8 +59,8 @@ steps:
 
   # 결과 확인 — 목록에 나타나는지만 본다. 여기서는 사회토론번호·등록일자가 비어 있는 게 정상이다
   # (게재 전이므로). step 0 태스크 생성은 DB(ebs_bp_tasks.task_code='REQUEST_REGISTRATION')로 확인한다.
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "안건명 검색칸(input_item 순서: 제출일자 / 안건상태 / 안건명)" }, value: "E2E-SEED MP" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "안건명 검색칸(input_item 순서: 제출일자 / 안건상태 / 안건명)" }, value: "E2E-SEED ${today} MP" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED MP", description: "등록된 의안이 목록에 있다" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today} MP", description: "등록된 의안이 목록에 있다" } }
   - { action: screenshot, name: "00a-d-listed" }

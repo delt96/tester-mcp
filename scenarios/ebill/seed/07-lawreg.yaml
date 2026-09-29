@@ -37,11 +37,11 @@ steps:
   # ── 1) 법적행위 상세로 (seed-06 과 동일 경로)
   - { action: navigate, url: "/main/billMng/legalActMng/billMng" }
   - { action: wait_for, target: { ref: content_title, description: "본회의검증(법적행위) 목록" } }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 법적행위 상세" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안 → 법적행위 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
   - { action: screenshot, name: "07-a-detail" }
 
@@ -51,8 +51,8 @@ steps:
   - { action: screenshot, name: "07-b-lawreg-modal" }
 
   # ── 3) 필수 4개 — 표 행 위치로 잡는다(라벨은 i18n 이라 텍스트로 잡지 않는다)
-  - { action: fill, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(1) input.form_control.full", description: "법률 명칭(키르기스어)(11081) 필수*" }, value: "E2E-SEED мыйзам аталышы" }
-  - { action: fill, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(2) input.form_control.full", description: "법률 명칭(러시아어)(11082) 필수*" }, value: "E2E-SEED наименование закона" }
+  - { action: fill, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(1) input.form_control.full", description: "법률 명칭(키르기스어)(11081) 필수*" }, value: "E2E-SEED ${today} мыйзам аталышы" }
+  - { action: fill, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(2) input.form_control.full", description: "법률 명칭(러시아어)(11082) 필수*" }, value: "E2E-SEED ${today} наименование закона" }
   # file input 은 클릭하면 네이티브 선택창이 열려 세션이 멈춘다 — input 자체를 target 으로 준다.
   # 앞에 놓인 label.v_btn.btn_file(업로드 아이콘)을 누르면 안 된다.
   - { action: upload, target: { css: ".p-dialog .v_table tbody tr:nth-of-type(3) input[type=file].form_file", description: "법률 파일(키르기스어)(11083) 필수*" }, file: "documentSample.pdf" }
@@ -74,12 +74,12 @@ steps:
   # → work 가 생긴 뒤의 정식 진입점은 **정부이송 예정(gvrnTrsfWork) 목록**이다(seed-08 과 같은 경로).
   - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
   - { action: wait_for, target: { ref: content_title, description: "정부이송 예정(11073) 목록" } }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(순서: 의안번호 / 의안명 / 작업상태)" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(순서: 의안번호 / 의안명 / 작업상태)" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "정부이송 예정 목록에 나타남 = work 생성의 직접 증거" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED → 정부이송 예정 상세(11074)" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "정부이송 예정 목록에 나타남 = work 생성의 직접 증거" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED → 정부이송 예정 상세(11074)" } }
   - { action: wait_for, target: { css: ".gtw-billinfo_toggle", description: "정부이송작업 상세 진입 신호(billMngDtl.vue:166)" } }
   - { action: screenshot, name: "07-e-gvrntrsf-detail" }
-  - { action: assert_visible, target: { css: ".p-dialog, body", text: "E2E-SEED мыйзам аталышы", description: "등록한 법률명(kg)이 상세에 보인다 = 저장 성공의 직접 증거" } }
+  - { action: assert_visible, target: { css: ".p-dialog, body", text: "E2E-SEED ${today} мыйзам аталышы", description: "등록한 법률명(kg)이 상세에 보인다 = 저장 성공의 직접 증거" } }
   - { action: assert_visible, target: { css: "button.v_btn", text: "서명자 지정", description: "[서명자 지정/변경](11078) — 다음 시나리오(서명 → 공문 → 3200)의 진입점" } }

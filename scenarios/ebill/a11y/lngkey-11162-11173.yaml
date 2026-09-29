@@ -1,0 +1,35 @@
+id: a11y-lngkey-11162-11173
+title: "[점검] 신규 다국어 키 11162~11173 적용 화면 육안 확인"
+locale: ru
+login_as: tester
+tags: [a11y, verify]
+on_failure: continue
+precondition: >
+  2026-09-08 웹접근성 작업으로 lng_id 11162~11173 이 신규 등록됐다.
+  이 중 11170/11171 은 같은 날 앞선 커밋이 '로그인'/'메인' 문서 제목용으로 이미 채번한 ID인데
+  뒤 커밋이 스킵 링크 문구로 값을 덮어썼고, router/index.js 의 meta.titleCode 는 그대로 남았다.
+  로그인 화면 document.title 이 스킵 링크 문구로 나오는 것은 로컬에서 실측 확인했다.
+  여기서는 **메인 화면**과 나머지 적용 지점을 실제 화면에서 확인한다.
+steps:
+  # --- 메인 화면: document.title 이 11171(본문 바로가기)로 나오는지 ---
+  - { action: navigate, url: "/main" }
+  - { action: wait_for, target: { css: ".search_form input", description: "로그인 후 헤더 검색창 — 메인 렌더 완료 신호" } }
+  - { action: screenshot, name: "01-main" }
+  # 기대: 화면 이름이 아니라 스킵 링크 문구가 제목으로 박힌다 (결함 재현)
+  - { action: assert_value, target: { css: "title" }, value: "Перейти к основному содержанию - Мыйзам документтерин башкаруу системасы" }
+
+  # --- 스킵 링크 2개가 서로 다른 문구인지 (11170 / 11171 본래 용도) ---
+  - { action: assert_value, target: { css: "nav.skip_nav a:nth-of-type(1)" }, value: "Перейти к главному меню" }
+  - { action: assert_value, target: { css: "nav.skip_nav a:nth-of-type(2)" }, value: "Перейти к основному содержанию" }
+
+  # --- 표 caption 자동 주입 (11169) — 목록 화면이 깨지지 않았는지 ---
+  - { action: navigate, url: "/main/billMng/billSearch/billMonitorList" }
+  - { action: wait_for, target: { ref: datatable, description: "의안 모니터링 목록 표" } }
+  - { action: screenshot, name: "02-billmonitor-list" }
+  # caption 은 height:0 으로 숨겨진다. 화면에 글자가 보이면 안 되고, DOM 에는 있어야 한다.
+  - { action: assert_visible, target: { css: "caption[data-auto-caption]", description: "자동 주입된 표 caption — 숨김 처리라 실패할 수 있다" } }
+
+  # --- 파일 행 버튼 (11166/11167/11168) — label→button 교체 후 모양이 유지되는지 ---
+  - { action: navigate, url: "/main/bill/apply/save" }
+  - { action: wait_for, target: { css: ".file_attatch", description: "의안 발의 등록 화면의 파일 첨부 행" } }
+  - { action: screenshot, name: "03-bill-apply-save-file-rows" }

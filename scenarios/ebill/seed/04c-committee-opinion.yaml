@@ -43,7 +43,7 @@ steps:
   - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글 — 배정된 건만(billCmtReviewList.vue:200)" } }
   - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
   - { action: screenshot, name: "04c-a-cmt-list" }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 위원회심사 상세" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안 → 위원회심사 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "위원회심사 상세" } }
   - { action: screenshot, name: "04c-b-cmt-detail" }
 
@@ -59,14 +59,14 @@ steps:
   #   이걸 누르면 공문파일 칸이 사라져 뒤의 upload 가 통째로 실패한다.
   #   언어는 .language_area 안에 국가언어/공용어/외국어 3종(InsertLetter.vue:948-955).
   - use: insert-letter-modal
-    with: { title: "E2E-SEED 위원회 심사 의견서", recipient: "gduser1", recipient_pick: "gduser1", approver: "cmtuser1", approver_pick: "부서장", tag: "04c-d" }
+    with: { title: "E2E-SEED ${today} 위원회 심사 의견서", recipient: "gduser1", recipient_pick: "gduser1", approver: "cmtuser1", approver_pick: "부서장", tag: "04c-d" }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "04c-e-opinion-registered" }
 
   # ── 4) 소관위원회 부서장(cmtuser1) — 결재  ← 여기서 1400 → 1500 이 일어난다
   - { use: switch-account, with: { account: cmthead } }
   - use: approve-in-approval-inbox
-    with: { doc: "E2E-SEED 위원회 심사 의견서", tag: "04c-f" }
+    with: { doc: "E2E-SEED ${today} 위원회 심사 의견서", tag: "04c-f" }
 
   # ── 5) 결과 확인 — 본회의 안건 후보에 나타나야 1500 이다
   # MtngFromMapper.xml: (bp_df_id='1' AND current_step_id IN ('1500')) 인 의안만 후보로 뜬다.
@@ -77,4 +77,4 @@ steps:
   - { action: click, target: { css: "a, button", text: "안건추가", description: "[안건추가] → 안건 등록하기 모달" } }
   - { action: wait_for, target: { css: ".p-dialog .p-datatable-tbody tr", description: "안건 후보 그리드" } }
   - { action: screenshot, name: "04c-h-agenda-candidates" }
-  - { action: assert_visible, target: { css: ".p-dialog", text: "E2E-SEED", description: "E2E-SEED 가 본회의 안건 후보에 있다 = step 1500 도달의 증거. 없으면 아직 1400이다" } }
+  - { action: assert_visible, target: { css: ".p-dialog", text: "E2E-SEED ${today}", description: "E2E-SEED 가 본회의 안건 후보에 있다 = step 1500 도달의 증거. 없으면 아직 1400이다" } }

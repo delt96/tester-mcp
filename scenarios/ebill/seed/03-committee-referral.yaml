@@ -22,7 +22,7 @@ steps:
   - { action: navigate, url: "/main/billMng/gdMng/billMngCmt" }
   - { action: wait_for, target: { ref: datatable, description: "위원회회부 그리드(안건상태 기본값 '법률검토완료')" } }
   - { action: screenshot, name: "03a-referral-list" }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 행 더블클릭 → 위원회회부 상세. 첫 클릭은 선택만 되므로 더블클릭이어야 한다" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안 행 더블클릭 → 위원회회부 상세. 첫 클릭은 선택만 되므로 더블클릭이어야 한다" } }
   - { action: wait_for, target: { ref: content_title, description: "위원회회부 상세 진입" } }
   - { action: screenshot, name: "03b-referral-detail" }
 
@@ -48,7 +48,7 @@ steps:
   - { action: screenshot, name: "03d-workrequest-autofilled" }
 
   # ── 4) 이행내용 + 서명자(본인) → 등록
-  - { action: fill, target: { css: ".p-dialog textarea.form_control", description: "이행내용" }, value: "E2E-SEED 위원회 회부 요청" }
+  - { action: fill, target: { css: ".p-dialog textarea.form_control", description: "이행내용" }, value: "E2E-SEED ${today} 위원회 회부 요청" }
   # 운영에서는 서명자가 타인(국회의장 등)이다. 개발환경은 esign 서버에 접근할 수 없어
   # 본인 지정 시 PIN 없이 자동 승인되므로, 테스트 편의로 본인을 쓴다(2026-08-12 사용자 확인).
   # 이 때문에 이 시나리오는 '서명 대기 → 서명 승인함' 경로를 검증하지 못한다.

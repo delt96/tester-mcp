@@ -15,7 +15,7 @@ export interface PreflightCheck { url: string; expect_status?: number[]; expect_
 export interface Config {
   project: string;
   targets: { frontend: string; backend?: string };
-  runner: { model: string; timeout_ms: number; effort?: Effort };
+  runner: { model: string; timeout_ms: number; effort?: Effort; browser_device_id?: string };
   vars: Record<string, string>;
   preflight?: PreflightCheck[];
 }
@@ -64,6 +64,17 @@ export function parseConfig(yamlText: string): Config {
   if (rawEffort !== undefined && !EFFORT_LEVELS.includes(rawEffort))
     throw new Error(`config runner.effort must be one of ${EFFORT_LEVELS.join(", ")} (got '${String(rawEffort)}')`);
 
+  // Every Chrome signed into this account is reachable and the executor picks one on its own, so a
+  // browser on ANOTHER machine can win — and there localhost is a dead address. It fails disguised:
+  // navigate reports success and sets the tab title, then screenshot says "Frame with ID 0 is showing
+  // error page" and localStorage throws SecurityError, which reads as "the dev server is down" while
+  // the server answers 200 here. Measured 2026-08-31: 2 browsers connected, seed-00a landed on the
+  // local one and passed, the next three runs landed on the remote one and died at step 1.
+  // select_browser binds per process, so the executor has to call it itself (see buildPrompt).
+  const rawDeviceId = raw?.runner?.browser_device_id;
+  if (rawDeviceId !== undefined && typeof rawDeviceId !== "string")
+    throw new Error("config runner.browser_device_id must be a string (a deviceId from list_connected_browsers)");
+
   const targets = { frontend, backend: raw?.targets?.backend };
   return {
     project: typeof raw.project === "string" ? raw.project : "unknown",
@@ -72,6 +83,7 @@ export function parseConfig(yamlText: string): Config {
       model: raw?.runner?.model ?? DEFAULT_MODEL,
       timeout_ms: typeof raw?.runner?.timeout_ms === "number" ? raw.runner.timeout_ms : DEFAULT_TIMEOUT_MS,
       effort: rawEffort as Effort | undefined,
+      browser_device_id: rawDeviceId as string | undefined,
     },
     vars,
     preflight: parsePreflight(raw?.preflight, targets),

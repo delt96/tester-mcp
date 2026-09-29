@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 This project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [0.10.0]
 
 ### Added
 - **Step reports as tool calls.** The bundled MCP server (`bin/executor-tools.cjs`, server `tester`) now

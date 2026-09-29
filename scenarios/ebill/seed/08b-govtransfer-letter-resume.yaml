@@ -18,11 +18,11 @@ steps:
   # ── 1) 공문 작성 — WS03 에서만. 작성은 부서원이 하고 결재는 부서장이 받는다
   - { action: navigate, url: "/main/billMng/gvrnTrsfWork/billMng" }
   - { action: wait_for, target: { ref: content_title, description: "정부이송 예정(11073) 목록" } }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(순서: 의안번호 / 의안명 / 작업상태)" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(순서: 의안번호 / 의안명 / 작업상태)" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED → 정부이송 예정 상세(11074)" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED → 정부이송 예정 상세(11074)" } }
   - { action: wait_for, target: { css: ".gtw-billinfo_toggle", description: "정부이송 예정 상세 진입 신호" } }
   - { action: screenshot, name: "08b-a-detail-ws03" }
   - { action: click, target: { css: "button.v_btn", text: "공문 작성", description: "[공문 작성](11113) → InsertLetter(billType=GVRN_TRSF_LAW)" } }
@@ -34,14 +34,14 @@ steps:
   # 정부이송 공문만 문서 종류가 자동 지정되지 않는다 — fragment 앞에서 직접 고른다
   - { action: click, target: { css: "#DMT02", description: "문서 종류 '확인용'(DMT02) — 필수*" } }
   - use: insert-letter-modal
-    with: { title: "E2E-SEED 정부이송 공문", recipient: "gduser1", recipient_pick: "gduser1", approver: "legalactuser", approver_pick: "부서장", tag: "08b-c" }
+    with: { title: "E2E-SEED ${today} 정부이송 공문", recipient: "gduser1", recipient_pick: "gduser1", approver: "legalactuser", approver_pick: "부서장", tag: "08b-c" }
   - { action: wait_for, target: { css: ".gtw-billinfo_toggle", description: "모달 닫히고 상세 복귀" } }
   - { action: screenshot, name: "08b-d-letter-registered" }
 
   # ── 3) 결재 = 이송 트리거. 별도 [이송] 버튼은 없다
   - { use: switch-account, with: { account: lgactuser } }
   - use: approve-in-approval-inbox
-    with: { doc: "E2E-SEED 정부이송 공문", tag: "08b-e" }
+    with: { doc: "E2E-SEED ${today} 정부이송 공문", tag: "08b-e" }
 
   # ── 4) 결과 확인 — 정부이송 목록(gvrnTrsfMng)에 나타나면 3200 이다
   # 법적행위 목록은 stat_cd=ST130(1900) 기준이라 3200 이 되면 거기서는 빠진다.
@@ -53,4 +53,4 @@ steps:
   - { action: navigate, url: "/main/billMng/gvrnTrsfMng/billMng" }
   - { action: wait_for, target: { ref: content_title, description: "정부이송 목록" } }
   - { action: screenshot, name: "08b-g-gvrntrsf-list" }
-  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 가 정부이송 목록에 있다 = step 3200(stat_cd ST410) 도달의 증거" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 가 정부이송 목록에 있다 = step 3200(stat_cd ST410) 도달의 증거" } }

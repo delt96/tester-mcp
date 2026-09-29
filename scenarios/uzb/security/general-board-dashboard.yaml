@@ -1,0 +1,15 @@
+id: uzb-general-board-dashboard
+title: "[상원 dev] 일반 화면(대시보드 최근 공지·공지사항 목록·로그인 후 팝업)이 운영자 계정으로 오류 없이 뜬다"
+tags: [uzb, security, menuauth]
+login_as: operator
+precondition: "⚠ uzb 는 탭 간 토큰을 localStorage 로 동기화하므로 반드시 --concurrency 1 로 돌린다(병렬이면 마지막 로그인 계정으로 섞인다). board_main·popup_main 은 AUTHENTICATED, 공지 목록은 {50,51,52,54,120} any-of"
+steps:
+  - { action: assert_visible, target: { css: "#v_header", text: "Operator", description: "헤더에 표시된 로그인 사용자명 — 다른 계정으로 섞였는지 확인" } }
+  - { action: navigate, url: "/main" }
+  - { action: wait_for, target: { css: "#v_content", description: "메인 대시보드 본문" } }
+  - { action: screenshot, name: "dashboard" }
+  - { action: assert_not_visible, target: { css: ".p-toast-message-error", description: "오류 토스트(대시보드 공지·팝업 API 가 403 이면 뜬다)" } }
+  - { action: navigate, url: "/notice/board" }
+  - { action: wait_for, target: { css: ".p-datatable", description: "공지사항 목록 표" } }
+  - { action: screenshot, name: "notice-board" }
+  - { action: assert_not_visible, target: { css: ".p-toast-message-error", description: "오류 토스트" } }

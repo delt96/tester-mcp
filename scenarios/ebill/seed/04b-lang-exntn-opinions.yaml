@@ -38,7 +38,7 @@ steps:
   - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글 — 배정된 건만" } }
   - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
   - { action: screenshot, name: "04b-a-lang-list" }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 언어심사 상세" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안 → 언어심사 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "언어심사 상세" } }
   - { action: screenshot, name: "04b-b-lang-detail" }
 
@@ -52,14 +52,14 @@ steps:
   # ⚠ .p-dialog 의 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이다 — 언어가 아니다.
   #   언어는 .language_area 안에 국가언어/공용어/외국어 3종이 있다(InsertLetter.vue:948-955).
   - use: insert-letter-modal
-    with: { title: "E2E-SEED 언어심사 의견서", recipient: "cmtuser1", recipient_pick: "부서장", approver: "LGGSPLZ", approver_pick: "부서장", tag: "04b-d-lang" }
+    with: { title: "E2E-SEED ${today} 언어심사 의견서", recipient: "cmtuser1", recipient_pick: "부서장", approver: "LGGSPLZ", approver_pick: "부서장", tag: "04b-d-lang" }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "04b-e-lang-opinion-registered" }
 
   # ── 4) 언어심사 부서장(LGGSPLZ) — 결재
   - { use: switch-account, with: { account: langhead } }
   - use: approve-in-approval-inbox
-    with: { doc: "E2E-SEED 언어심사", tag: "04b-f-lang" }
+    with: { doc: "E2E-SEED ${today} 언어심사", tag: "04b-f-lang" }
 
   # ══════════════════ 전문심사 부서 ══════════════════
 
@@ -70,7 +70,7 @@ steps:
   - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글" } }
   - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
   - { action: screenshot, name: "04b-h-exntn-list" }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 전문심사 상세" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안 → 전문심사 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "전문심사 상세" } }
   - { action: screenshot, name: "04b-i-exntn-detail" }
 
@@ -84,19 +84,19 @@ steps:
   # 언어심사 쪽과 동일하게 .language_area 로 스코프. .p-dialog 첫 체크박스는 #docModeOfficial 이라
   # 그걸 누르면 공문파일 칸이 사라져 뒤의 upload 가 실패한다.
   - use: insert-letter-modal
-    with: { title: "E2E-SEED 전문심사 의견서", recipient: "cmtuser1", recipient_pick: "부서장", approver: "lgexntnuser", approver_pick: "부서장", tag: "04b-k-exntn" }
+    with: { title: "E2E-SEED ${today} 전문심사 의견서", recipient: "cmtuser1", recipient_pick: "부서장", approver: "lgexntnuser", approver_pick: "부서장", tag: "04b-k-exntn" }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "04b-l-exntn-opinion-registered" }
 
   # ── 8) 전문심사 부서장(lgexntnuser) — 결재
   - { use: switch-account, with: { account: exntnhead } }
   - use: approve-in-approval-inbox
-    with: { doc: "E2E-SEED 전문심사", tag: "04b-m-exntn" }
+    with: { doc: "E2E-SEED ${today} 전문심사", tag: "04b-m-exntn" }
 
   # ── 9) 소관위원회 부서장(cmtuser1) 수신 확인 — 두 부서 의견서가 다 도착했는가
   - { use: switch-account, with: { account: cmthead } }
   - { action: navigate, url: "/main/letter/inbox" }
   - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
   - { action: screenshot, name: "04b-o-cmt-inbox" }
-  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 언어심사 의견서", description: "언어심사 의견서 수신" } }
-  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED 전문심사 의견서", description: "전문심사 의견서 수신" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED ${today} 언어심사 의견서", description: "언어심사 의견서 수신" } }
+  - { action: assert_visible, target: { ref: list_item, text: "E2E-SEED ${today} 전문심사 의견서", description: "전문심사 의견서 수신" } }

@@ -1,0 +1,16 @@
+# uzb MAM 상원 (dev 브랜치 보안 수정 검증). 프론트 vite 15181, 백엔드 8081.
+# 백엔드 CORS 기본 허용 출처가 http://localhost:15181 이므로 반드시 localhost 로 쓴다.
+targets:
+  frontend: http://localhost:15181
+  backend: http://localhost:8081
+preflight:
+  - { url: "${targets.frontend}", expect_title: "O'zbekiston Senati" }
+  - { url: "${targets.backend}/login", expect_status: [401, 405] }
+runner:
+  model: sonnet
+  effort: low
+  timeout_ms: 900000
+  browser_device_id: d79ec830-0e76-4c12-815d-9282d65bb18a
+  chrome_flags:
+    - --chrome
+    - --dangerously-skip-permissions

@@ -45,10 +45,10 @@ steps:
   #     1행: 의안번호(10292) / **의안명(10293)**   2행: 제출일자 / 안건상태(select, searchStatCd)
   #   의안제출 목록에서 쓰던 `.input_item:nth-child(3)` 은 **여기서 아무것도 매칭하지 않는다.**
   #   목록 화면마다 검색칸 순서를 다시 확인할 것 — 클래스가 같다고 구조가 같지 않다.
-  - { action: fill, target: { css: ".board_search.type2 .form_row:first-child .input_item:nth-child(2) input.form_control", description: "의안명(10293) 검색칸 — 1행 두 번째 칸" }, value: "E2E-SEED MP" }
+  - { action: fill, target: { css: ".board_search.type2 .form_row:first-child .input_item:nth-child(2) input.form_control", description: "의안명(10293) 검색칸 — 1행 두 번째 칸" }, value: "E2E-SEED ${today} MP" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED MP", description: "첫 행이 E2E-SEED MP 인지 확인하고 나서 연다. 없으면 00b 의 등록요청이 안 걸린 것이다" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today} MP", description: "첫 행이 E2E-SEED MP 인지 확인하고 나서 연다. 없으면 00b 의 등록요청이 안 걸린 것이다" } }
   - { action: screenshot, name: "00c-b-filtered" }
   - { action: double_click, target: { css: ".p-datatable-tbody tr:first-child", description: "위에서 단언한 그 행을 연다 → 의안접수 상세(@row-dblclick, billMngRcList.vue:217)" } }
   - { action: wait_for, target: { ref: content_title, description: "의안접수 상세" } }
@@ -68,4 +68,4 @@ steps:
   - { action: navigate, url: "/main/billMng/lgReviewMng/billMng" }
   - { action: wait_for, target: { ref: content_title, description: "법무실검토서 목록" } }
   - { action: screenshot, name: "00c-e-lgreview-list" }
-  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED MP", description: "법무실검토서 목록에 나타남 = step 1200(ST100) 도달의 증거. 여기서부터 seed-01b 가 이어받는다" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED ${today} MP", description: "법무실검토서 목록에 나타남 = step 1200(ST100) 도달의 증거. 여기서부터 seed-01b 가 이어받는다" } }

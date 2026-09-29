@@ -51,11 +51,11 @@ steps:
   - { action: navigate, url: "/main/billMng/gvrnTrsfMng/billMng" }
   - { action: wait_for, target: { ref: content_title, description: "정부이송 목록" } }
   - { action: screenshot, name: "09-a-gvrntrsf-list" }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(input_item 순서: 의안번호 / 의안명 / 상태)" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(input_item 순서: 의안번호 / 의안명 / 상태)" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED → 정부이송 상세" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED → 정부이송 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "정부이송 상세" } }
   - { action: screenshot, name: "09-b-detail" }
 
@@ -102,10 +102,10 @@ steps:
   # 의안정보조회(menu_id 19)는 `/bill/review/all` 을 쓰고 상태필터 기본값이 ''(전체)라 걸린다.
   - { action: navigate, url: "/main/billMng/billSearch/billAllList" }
   - { action: wait_for, target: { ref: content_title, description: "의안정보조회 목록" } }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(input_item 순서: 의안번호 / 의안명 / 상태)" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸(input_item 순서: 의안번호 / 의안명 / 상태)" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
   - { action: screenshot, name: "09-g-bill-search" }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 먼저 확인" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "첫 행이 E2E-SEED 인지 먼저 확인" } }
   # statNm 컬럼(billAllList.vue:209)이 안건상태다. ST520 의 한국어 표기가 '공포'(com_code_detail 실측).
   - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "공포", description: "안건상태가 '공포'(ST520) = step 3300 도달 = 체인 종착" } }

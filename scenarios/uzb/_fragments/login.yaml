@@ -1,0 +1,23 @@
+id: login
+# uzb MAM 로그인. ebill login 조각과 같은 이유로 워밍업 screenshot → click → fill → assert_value 순서를 지킨다.
+# LoginView 는 userId/pswd 를 admin/best1234 로 미리 채워 두므로 fill 이 덮어쓰는지 assert_value 로 확인한다.
+params:
+  account: admin
+# ⚠ uzb 는 토큰을 localStorage 에 두고 탭끼리 공유한다. 이 Chrome 에 이전 세션이 남아 있으면 "/" 가 곧바로
+#   /main 으로 넘어가 로그인 화면이 안 뜬다(2026-09-28 NOT_TESTED 2건). 그래서 먼저 /main 에서 로그아웃한다.
+#   → 헤더가 없으면(이미 로그아웃) 아래 두 단계는 optional 로 SKIPPED 되고 바로 로그인 폼으로 간다.
+#   병렬 실행도 같은 이유로 금지(--concurrency 1).
+steps:
+  - { action: navigate, url: "/main" }
+  - { action: wait_for, target: { css: "#v_header", description: "헤더 — 이전 세션이 살아 있다는 뜻" }, optional: true, timeout_ms: 3000 }
+  - { action: click, target: { css: ".util_ctrl .ico_logout", description: "헤더 우측 로그아웃 아이콘 버튼" }, optional: true }
+  - { action: wait_for, target: { css: ".btn_login", description: "로그인 버튼 — 템플릿 마지막 요소" } }
+  - { action: screenshot, name: "login-warmup" }
+  - { action: click, target: { css: "#userId", description: "아이디 입력칸 포커스" } }
+  - { action: fill, target: { css: "#userId" }, value: "${secrets.{{account}}.username}" }
+  - { action: assert_value, target: { css: "#userId" }, value: "${secrets.{{account}}.username}" }
+  - { action: click, target: { css: "#pswd", description: "비밀번호 칸 포커스" } }
+  - { action: fill, target: { css: "#pswd" }, value: "${secrets.{{account}}.password}" }
+  - { action: assert_value, target: { css: "#pswd" }, value: "${secrets.{{account}}.password}" }
+  - { action: click, target: { css: ".btn_login", description: "로그인(Sign In) 버튼" } }
+  - { action: wait_for, target: { css: "#v_content", description: "로그인 후 본문 영역" } }

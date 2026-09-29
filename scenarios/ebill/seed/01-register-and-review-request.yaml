@@ -39,7 +39,7 @@ steps:
   - { action: screenshot, name: "01a-reg-form" }
 
   # ── 2) 의안명(러시아어) — 'E2E-SEED' 마커로 이후 단계에서 식별
-  - { action: fill, target: { label: "안건명(러시아어)", css: "textarea.form_control", description: "안건명(러시아어)(10068). 첫 textarea는 키르기스어라 라벨로 구분" }, value: "E2E-SEED автотест законопроект" }
+  - { action: fill, target: { label: "안건명(러시아어)", css: "textarea.form_control", description: "안건명(러시아어)(10068). 첫 textarea는 키르기스어라 라벨로 구분" }, value: "E2E-SEED ${today} автотест законопроект" }
 
   # ── 3) 원문 파일 — 직접 업로드한다
   #
@@ -75,7 +75,7 @@ steps:
   - { use: switch-account, with: { account: lgrvhead } }
   - { action: navigate, url: "/main/letter/inbox" }
   - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "방금 이첩된 E2E-SEED 의안의 등록요청문서" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED ${today}", description: "방금 이첩된 E2E-SEED 의안의 등록요청문서" } }
   - { action: wait_for, target: { ref: btn_outline_md, text: "주 이행자", description: "[주 이행자 추가] 버튼 — 수신 상세 진입 신호" } }
   - { action: screenshot, name: "01e-inbox-detail" }
 
@@ -89,7 +89,7 @@ steps:
   - { action: wait_for, target: { ref: ac_option_any, description: "이행자 후보" } }
   - { action: click, target: { ref: ac_option_any, description: "LGRVuser2 선택" } }
   # ⚠ .full 이 빠지면 매칭에 실패해 입력이 수행자 autocomplete 로 흘러든다(2026-08-12 실측)
-  - { action: fill, target: { ref: dialog_textarea_full, description: "이행 내용" }, value: "E2E-SEED 법률검토 요청" }
+  - { action: fill, target: { ref: dialog_textarea_full, description: "이행 내용" }, value: "E2E-SEED ${today} 법률검토 요청" }
   # [C] 배지 = 주 이행자 지정. 이걸 눌러야 다음 단계에서 [의견서 작성] 버튼이 나온다
   - { action: click, target: { css: ".p-dialog button.main-worker-btn", description: "수행자 우측 [C] 배지 — 주 이행자 지정(EA-02). 수행자가 채워져야(canPickMainWorker) 렌더링되며 활성 시 .is-main 이 붙는다" } }
   - { action: assert_visible, target: { css: ".p-dialog button.main-worker-btn.is-main", description: "[C] 활성 확인 — .is-main 이 없으면 주 이행자가 아니다" } }

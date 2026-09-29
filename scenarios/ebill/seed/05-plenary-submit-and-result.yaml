@@ -44,15 +44,15 @@ steps:
   # ★ 먼저 의안명으로 좁힌다. 이걸 빼면 아래 tr:first-child 가 남의 의안을 집는다(2026-08-12 실사고).
   #   검색칸 라벨/placeholder 는 i18n 이라 텍스트로 잡으면 안 되고 위치로 잡는다
   #   (mtngAgendaModal.vue:92-105 — input_item 순서: 의안종류 select / 의안번호 / 의안명).
-  - { action: fill, target: { css: ".p-dialog .board_search .form_row .input_item:nth-child(3) input.form_control", description: "의안명(searchBillNm) 검색칸" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".p-dialog .board_search .form_row .input_item:nth-child(3) input.form_control", description: "의안명(searchBillNm) 검색칸" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".p-dialog .search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { css: ".p-dialog .p-datatable-tbody tr", description: "필터된 후보 그리드" } }
   - { action: screenshot, name: "05b2-agenda-filtered" }
-  - { action: assert_visible, target: { css: ".p-dialog .p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 여야 한다 — 검색이 먹었는지 확인하고 나서 체크한다" } }
+  - { action: assert_visible, target: { css: ".p-dialog .p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "첫 행이 E2E-SEED 여야 한다 — 검색이 먹었는지 확인하고 나서 체크한다" } }
   - { action: click, target: { css: ".p-dialog .p-datatable-tbody tr:first-child td:first-child .p-checkbox-box, .p-dialog .p-datatable-tbody tr:first-child input[type=checkbox]", description: "첫 행 체크 — 위 assert 로 E2E-SEED 임이 확인된 행" } }
   - { action: click, target: { css: ".p-dialog button", text: "확인", description: "[확인] — 모달 하단. 상단의 [안건 입력]은 자유안건 직접입력이라 다른 기능이다" } }
   - { action: wait_for, target: { css: ".p-datatable-tbody tr", description: "안건 그리드에 행이 추가됨" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody", text: "E2E-SEED", description: "추가된 안건이 E2E-SEED 인지 확인" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody", text: "E2E-SEED ${today}", description: "추가된 안건이 E2E-SEED 인지 확인" } }
   - { action: screenshot, name: "05c-agenda-added" }
 
   # ── 3) 저장 → ConfirmPopup
@@ -70,7 +70,7 @@ steps:
   - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "차수 검색칸" }, value: "996" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "방금 만든 회의 행 더블클릭 → 상세(update?mtngId=…)" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "방금 만든 회의 행 더블클릭 → 상세(update?mtngId=…)" } }
   - { action: wait_for, target: { css: "a, button", text: "안건부의하기", description: "[안건부의하기] 버튼 — 상세 진입 신호" } }
   - { action: assert_visible, target: { css: "body", text: "부의예정", description: "부의 전 상태" } }
   - { action: screenshot, name: "05e-before-submit" }
@@ -87,10 +87,10 @@ steps:
   # ★ 여기도 필터 먼저. 이 화면은 결과 select 와 체크박스를 tr:first-child 로 집으므로
   #   좁히지 않으면 남의 의안에 '가결'을 찍고 검증요청까지 보낸다(2026-08-12 실사고 지점).
   #   mainMtngResultList.vue:216-226 — form_row 2번째의 input_item 순서: 의안번호 / 의안명.
-  - { action: fill, target: { css: ".board_search .form_row:nth-child(2) .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row:nth-child(2) .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 결과입력 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 조작한다" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "첫 행이 E2E-SEED 인지 확인하고 나서 조작한다" } }
   - { action: screenshot, name: "05g2-result-filtered" }
   # 결과 셀렉트는 네이티브 select 다. 값: PL01=가결 / PL02=부결 / PL03=불성립
   # TODO(본회의결과입력 화면 개편 예정 — 2026-08-12 사용자 확인): 개편되면 아래 confirm 승낙

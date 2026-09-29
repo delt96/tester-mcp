@@ -28,7 +28,7 @@ steps:
   - { action: wait_for, target: { ref: content_title, description: "법무실검토서 목록" } }
   - { action: click, target: { ref: bill_view_assigned_btn, description: "[이행받은 의안] 토글 — 배정된 건만 필터(BL-07)" } }
   - { action: wait_for, target: { ref: bill_view_assigned_active, description: "토글 활성" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 행 더블클릭 → 법무실검토서 상세" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안 행 더블클릭 → 법무실검토서 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "법무실검토서 상세" } }
   - { action: screenshot, name: "02a-detail" }
 
@@ -51,18 +51,18 @@ steps:
   # ⚠ .p-dialog 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 언어가 아니다.
   #   언어는 .language_area 안 3종(국가언어/공용어/외국어) — InsertLetter.vue:948-955
   - use: insert-letter-modal
-    with: { title: "E2E-SEED 법무실 검토 의견서", recipient: "gduser1", recipient_pick: "gduser1", approver: "LGRVuser", approver_pick: "부서장", tag: "02-d" }
+    with: { title: "E2E-SEED ${today} 법무실 검토 의견서", recipient: "gduser1", recipient_pick: "gduser1", approver: "LGRVuser", approver_pick: "부서장", tag: "02-d" }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "02e-opinion-registered" }
 
   # ── 5) 부서장으로 전환 → 결재대기함에서 의견서 결재 → 법률검토완료
   - { use: switch-account, with: { account: lgrvhead } }
   - use: approve-in-approval-inbox
-    with: { doc: "E2E-SEED", tag: "02f" }
+    with: { doc: "E2E-SEED ${today}", tag: "02f" }
 
   # ── 6) 결과 확인 — 위원회회부 목록에 나타나야 한다
   - { use: switch-account, with: { account: gduser } }
   - { action: navigate, url: "/main/billMng/gdMng/billMngCmt" }
   - { action: wait_for, target: { ref: content_title, description: "위원회회부 목록" } }
   - { action: screenshot, name: "02h-ready-for-committee" }
-  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안이 위원회회부 대상으로 넘어옴 = 법률검토완료 증거" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안이 위원회회부 대상으로 넘어옴 = 법률검토완료 증거" } }

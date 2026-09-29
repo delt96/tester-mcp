@@ -26,7 +26,7 @@ steps:
   - { action: navigate, url: "/main/letter/inbox" }
   - { action: wait_for, target: { ref: list_item, description: "수신함 목록" } }
   - { action: screenshot, name: "01b-a-inbox" }
-  - { action: click, target: { ref: list_item, text: "E2E-SEED", description: "E2E-SEED 등록요청문서(DMT01)" } }
+  - { action: click, target: { ref: list_item, text: "E2E-SEED ${today}", description: "E2E-SEED 등록요청문서(DMT01)" } }
   # 수신함 상세도 CommandComponent 를 쓴다(Inbox.vue:589) — [이행자추가] 버튼은 button.add_command
   - { action: wait_for, target: { css: "button.add_command", description: "[이행자추가](10479) — 수신 상세 진입 신호" } }
   - { action: screenshot, name: "01b-b-inbox-detail" }
@@ -40,7 +40,7 @@ steps:
   #   'LGRVuser' 로 검색하면 부서장·직원·직원2 3건이 뜨고, fragment 가 text:"부서장"으로 특정한다.
   #   posTitle 은 러시아어(Заведующий отделом)라 안 걸리고 fullName 의 한글 주석이 매칭된다.
   - use: assign-main-executor
-    with: { executor: "LGRVuser2", signer: "LGRVuser", content: "E2E-SEED 법률검토 요청" }
+    with: { executor: "LGRVuser2", signer: "LGRVuser", content: "E2E-SEED ${today} 법률검토 요청" }
   - { action: screenshot, name: "01b-d-workrequest-filled" }
 
   # ── 3) 결과 확인 — 본인 서명이므로 '발송' 상태여야 한다

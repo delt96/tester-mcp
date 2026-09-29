@@ -1,0 +1,19 @@
+id: a11y-lngkey-screens
+title: "[증적] 신규 다국어 키 적용 화면 — LNB 렌더 후 캡처"
+locale: ru
+login_as: lgactuser
+tags: [a11y, verify]
+on_failure: continue
+precondition: >
+  앞선 실행에서 스크린샷이 /admin/deptmenu 응답보다 먼저 찍혀 LNB 와 화면 제목이 빈 채로 남았다.
+  여기서는 assert_visible 로 LNB 렌더를 확정한 뒤에 캡처한다.
+steps:
+  - { action: navigate, url: "/main" }
+  - { action: wait_for, target: { css: "#v_sidebar .lnb_area .depth1" } }
+  - { action: assert_visible, target: { css: "#v_sidebar .lnb_area .depth1", description: "LNB 1단계 메뉴 — 메뉴 트리 응답이 렌더된 상태" } }
+  - { action: screenshot, name: "01-main-lnb" }
+
+  - { action: navigate, url: "/main/billMng/billSearch/billMonitorList" }
+  - { action: wait_for, target: { ref: datatable } }
+  - { action: assert_visible, target: { css: "#v_sidebar .lnb_area .depth1", description: "LNB 1단계 메뉴" } }
+  - { action: screenshot, name: "02-billmonitor-lnb" }

@@ -1,0 +1,23 @@
+id: uzb-mng-screens-load
+title: "[상원 dev] 관리자 API 에 @MenuAuth 를 건 뒤에도 권한 있는 관리자 화면 4개가 오류 없이 조회된다"
+tags: [uzb, security, menuauth]
+login_as: admin
+precondition: "⚠ uzb 는 탭 간 토큰을 localStorage 로 동기화하므로 반드시 --concurrency 1 로 돌린다(병렬이면 마지막 로그인 계정으로 섞인다). admin 계정은 그룹 ADMIN 으로 메뉴 54·63·121·134 를 모두 보유(2026-09-28 DB 확인)"
+steps:
+  - { action: assert_visible, target: { css: "#v_header", text: "Administrator", description: "헤더에 표시된 로그인 사용자명 — 다른 계정으로 섞였는지 확인" } }
+  - { action: navigate, url: "/system/security" }
+  - { action: wait_for, target: { css: ".security_tabs", description: "보안(접속관리) 화면 탭" } }
+  - { action: screenshot, name: "security" }
+  - { action: assert_not_visible, target: { css: ".p-toast-message-error", description: "오류 토스트(403 이면 뜬다)" } }
+  - { action: navigate, url: "/system/lngCode" }
+  - { action: wait_for, target: { css: ".p-datatable", description: "언어관리 목록 표" } }
+  - { action: screenshot, name: "lngCode" }
+  - { action: assert_not_visible, target: { css: ".p-toast-message-error", description: "오류 토스트" } }
+  - { action: navigate, url: "/system/popup" }
+  - { action: wait_for, target: { css: ".p-datatable", description: "팝업관리 목록 표" } }
+  - { action: screenshot, name: "popup" }
+  - { action: assert_not_visible, target: { css: ".p-toast-message-error", description: "오류 토스트" } }
+  - { action: navigate, url: "/system/notice" }
+  - { action: wait_for, target: { css: ".p-datatable", description: "MAM 게시판관리 목록 표" } }
+  - { action: screenshot, name: "notice-mng" }
+  - { action: assert_not_visible, target: { css: ".p-toast-message-error", description: "오류 토스트" } }

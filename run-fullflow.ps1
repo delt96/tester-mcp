@@ -1,4 +1,4 @@
-param([string[]]$Scenarios)
+param([string[]]$Scenarios, [int]$TimeoutMs = 0)
 
 $ErrorActionPreference = "Continue"
 
@@ -33,7 +33,9 @@ $log = Join-Path $PSScriptRoot "fullflow-progress.log"
 foreach ($s in $Scenarios) {
   $start = Get-Date
   "--- [$s] START $($start.ToString('HH:mm:ss'))" | Out-File -FilePath $log -Append -Encoding utf8
-  $out = & node bin/tester-mcp.js run "scenarios/ebill/seed/$s.yaml" -c tester-mcp.config.yaml 2>&1 | Out-String
+  $args = @("bin/tester-mcp.js","run","scenarios/ebill/seed/$s.yaml","-c","tester-mcp.config.yaml")
+  if ($TimeoutMs -gt 0) { $args += @("--timeout","$TimeoutMs") }
+  $out = & node @args 2>&1 | Out-String
   $dur = [int]((Get-Date) - $start).TotalSeconds
   $out.TrimEnd() | Out-File -FilePath $log -Append -Encoding utf8
   "--- [$s] END (${dur}s)" | Out-File -FilePath $log -Append -Encoding utf8

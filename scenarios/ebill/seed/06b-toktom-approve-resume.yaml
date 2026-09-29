@@ -1,0 +1,23 @@
+id: seed-06b-toktom-approve-resume
+title: "[시딩] 톡돔 결재만 — 06 이 톡돔 등록까지 끝난 상태에서 이어받는다 (1900 self-loop)"
+locale: kr
+login_as: lgactuser
+tags: [seed, e2e-fullflow]
+precondition: >
+  ★ **`06` 의 뒷부분(부서장 결재)만 떼어낸 파일이다.** `06` 을 통째로 재실행하면 톡돔이 **한 건 더**
+  등록되고, 그러면 결재대기함에 같은 부제목이 둘이 되어 어느 것을 결재할지 다시 못 가른다.
+  (2026-08-28: `06` 이 톡돔 등록까지 마치고 executor 가 stalled 로 멈췄다.
+   그 시점 DB: `E2E-SEED <marker> 톡돔` · bill_type `PLENARY_VERIFICATION` · doc_no 미채번 · DMS01.)
+
+  단계는 올라가지 않는 것이 정상이다 — `PLENARY_VERIFICATION` 은 **1900 → 1900 self-loop** 다.
+  3200 으로 올리는 것은 정부이송 공문 결재(`08`)뿐이다.
+on_failure: stop
+steps:
+  - use: approve-in-approval-inbox
+    with: { doc: "E2E-SEED ${today} 톡돔", tag: "06b-a" }
+
+  # 결과 확인 — 결재가 끝나면 doc_no 가 채번된다(등록 시점에는 비어 있다).
+  # 화면으로는 결재대기함에서 사라진 것으로만 보이므로, 여기서는 본회의검증 목록 진입만 확인한다.
+  - { action: navigate, url: "/main/billMng/legalActMng/billMng" }
+  - { action: wait_for, target: { ref: content_title, description: "본회의검증(법적행위) 목록 — 1900 유지 확인" } }
+  - { action: screenshot, name: "06b-b-legalact-list" }

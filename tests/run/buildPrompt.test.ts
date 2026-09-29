@@ -190,6 +190,15 @@ describe("report calls ride in the same message as the next action", () => {
   });
 });
 
+describe("tab cleanup", () => {
+  it("closes only the executor's own tab, only on PASS, alongside report_final", () => {
+    expect(SYSTEM_CONTRACT).toContain("tabs_close_mcp");
+    expect(SYSTEM_CONTRACT).toMatch(/only when[^.]*PASS/i);
+    expect(SYSTEM_CONTRACT).toMatch(/leave[^.]*open/i);
+    expect(SYSTEM_CONTRACT).toMatch(/never close any other tab/i);
+  });
+});
+
 describe("report cadence keeps the kill-loss window small", () => {
   it("demands the report as a parallel tool_use block beside the next action and caps unreported steps", () => {
     expect(SYSTEM_CONTRACT).toMatch(/two tool_use blocks side by side/);

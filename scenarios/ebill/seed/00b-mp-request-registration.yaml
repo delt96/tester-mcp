@@ -47,10 +47,10 @@ steps:
   #   둘 다 tr:first-child 를 쓴다 — ref:datatable_row 로 text 매칭하면 다른 행이 열릴 수 있다.
   - { action: navigate, url: "/main/bill/apply" }
   - { action: wait_for, target: { ref: content_title, description: "의안제출 목록" } }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "안건명 검색칸(input_item 순서: 제출일자 / 안건상태 / 안건명)" }, value: "E2E-SEED MP" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "안건명 검색칸(input_item 순서: 제출일자 / 안건상태 / 안건명)" }, value: "E2E-SEED ${today} MP" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED MP", description: "첫 행이 E2E-SEED MP 인지 확인하고 나서 연다" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today} MP", description: "첫 행이 E2E-SEED MP 인지 확인하고 나서 연다" } }
   - { action: screenshot, name: "00b-a-filtered" }
   - { action: double_click, target: { css: ".p-datatable-tbody tr:first-child", description: "위에서 단언한 그 행을 연다 → 의안제출 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "의안제출 상세" } }
@@ -73,10 +73,10 @@ steps:
   # ── 4) 재진입 — 이게 있어야 [등록요청발송]이 활성화된다
   - { action: navigate, url: "/main/bill/apply" }
   - { action: wait_for, target: { ref: datatable, description: "목록으로 나갔다 다시 들어온다 = 새로고침 효과" } }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "안건명 검색칸" }, value: "E2E-SEED MP" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(3) input.form_control", description: "안건명 검색칸" }, value: "E2E-SEED ${today} MP" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED MP", description: "첫 행 확인" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today} MP", description: "첫 행 확인" } }
   - { action: double_click, target: { css: ".p-datatable-tbody tr:first-child", description: "상세 재진입" } }
   - { action: wait_for, target: { ref: content_title, description: "의안제출 상세" } }
   - { action: screenshot, name: "00b-e-reentered" }
@@ -111,7 +111,7 @@ steps:
   #   DML01=국가언어 — 과거 등록요청 문서의 doc_lng 과 일치한다. 위치로 찍으면 옆의 '특성'이 눌린다.
   - { action: click, target: { css: "#DML01", description: "언어 '국가언어'(DML01) — 필수*" } }
   # ⚠ 필드 이름이 '제목'이 아니라 **'부제목'**(10249) 이다. label:"제목" 매칭은 실패한다.
-  - { action: fill, target: { css: ".p-dialog .sub_title_area input.form_control.full", description: "부제목(10249) 필수* — 과거 문서는 '{안건명} 등록요청' 형식" }, value: "E2E-SEED MP 등록요청" }
+  - { action: fill, target: { css: ".p-dialog .sub_title_area input.form_control.full", description: "부제목(10249) 필수* — 과거 문서는 '{안건명} 등록요청' 형식" }, value: "E2E-SEED ${today} MP 등록요청" }
   # 수신자는 입력하지 않는다 — 모달이 열릴 때 LGRVuser 가 이미 채워져 있다(2026-08-12 실측).
   - { action: assert_visible, target: { css: ".p-dialog .recipient_area", text: "LGRVuser", description: "수신자가 자동으로 채워져 있어야 한다(법률검토 부서장)" } }
   - { action: screenshot, name: "00b-g-filled" }
@@ -127,4 +127,4 @@ steps:
   - { action: navigate, url: "/main/billMng/gdMng/billMngRc" }
   - { action: wait_for, target: { ref: content_title, description: "의안접수 목록" } }
   - { action: screenshot, name: "00b-i-gd-reception" }
-  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED MP", description: "GD 의안접수 목록에 나타남 = 등록요청이 실제로 발송되고 step 1000 이 생겼다는 증거" } }
+  - { action: assert_visible, target: { ref: datatable_row, text: "E2E-SEED ${today} MP", description: "GD 의안접수 목록에 나타남 = 등록요청이 실제로 발송되고 step 1000 이 생겼다는 증거" } }

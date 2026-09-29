@@ -1,0 +1,26 @@
+id: cmt-result-attendance-cross-committee
+title: 위원회회의 결과보고 — 타 위원회 소속 참석자의 출석여부 지정 가능 여부
+locale: ru
+login_as: cmthead
+tags: [cmtKey, mtng]
+precondition: >
+  cmthead=cmtuser1, 소속 부서 25 → cmt_id=1.
+  mtngId=865는 위원회1(cmt_id=1) 주관 위원회회의, 참석자 12명.
+  DOM 행 순서(2026-09-09 개발DB 실측, ebs_mtng_attendant 물리순):
+  1=cmt1(Малиев) 2=cmt5(Азыгалиев) 3=cmt1(cmtuser1) 4=cmt2(cmtuser2)
+  5=cmt1(Ажибаев) 6=null(менеджер) 7=cmt5 8=cmt2 9=cmt2 10=cmt1 11=cmt1 12=cmt4.
+  읽기 전용 — 저장 버튼을 누르지 않는다.
+steps:
+  # 참석자 표는 화면의 두 DataTable 중 첫째다. 둘째(:463 agendaList)와 섞이지 않도록
+  # 참석자 표를 감싼 .card.flex.flex-wrap.gap-2 로 범위를 끊는다.
+  - { action: navigate, url: "/main/mtng/cmtMtng/result?mtngId=865" }
+  - { action: wait_for, target: { css: ".card.flex.flex-wrap.gap-2 .p-datatable-tbody > tr" } }
+  - { action: screenshot, name: "attendance-table" }
+  # 기준선 — 내 위원회(cmt 1) 소속 행에는 셀렉트가 보여야 한다.
+  # 이게 안 보이면 화면·계정 전제가 깨진 것이지 요구사항 판정이 아니다.
+  - { action: assert_visible, target: { css: ".card.flex.flex-wrap.gap-2 .p-datatable-tbody > tr:nth-child(1) select", description: "1행 Малиев = cmt_id 1. 출석여부 셀렉트" } }
+  - { action: assert_visible, target: { css: ".card.flex.flex-wrap.gap-2 .p-datatable-tbody > tr:nth-child(3) select", description: "3행 cmtuser1 = cmt_id 1. 본인 행" } }
+  # 본 판정 — 요구사항대로라면 타 위원회 소속 행에도 셀렉트가 보여야 한다.
+  - { action: assert_visible, target: { css: ".card.flex.flex-wrap.gap-2 .p-datatable-tbody > tr:nth-child(2) select", description: "2행 Азыгалиев = cmt_id 5(타 위원회). 요구사항 충족 시 보임" } }
+  - { action: assert_visible, target: { css: ".card.flex.flex-wrap.gap-2 .p-datatable-tbody > tr:nth-child(4) select", description: "4행 cmtuser2 = cmt_id 2(타 위원회). 요구사항 충족 시 보임" } }
+  - { action: screenshot, name: "attendance-cross-cmt" }

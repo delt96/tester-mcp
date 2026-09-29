@@ -40,12 +40,12 @@ steps:
   - { action: screenshot, name: "06-a-legalact-list" }
   # ★ 의안명으로 먼저 좁힌다 — seed-05 1차가 필터 없이 첫 행을 집어 남의 의안을 부의했다(§2-2).
   #   input_item 순서: 의안번호 / 의안명 / 상태 (billMngList.vue:139-153). 라벨은 i18n 이라 위치로 잡는다.
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 목록 검색 버튼. 라벨이 '검색'이 아니라 **조회**다. 헤더 좌상단의 '검색' 입력칸과 다른 것이니 혼동 금지" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
+  - { action: assert_visible, target: { css: ".p-datatable-tbody tr:first-child", text: "E2E-SEED ${today}", description: "첫 행이 E2E-SEED 인지 확인하고 나서 연다" } }
   - { action: screenshot, name: "06-b-filtered" }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "E2E-SEED 의안 → 법적행위 상세" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "E2E-SEED 의안 → 법적행위 상세" } }
   - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
   - { action: screenshot, name: "06-c-detail" }
 
@@ -61,14 +61,14 @@ steps:
   # ⚠ .p-dialog 첫 체크박스는 #docModeOfficial(공문파일 첨부 모드)이라 언어가 아니다.
   #   그걸 누르면 공문파일 칸이 사라져 뒤의 upload 가 통째로 실패한다.
   - use: insert-letter-modal
-    with: { title: "E2E-SEED 톡돔", recipient: "gduser1", recipient_pick: "gduser1", approver: "legalactuser", approver_pick: "부서장", tag: "06-e" }
+    with: { title: "E2E-SEED ${today} 톡돔", recipient: "gduser1", recipient_pick: "gduser1", approver: "legalactuser", approver_pick: "부서장", tag: "06-e" }
   - { action: wait_for, target: { ref: content_title, description: "모달이 닫히고 상세로 복귀" } }
   - { action: screenshot, name: "06-f-toktom-registered" }
 
   # ── 4) 법적행위 부서장(legalactuser) — 결재
   - { use: switch-account, with: { account: lgactuser } }
   - use: approve-in-approval-inbox
-    with: { doc: "E2E-SEED 톡돔", tag: "06-g" }
+    with: { doc: "E2E-SEED ${today} 톡돔", tag: "06-g" }
 
   # ── 5) 결과 확인 — [톡돔 추가하기]가 열렸으면 result_doc_id 가 채워진 것이다
   # btnAddToktom = !isEmpty(task.resultDocId) && !isResultDocRejected (billMngDtl.vue:84)
@@ -76,10 +76,10 @@ steps:
   - { use: switch-account, with: { account: lgactstaff } }
   - { action: navigate, url: "/main/billMng/legalActMng/billMng" }
   - { action: wait_for, target: { ref: datatable, description: "법적행위 목록" } }
-  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED" }
+  - { action: fill, target: { css: ".board_search .form_row .input_item:nth-child(2) input.form_control", description: "의안명 검색칸" }, value: "E2E-SEED ${today}" }
   - { action: click, target: { css: ".search_btn button.v_btn.btn_primary", description: "[조회](10053) — 라벨은 '조회'다. 헤더의 '검색' 입력칸이 아니다" } }
   - { action: wait_for, target: { ref: datatable, description: "필터된 목록" } }
-  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED", description: "다시 상세로" } }
+  - { action: double_click, target: { ref: datatable_row, text: "E2E-SEED ${today}", description: "다시 상세로" } }
   - { action: wait_for, target: { ref: content_title, description: "법적행위 상세" } }
   - { action: screenshot, name: "06-i-after-approval" }
   - { action: assert_visible, target: { css: ".btn_group_fixed button.v_btn.btn_primary", text: "톡돔 추가하기", description: "[톡돔 추가하기](11156) 노출 = result_doc_id 채워짐. 안 보이면 결재가 실제로는 안 걸린 것" } }
